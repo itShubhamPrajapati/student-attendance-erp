@@ -28,11 +28,33 @@ import {
 } from '../types';
 import { getToken } from '../auth/authService';
 
-export const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
-    ? `${window.location.protocol}//${window.location.hostname}:8080`
-    : 'http://localhost:8080');
+export function getBackendBaseUrl(): string {
+  const envUrl =
+    import.meta.env.VITE_BACKEND_URL ||
+    import.meta.env.VITE_API_URL ||
+    '';
+
+  if (envUrl && envUrl.trim() !== '') {
+    // Strip trailing slashes and trailing /api to ensure clean `${baseUrl}${endpoint}` concatenation
+    return envUrl.trim().replace(/\/+$/, '').replace(/\/api$/, '');
+  }
+
+  // Browser hostname resolution for local and LAN testing
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:8080';
+    }
+    // If on a private LAN IP (e.g. 192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    if (/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(host)) {
+      return `${window.location.protocol}//${host}:8080`;
+    }
+  }
+
+  return 'http://localhost:8080';
+}
+
+export const BACKEND_URL = getBackendBaseUrl();
 
 /**
  * Generic fetch wrapper attaching JSON headers and Authorization Bearer token if present
@@ -49,7 +71,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+  const baseUrl = getBackendBaseUrl();
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const response = await fetch(`${baseUrl}${cleanEndpoint}`, {
     ...options,
     headers,
   });
@@ -74,7 +98,8 @@ export async function checkBackendHealth(): Promise<HealthCheckResponse> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-    const response = await fetch(`${BACKEND_URL}/api/health`, {
+    const baseUrl = getBackendBaseUrl();
+    const response = await fetch(`${baseUrl}/api/health`, {
       method: 'GET',
       headers: { Accept: 'application/json' },
       signal: controller.signal,

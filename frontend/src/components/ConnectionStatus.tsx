@@ -81,7 +81,9 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ className, c
             </div>
             <div>
               <div className="text-xs font-semibold text-slate-700">Backend API</div>
-              <div className="text-[11px] text-slate-400 font-mono">Go :8080</div>
+              <div className="text-[11px] text-slate-400 font-mono">
+                {backendConnected ? 'Go / Gin REST API' : 'Service Offline'}
+              </div>
             </div>
           </div>
 
@@ -101,7 +103,9 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ className, c
             </div>
             <div>
               <div className="text-xs font-semibold text-slate-700">Database</div>
-              <div className="text-[11px] text-slate-400 font-mono">PostgreSQL :5432</div>
+              <div className="text-[11px] text-slate-400 font-mono">
+                {databaseConnected ? 'PostgreSQL Database' : 'Database Offline'}
+              </div>
             </div>
           </div>
 

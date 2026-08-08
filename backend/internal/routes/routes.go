@@ -27,7 +27,17 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 	router.Use(gin.Recovery())
 
 	// Development CORS configuration
-	router.Use(middleware.CORSMiddleware(cfg.FrontendURL))
+	// Root-level aliases (handles cloud load balancers, direct probes, and reverse proxies)
+	router.GET("/health", handlers.HealthCheckHandler)
+	router.GET("/info", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"name":        "QR-Based Student Attendance Management System API",
+			"version":     "4.0.0 (Phase 4 QR-Based Attendance System)",
+			"environment": cfg.Environment,
+		})
+	})
+	router.POST("/login", handlers.LoginHandler(cfg, database.DB))
+	router.POST("/auth/login", handlers.LoginHandler(cfg, database.DB))
 
 	// API Group
 	api := router.Group("/api")

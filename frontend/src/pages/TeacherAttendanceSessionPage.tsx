@@ -34,9 +34,9 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
 
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Derive QR Scan URL from window origin or configured VITE_APP_URL
+  // Derive QR Scan URL from configured VITE_APP_URL or current window origin
   const appBaseUrl =
-    (import.meta as unknown as { env?: { VITE_APP_URL?: string } })?.env?.VITE_APP_URL ||
+    (import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL.trim().replace(/\/+$/, '') : '') ||
     window.location.origin;
 
   const qrScanUrl = session
