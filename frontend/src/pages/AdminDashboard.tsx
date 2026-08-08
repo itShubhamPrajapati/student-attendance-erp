@@ -188,8 +188,13 @@ export const AdminDashboard: React.FC = () => {
                 </Button>
               </Link>
               <Link to="/admin/assignments">
-                <Button size="sm" leftIcon={<UserCheck2 className="w-3.5 h-3.5" />}>
+                <Button size="sm" variant="outline" leftIcon={<UserCheck2 className="w-3.5 h-3.5" />}>
                   Assign Teacher
+                </Button>
+              </Link>
+              <Link to="/admin/attendance">
+                <Button size="sm" leftIcon={<Users className="w-3.5 h-3.5" />}>
+                  Attendance History
                 </Button>
               </Link>
             </div>
