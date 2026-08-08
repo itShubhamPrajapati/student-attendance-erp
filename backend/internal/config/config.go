@@ -13,6 +13,7 @@ type Config struct {
 	ServerPort   string
 	Environment  string
 	FrontendURL  string
+	DatabaseURL  string
 	DBHost       string
 	DBPort       int
 	DBUser       string
@@ -39,9 +40,10 @@ func LoadConfig() (*Config, error) {
 	}
 
 	cfg := &Config{
-		ServerPort:  getEnv("SERVER_PORT", "8080"),
+		ServerPort:  getEnv("PORT", getEnv("SERVER_PORT", "8080")),
 		Environment: getEnv("ENVIRONMENT", "development"),
-		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:5173"),
+		FrontendURL: getEnv("FRONTEND_URL", getEnv("CORS_ORIGIN", "http://localhost:5173")),
+		DatabaseURL: getEnv("DATABASE_URL", ""),
 		DBHost:      getEnv("DATABASE_HOST", "localhost"),
 		DBPort:      dbPort,
 		DBUser:      getEnv("DATABASE_USER", "postgres"),
@@ -55,8 +57,11 @@ func LoadConfig() (*Config, error) {
 	return cfg, nil
 }
 
-// GetDSN returns the PostgreSQL connection string for GORM
+// GetDSN returns the PostgreSQL connection string for GORM (supports Neon DATABASE_URL or individual params)
 func (c *Config) GetDSN() string {
+	if c.DatabaseURL != "" {
+		return c.DatabaseURL
+	}
 	return fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s TimeZone=UTC",
 		c.DBHost, c.DBPort, c.DBUser, c.DBPassword, c.DBName, c.DBSSLMode,
@@ -65,6 +70,9 @@ func (c *Config) GetDSN() string {
 
 // GetSafeDSN returns the connection string with the password masked for safe logging
 func (c *Config) GetSafeDSN() string {
+	if c.DatabaseURL != "" {
+		return "[DATABASE_URL configured]"
+	}
 	return fmt.Sprintf(
 		"host=%s port=%d user=%s dbname=%s sslmode=%s",
 		c.DBHost, c.DBPort, c.DBUser, c.DBName, c.DBSSLMode,

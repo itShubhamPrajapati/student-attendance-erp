@@ -29,7 +29,7 @@ import {
 import { getToken } from '../auth/authService';
 
 export const BACKEND_URL =
-  (import.meta as unknown as { env?: { VITE_BACKEND_URL?: string } })?.env?.VITE_BACKEND_URL ||
+  import.meta.env.VITE_BACKEND_URL ||
   (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
     ? `${window.location.protocol}//${window.location.hostname}:8080`
     : 'http://localhost:8080');

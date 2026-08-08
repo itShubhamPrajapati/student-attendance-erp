@@ -336,3 +336,54 @@ Follow this exact sequence for your faculty presentation:
    - **Session Expiration Guard**: Wait for the 1-minute countdown timer to reach `00:00`. Attempt to scan with a second student account (`priya.patel@example.com`). The server rejects it with `410 Gone`: `"This attendance session has expired"`.
    - **Teacher Session Records**: On the Teacher portal, click **View Attendance Report** to see the full classroom roster: `Rahul Sharma` is marked `PRESENT` with timestamp, and the remaining 9 students are marked `ABSENT`.
    - **Admin Attendance Audit**: Log back in as Admin and open `http://localhost:5173/admin/attendance` to demonstrate campus-wide audit transparency.
+
+---
+
+## 11. Production Cloud Deployment (Neon + Render + Vercel)
+
+### Architecture Overview
+* **Database**: [Neon PostgreSQL](https://neon.tech) (Serverless PostgreSQL with SSL)
+* **Backend API**: [Render](https://render.com) (Go Gin Web Service running `backend/`)
+* **Frontend UI**: [Vercel](https://vercel.com) (React + Vite SPA with rewrites in `frontend/`)
+
+### Step 1: Create Neon PostgreSQL Database
+1. Sign up at [Neon](https://neon.tech) and create a project named `qr-attendance`.
+2. Copy your connection string (`DATABASE_URL`), formatted as:
+   ```text
+   postgres://neondb_owner:YOUR_PASSWORD@ep-xyz-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+
+### Step 2: Deploy Go Backend on Render
+1. Create a new **Web Service** on [Render](https://render.com) linked to your GitHub repository.
+2. Configure:
+   * **Root Directory**: `backend`
+   * **Runtime**: `Go`
+   * **Build Command**: `go build -o server ./cmd/server`
+   * **Start Command**: `./server`
+   * **Health Check Path**: `/api/health`
+3. Add Environment Variables in the Render Dashboard:
+   * `ENVIRONMENT` = `production`
+   * `DATABASE_URL` = `your_neon_connection_string`
+   * `JWT_SECRET` = `generate_a_secure_256_bit_secret`
+   * `FRONTEND_URL` = `https://your-frontend-app.vercel.app`
+   * `JWT_EXPIRATION_HOURS` = `24`
+4. Click **Deploy Web Service** and note your Render API URL (e.g. `https://qr-attendance-api.onrender.com`).
+
+### Step 3: Deploy Frontend on Vercel
+1. Import your GitHub repository into [Vercel](https://vercel.com).
+2. Configure:
+   * **Framework Preset**: `Vite`
+   * **Root Directory**: `frontend`
+   * **Build Command**: `npm run build`
+   * **Output Directory**: `dist`
+3. Add Environment Variables in the Vercel Dashboard:
+   * `VITE_BACKEND_URL` = `https://qr-attendance-api.onrender.com`
+   * `VITE_APP_URL` = `https://your-app-name.vercel.app`
+4. Click **Deploy**.
+
+### Step 4: Run Production Seed (Optional / Demo)
+To seed initial faculty, subjects, and classroom demo data on Neon:
+```bash
+cd backend
+DATABASE_URL="your_neon_connection_string" go run ./cmd/seed
+```

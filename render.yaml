@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: qr-attendance-api
+    runtime: go
+    rootDir: backend
+    plan: free
+    buildCommand: go build -o server ./cmd/server
+    startCommand: ./server
+    healthCheckPath: /api/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: JWT_EXPIRATION_HOURS
+        value: 24
