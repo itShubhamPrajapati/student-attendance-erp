@@ -1,29 +1,50 @@
 import React from 'react';
-import { Clock, QrCode, CheckSquare, Calendar, Users, Play } from 'lucide-react';
+import { School, Clock, QrCode, CheckSquare, Calendar, Users, LogOut } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
+import { useAuth } from '../auth/AuthContext';
 
 export const TeacherDashboard: React.FC = () => {
+  const { user, logout } = useAuth();
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Header */}
       <PageHeader
-        title="Faculty & Teacher Workspace"
-        description="Launch live QR attendance sessions for your assigned lecture periods and view real-time student check-ins."
+        title={`Welcome, ${user?.name || 'Faculty Member'}`}
+        description="Faculty portal for classroom lectures, live QR attendance generation, and student check-in records."
         badge={
           <Badge variant="warning" withDot>
             Teacher Portal
           </Badge>
         }
         actions={
-          <Button size="sm" leftIcon={<Play className="w-3.5 h-3.5" />} disabled title="Activated in Phase 2">
-            Start Live Attendance Session
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="neutral" className="font-mono text-xs">
+              {user?.email}
+            </Badge>
+            <Button variant="outline" size="sm" onClick={logout} leftIcon={<LogOut className="w-3.5 h-3.5" />}>
+              Sign Out
+            </Button>
+          </div>
         }
       />
+
+      {/* Scope Banner */}
+      <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-3">
+        <div className="w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 flex-shrink-0 mt-0.5">
+          <School className="w-4 h-4" />
+        </div>
+        <div className="space-y-1">
+          <span className="font-bold block">Phase 2 Authentication Verified</span>
+          <p className="text-amber-800 leading-relaxed">
+            Your Teacher account has successfully authenticated with JWT session tokens. Dynamic QR code generation, timetable periods, and real-time attendance marking will be activated in upcoming phases.
+          </p>
+        </div>
+      </div>
 
       {/* Grid of 3 Main Teacher Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -49,8 +70,8 @@ export const TeacherDashboard: React.FC = () => {
               <EmptyState
                 icon={<Calendar className="w-5 h-5" />}
                 title="No classes scheduled today"
-                description="Timetable and lecture batch mapping will be populated in Phase 2."
-                badgeText="Phase 2 Feature"
+                description="Timetable mapping and classroom batches will be enabled in upcoming phases."
+                badgeText="Phase 3 Feature"
                 className="p-6"
               />
             </CardContent>
@@ -79,8 +100,8 @@ export const TeacherDashboard: React.FC = () => {
               <EmptyState
                 icon={<QrCode className="w-5 h-5" />}
                 title="No active QR session"
-                description="Dynamic QR token generation and live projection will be enabled in Phase 2."
-                badgeText="Phase 2 Feature"
+                description="Dynamic rotating QR code generation and projector display will be available in upcoming phases."
+                badgeText="Phase 3 Feature"
                 className="p-6"
               />
             </CardContent>
@@ -109,8 +130,8 @@ export const TeacherDashboard: React.FC = () => {
               <EmptyState
                 icon={<Users className="w-5 h-5" />}
                 title="No records found"
-                description="Exportable attendance reports, percentage calculations, and session logs will be available in Phase 2."
-                badgeText="Phase 2 Feature"
+                description="Exportable attendance reports, percentage calculations, and session logs will be available in upcoming phases."
+                badgeText="Phase 3 Feature"
                 className="p-6"
               />
             </CardContent>

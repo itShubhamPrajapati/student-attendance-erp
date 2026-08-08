@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"qr-attendance-backend/internal/config"
 	"qr-attendance-backend/internal/database"
@@ -19,26 +21,37 @@ func main() {
 
 	// 2. Initialize PostgreSQL Database Connection
 	dbStatus := "connected"
-	_, err = database.InitDatabase(cfg)
+	db, err := database.InitDatabase(cfg)
 	if err != nil {
 		dbStatus = "disconnected"
 		log.Printf("[WARNING] Database connection initialization failed: %v", err)
 		log.Printf("[INFO] Database Target: %s", cfg.GetSafeDSN())
+	} else {
+		// 3. Execute SQL Migrations
+		migrationsPath := "migrations"
+		if _, err := os.Stat(migrationsPath); os.IsNotExist(err) {
+			// Fallback if executed from root directory
+			migrationsPath = filepath.Join("backend", "migrations")
+		}
+
+		if err := database.RunMigrations(db, migrationsPath); err != nil {
+			log.Printf("[ERROR] SQL Migration execution failed: %v", err)
+		}
 	}
 
-	// 3. Print Clean Startup Logging Banner
+	// 4. Print Clean Startup Logging Banner
 	fmt.Println("==================================================")
-	fmt.Println("QR Attendance API")
+	fmt.Println("QR Attendance API — Phase 2 Auth & Management")
 	fmt.Printf("Environment: %s\n", cfg.Environment)
 	fmt.Printf("Server: :%s\n", cfg.ServerPort)
 	fmt.Printf("Database: %s\n", dbStatus)
 	fmt.Printf("Health Endpoint: http://localhost:%s/api/health\n", cfg.ServerPort)
 	fmt.Println("==================================================")
 
-	// 4. Setup Gin HTTP Router
+	// 5. Setup Gin HTTP Router
 	router := routes.SetupRouter(cfg)
 
-	// 5. Start HTTP Server
+	// 6. Start HTTP Server
 	serverAddr := fmt.Sprintf(":%s", cfg.ServerPort)
 	server := &http.Server{
 		Addr:    serverAddr,

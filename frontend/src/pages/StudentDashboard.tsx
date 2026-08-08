@@ -1,34 +1,50 @@
 import React from 'react';
-import { QrCode, BarChart3, Clock, Sparkles } from 'lucide-react';
+import { GraduationCap, QrCode, BarChart3, Clock, Sparkles, LogOut } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
+import { useAuth } from '../auth/AuthContext';
 
 export const StudentDashboard: React.FC = () => {
+  const { user, logout } = useAuth();
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Header */}
       <PageHeader
-        title="Student Attendance Portal"
-        description="Monitor your personal attendance percentage across subjects and prepare to scan lecture QR codes."
+        title={`Hello, ${user?.name || 'Student'}`}
+        description="Student attendance portal. Monitor your attendance percentage across registered courses and scan classroom QR codes."
         badge={
           <Badge variant="success" withDot>
-            Student Profile
+            Student Account
           </Badge>
         }
         actions={
-          <Button
-            size="sm"
-            leftIcon={<QrCode className="w-4 h-4" />}
-            disabled
-            title="QR scanner camera will be activated in Phase 2"
-          >
-            Scan Class QR Code
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="neutral" className="font-mono text-xs">
+              {user?.email}
+            </Badge>
+            <Button variant="outline" size="sm" onClick={logout} leftIcon={<LogOut className="w-3.5 h-3.5" />}>
+              Sign Out
+            </Button>
+          </div>
         }
       />
+
+      {/* Scope Banner */}
+      <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200/80 text-emerald-900 text-xs flex items-start gap-3">
+        <div className="w-7 h-7 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 flex-shrink-0 mt-0.5">
+          <GraduationCap className="w-4 h-4" />
+        </div>
+        <div className="space-y-1">
+          <span className="font-bold block">Phase 2 Authentication Verified</span>
+          <p className="text-emerald-800 leading-relaxed">
+            Your Student account has successfully authenticated with JWT session tokens. Mobile camera QR scanning, attendance percentage calculation, and class check-in history will be activated in upcoming phases.
+          </p>
+        </div>
+      </div>
 
       {/* Main Student Overview Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -55,18 +71,18 @@ export const StudentDashboard: React.FC = () => {
                 -- %
               </div>
               <p className="text-xs text-slate-500 mt-1 font-medium">
-                Overall Attendance (Placeholder)
+                Overall Attendance Metric
               </p>
               <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100/60 text-indigo-800 text-[11px]">
                 <Sparkles className="w-3 h-3" />
-                <span>Computed automatically upon session check-ins</span>
+                <span>Computed automatically from attendance records in Phase 3</span>
               </div>
             </div>
 
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-slate-600 font-medium">
-                <span>College Threshold Requirement</span>
-                <span>75.0% Minimum</span>
+                <span>College Minimum Requirement</span>
+                <span>75.0%</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                 <div className="bg-indigo-600 h-2 rounded-full w-3/4 opacity-30" />
@@ -96,9 +112,9 @@ export const StudentDashboard: React.FC = () => {
             <CardContent className="pt-2">
               <EmptyState
                 icon={<QrCode className="w-6 h-6" />}
-                title="Camera QR Scanner Placeholder"
-                description="In Phase 2, this button will open your mobile device camera to scan the teacher's dynamic classroom QR code."
-                badgeText="Phase 2 Scope"
+                title="Camera QR Scanner"
+                description="In Phase 3, this button will open your mobile device camera to scan the teacher's dynamic classroom QR code."
+                badgeText="Phase 3 Feature"
                 action={
                   <Button variant="outline" size="sm" disabled leftIcon={<QrCode className="w-3.5 h-3.5" />}>
                     Open Scanner (Preview)
@@ -132,8 +148,8 @@ export const StudentDashboard: React.FC = () => {
               <EmptyState
                 icon={<Clock className="w-6 h-6" />}
                 title="No attendance records"
-                description="Your past attendance timestamps, subject codes, and lecturer approvals will be listed here in Phase 2."
-                badgeText="Phase 2 Scope"
+                description="Your past lecture attendance timestamps, course subject codes, and check-in verifications will appear here."
+                badgeText="Phase 3 Feature"
                 className="p-6"
               />
             </CardContent>

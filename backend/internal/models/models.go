@@ -4,83 +4,93 @@ import (
 	"time"
 )
 
-// Role defines user roles in the system
-type Role string
-
+// Role constants
 const (
-	RoleAdmin   Role = "admin"
-	RoleTeacher Role = "teacher"
-	RoleStudent Role = "student"
+	RoleAdmin   = "ADMIN"
+	RoleTeacher = "TEACHER"
+	RoleStudent = "STUDENT"
 )
 
-// User represents the base user entity for authentication (Phase 2 ready)
+// User represents the base authentication entity
 type User struct {
-	ID           uint      `gorm:"primaryKey" json:"id"`
-	Name         string    `gorm:"size:100;not null" json:"name"`
-	Email        string    `gorm:"size:150;uniqueIndex;not null" json:"email"`
-	PasswordHash string    `gorm:"size:255;not null" json:"-"` // Never expose in JSON
-	Role         Role      `gorm:"size:20;not null;default:'student'" json:"role"`
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Name         string    `gorm:"type:varchar(100);not null" json:"name"`
+	Email        string    `gorm:"type:varchar(150);uniqueIndex;not null" json:"email"`
+	PasswordHash string    `gorm:"type:text;not null" json:"-"` // Never expose in JSON responses
+	Role         string    `gorm:"type:varchar(20);not null" json:"role"`
+	IsActive     bool      `gorm:"default:true;not null" json:"is_active"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
-// Student profile linked to User (Phase 2 ready)
+// Student profile entity linked to User
 type Student struct {
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	UserID     uint      `gorm:"not null;uniqueIndex" json:"user_id"`
-	User       User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	RollNumber string    `gorm:"size:50;uniqueIndex;not null" json:"roll_number"`
-	ClassID    uint      `gorm:"not null" json:"class_id"`
-	Class      Class     `gorm:"foreignKey:ClassID" json:"class,omitempty"`
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID     string    `gorm:"type:uuid;uniqueIndex;not null" json:"user_id"`
+	User       User      `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
+	RollNumber string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"roll_number"`
+	Department string    `gorm:"type:varchar(100);not null" json:"department"`
+	Semester   int       `gorm:"not null" json:"semester"`
+	Section    string    `gorm:"type:varchar(20);not null" json:"section"`
 	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
-// Teacher profile linked to User (Phase 2 ready)
+// Teacher profile entity linked to User
 type Teacher struct {
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	UserID     uint      `gorm:"not null;uniqueIndex" json:"user_id"`
-	User       User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	Department string    `gorm:"size:100;not null" json:"department"`
-	EmployeeID string    `gorm:"size:50;uniqueIndex;not null" json:"employee_id"`
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID     string    `gorm:"type:uuid;uniqueIndex;not null" json:"user_id"`
+	User       User      `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
+	EmployeeID string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"employee_id"`
+	Department string    `gorm:"type:varchar(100);not null" json:"department"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// StudentResponse represents the student object for Admin API responses
+type StudentResponse struct {
+	ID         string    `json:"id"`
+	UserID     string    `json:"user_id"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email"`
+	RollNumber string    `json:"roll_number"`
+	Department string    `json:"department"`
+	Semester   int       `json:"semester"`
+	Section    string    `json:"section"`
+	IsActive   bool      `json:"is_active"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-// Subject represents an academic course (Phase 2 ready)
-type Subject struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
-	Code        string    `gorm:"size:20;uniqueIndex;not null" json:"code"`
-	Name        string    `gorm:"size:100;not null" json:"name"`
-	Description string    `gorm:"size:255" json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-}
-
-// Class represents a classroom or batch (Phase 2 ready)
-type Class struct {
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	Name       string    `gorm:"size:100;not null" json:"name"`
-	Section    string    `gorm:"size:20" json:"section"`
-	Department string    `gorm:"size:100" json:"department"`
+// TeacherResponse represents the teacher object for Admin API responses
+type TeacherResponse struct {
+	ID         string    `json:"id"`
+	UserID     string    `json:"user_id"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email"`
+	EmployeeID string    `json:"employee_id"`
+	Department string    `json:"department"`
+	IsActive   bool      `json:"is_active"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-// AttendanceSession represents a live QR attendance session created by a Teacher (Phase 2 ready)
-type AttendanceSession struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
-	TeacherID   uint      `gorm:"not null" json:"teacher_id"`
-	ClassID     uint      `gorm:"not null" json:"class_id"`
-	SubjectID   uint      `gorm:"not null" json:"subject_id"`
-	SessionCode string    `gorm:"size:100;uniqueIndex;not null" json:"session_code"`
-	IsActive    bool      `gorm:"default:true" json:"is_active"`
-	StartTime   time.Time `json:"start_time"`
-	EndTime     time.Time `json:"end_time"`
-	CreatedAt   time.Time `json:"created_at"`
+// UserSafeResponse represents user info returned upon login and /api/auth/me
+type UserSafeResponse struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+	IsActive bool   `json:"is_active"`
 }
 
-// Attendance records a student's check-in for a session (Phase 2 ready)
-type Attendance struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`
-	SessionID uint      `gorm:"not null;index" json:"session_id"`
-	StudentID uint      `gorm:"not null;index" json:"student_id"`
-	Status    string    `gorm:"size:20;default:'PRESENT'" json:"status"`
-	MarkedAt  time.Time `json:"marked_at"`
+// DashboardStatsResponse represents aggregated counts for the Admin console
+type DashboardStatsResponse struct {
+	Success  bool `json:"success"`
+	Students struct {
+		Total  int64 `json:"total"`
+		Active int64 `json:"active"`
+	} `json:"students"`
+	Teachers struct {
+		Total  int64 `json:"total"`
+		Active int64 `json:"active"`
+	} `json:"teachers"`
 }

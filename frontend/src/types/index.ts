@@ -1,4 +1,48 @@
-export type UserRole = 'admin' | 'teacher' | 'student';
+export type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  is_active: boolean;
+}
+
+export interface Student {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  roll_number: string;
+  department: string;
+  semester: number;
+  section: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Teacher {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  employee_id: string;
+  department: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface DashboardStats {
+  success: boolean;
+  students: {
+    total: number;
+    active: number;
+  };
+  teachers: {
+    total: number;
+    active: number;
+  };
+}
 
 export interface HealthCheckResponse {
   status: 'ok' | 'error';
@@ -14,46 +58,42 @@ export interface ConnectionState {
   error?: string;
 }
 
-export interface NavItem {
-  name: string;
-  path: string;
-  iconName: string;
-  badge?: string;
-  roles?: UserRole[];
-}
-
-// Architecture Types Prepared for Future Phases
-export interface UserPlaceholder {
-  id: number;
+export interface CreateStudentPayload {
   name: string;
   email: string;
-  role: UserRole;
-  createdAt: string;
-}
-
-export interface StudentPlaceholder {
-  id: number;
-  rollNumber: string;
-  name: string;
-  className: string;
-  attendancePercentage: number;
-}
-
-export interface ClassPlaceholder {
-  id: number;
-  name: string;
-  section: string;
+  password?: string;
+  roll_number: string;
   department: string;
-  totalStudents: number;
+  semester: number;
+  section: string;
 }
 
-export interface AttendanceSessionPlaceholder {
-  id: number;
-  className: string;
-  subjectName: string;
-  teacherName: string;
-  sessionCode: string;
-  isActive: boolean;
-  startTime: string;
-  totalPresent: number;
+export interface UpdateStudentPayload {
+  name: string;
+  email: string;
+  roll_number: string;
+  department: string;
+  semester: number;
+  section: string;
+}
+
+export interface CreateTeacherPayload {
+  name: string;
+  email: string;
+  password?: string;
+  employee_id: string;
+  department: string;
+}
+
+export interface UpdateTeacherPayload {
+  name: string;
+  email: string;
+  employee_id: string;
+  department: string;
+}
+
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  message?: string;
+  data?: T;
 }

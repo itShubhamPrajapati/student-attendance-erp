@@ -3,9 +3,15 @@ import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { AuthLayout } from './layouts/AuthLayout';
+import { AuthProvider } from './auth/AuthContext';
+import { ProtectedRoute } from './auth/ProtectedRoute';
+
+// Pages
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminStudentsPage } from './pages/AdminStudentsPage';
+import { AdminTeachersPage } from './pages/AdminTeachersPage';
 import { TeacherDashboard } from './pages/TeacherDashboard';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -18,69 +24,101 @@ const PublicLayout: React.FC = () => (
       <Outlet />
     </main>
     <footer className="border-t border-slate-200/80 bg-white py-4 px-6 text-center text-xs text-slate-500">
-      QR-Based Student Attendance Management System &bull; Phase 1 Foundation &bull; College Field Project
+      QR-Based Student Attendance Management System &bull; Phase 2 Auth & Management &bull; College Field Project
     </footer>
   </div>
 );
 
 export const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public & Landing Pages */}
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<LandingPage />} />
-        </Route>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public & Landing Pages */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<LandingPage />} />
+          </Route>
 
-        {/* Auth Route */}
-        <Route
-          path="/login"
-          element={
-            <AuthLayout>
-              <LoginPage />
-            </AuthLayout>
-          }
-        />
+          {/* Auth Route */}
+          <Route
+            path="/login"
+            element={
+              <AuthLayout>
+                <LoginPage />
+              </AuthLayout>
+            }
+          />
 
-        {/* Role-Based Placeholder Dashboard Routes */}
-        <Route
-          path="/admin"
-          element={
-            <DashboardLayout role="admin">
-              <AdminDashboard />
-            </DashboardLayout>
-          }
-        />
+          {/* Protected Admin Routes (ADMIN only) */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <DashboardLayout role="ADMIN">
+                  <AdminDashboard />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/teacher"
-          element={
-            <DashboardLayout role="teacher">
-              <TeacherDashboard />
-            </DashboardLayout>
-          }
-        />
+          <Route
+            path="/admin/students"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <DashboardLayout role="ADMIN">
+                  <AdminStudentsPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/student"
-          element={
-            <DashboardLayout role="student">
-              <StudentDashboard />
-            </DashboardLayout>
-          }
-        />
+          <Route
+            path="/admin/teachers"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <DashboardLayout role="ADMIN">
+                  <AdminTeachersPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
 
-        {/* 404 Fallback */}
-        <Route
-          path="*"
-          element={
-            <AuthLayout>
-              <NotFoundPage />
-            </AuthLayout>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+          {/* Protected Teacher Route (TEACHER only) */}
+          <Route
+            path="/teacher"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER']}>
+                <DashboardLayout role="TEACHER">
+                  <TeacherDashboard />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Protected Student Route (STUDENT only) */}
+          <Route
+            path="/student"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <DashboardLayout role="STUDENT">
+                  <StudentDashboard />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* 404 Fallback */}
+          <Route
+            path="*"
+            element={
+              <AuthLayout>
+                <NotFoundPage />
+              </AuthLayout>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 };
 

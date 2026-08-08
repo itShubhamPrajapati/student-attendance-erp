@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { QrCode, X, LogIn, ExternalLink } from 'lucide-react';
+import { QrCode, X, LogIn, LogOut, ExternalLink } from 'lucide-react';
 import { ConnectionStatus } from './ConnectionStatus';
+import { Badge } from './Badge';
+import { useAuth } from '../auth/AuthContext';
 import { cn } from '../utils/cn';
 
 export interface MobileMenuProps {
@@ -12,6 +14,7 @@ export interface MobileMenuProps {
 
 export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, navLinks }) => {
   const location = useLocation();
+  const { user, isAuthenticated, logout } = useAuth();
   const prevPathRef = useRef(location.pathname);
 
   // Close drawer ONLY when route path actually changes
@@ -65,10 +68,26 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, navLink
           </button>
         </div>
 
+        {/* User Info If Authenticated */}
+        {isAuthenticated && user && (
+          <div className="my-3 p-3 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-900">{user.name}</p>
+              <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+            </div>
+            <Badge
+              variant={user.role === 'ADMIN' ? 'info' : user.role === 'TEACHER' ? 'warning' : 'success'}
+              className="text-[10px]"
+            >
+              {user.role}
+            </Badge>
+          </div>
+        )}
+
         {/* Links Navigation */}
-        <div className="mt-4 flex-1 space-y-1.5 overflow-y-auto">
+        <div className="mt-2 flex-1 space-y-1.5 overflow-y-auto">
           <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Navigation
+            Navigation Menu
           </p>
 
           {navLinks.map((link) => {
@@ -92,18 +111,31 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, navLink
           })}
 
           <div className="pt-3 border-t border-slate-100">
-            <Link
-              to="/login"
-              onClick={onClose}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition"
-            >
-              <LogIn className="h-4 w-4" />
-              <span>Sign In / Login</span>
-            </Link>
+            {isAuthenticated ? (
+              <button
+                onClick={() => {
+                  logout();
+                  onClose();
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-50 border border-rose-200/80 px-4 py-3 text-sm font-medium text-rose-700 hover:bg-rose-100 active:scale-[0.98] transition"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sign Out</span>
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                onClick={onClose}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition"
+              >
+                <LogIn className="h-4 w-4" />
+                <span>Sign In / Login</span>
+              </Link>
+            )}
           </div>
         </div>
 
-        {/* Developer Verification Status Widget at Bottom of Mobile Menu */}
+        {/* Developer Verification Status Widget */}
         <div className="mt-auto pt-4 border-t border-slate-100">
           <div className="rounded-xl bg-slate-50 p-3 border border-slate-200/60">
             <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600 mb-2">

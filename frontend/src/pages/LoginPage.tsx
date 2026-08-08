@@ -1,30 +1,87 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { QrCode, Lock, Mail, AlertTriangle, ArrowLeft, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { QrCode, Lock, Mail, AlertTriangle, ArrowLeft, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/Card';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
-import { Badge } from '../components/Badge';
+import { useAuth } from '../auth/AuthContext';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [devMessage, setDevMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'teacher' | 'student'>('student');
+  const [selectedRolePreview, setSelectedRolePreview] = useState<'ADMIN' | 'TEACHER' | 'STUDENT'>('ADMIN');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { login, isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // If already logged in, redirect to the user's role dashboard
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+      if (from && from !== '/login') {
+        navigate(from, { replace: true });
+        return;
+      }
+
+      if (user.role === 'ADMIN') {
+        navigate('/admin', { replace: true });
+      } else if (user.role === 'TEACHER') {
+        navigate('/teacher', { replace: true });
+      } else {
+        navigate('/student', { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, navigate, location]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setDevMessage(null);
+    setErrorMessage(null);
 
-    // Simulate submission delay and display authentic Phase 1 status message without fake login
-    setTimeout(() => {
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setErrorMessage('Please enter your email address.');
+      return;
+    }
+    if (!password) {
+      setErrorMessage('Please enter your password.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const authenticatedUser = await login(cleanEmail, password);
+      if (authenticatedUser.role === 'ADMIN') {
+        navigate('/admin', { replace: true });
+      } else if (authenticatedUser.role === 'TEACHER') {
+        navigate('/teacher', { replace: true });
+      } else {
+        navigate('/student', { replace: true });
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unable to connect to the server. Please try again.';
+      setErrorMessage(msg);
+    } finally {
       setIsSubmitting(false);
-      setDevMessage(
-        'Authentication and JWT session issuance will be activated in Phase 2. You can explore the placeholder dashboards directly from the navigation links.'
-      );
-    }, 600);
+    }
+  };
+
+  const handleFillDemo = (role: 'ADMIN' | 'TEACHER' | 'STUDENT') => {
+    setSelectedRolePreview(role);
+    setErrorMessage(null);
+    if (role === 'ADMIN') {
+      setEmail('admin@example.com');
+      setPassword('ChangeThisPassword123');
+    } else if (role === 'TEACHER') {
+      setEmail('teacher@example.com');
+      setPassword('teacher123');
+    } else {
+      setEmail('student@example.com');
+      setPassword('student123');
+    }
   };
 
   return (
@@ -50,24 +107,27 @@ export const LoginPage: React.FC = () => {
         </CardHeader>
 
         <CardContent className="space-y-4 pt-2">
-          {/* Role Preview Selector */}
+          {/* Role Preview & Auto-fill Selector */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-              Target Role Preview
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Select Demo Role
+              </label>
+              <span className="text-[10px] text-slate-400">Click to pre-fill</span>
+            </div>
             <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-100 border border-slate-200/60">
-              {(['student', 'teacher', 'admin'] as const).map((role) => (
+              {(['ADMIN', 'TEACHER', 'STUDENT'] as const).map((role) => (
                 <button
                   key={role}
                   type="button"
-                  onClick={() => setSelectedRole(role)}
+                  onClick={() => handleFillDemo(role)}
                   className={`py-1.5 px-2 text-xs font-medium rounded-lg capitalize transition ${
-                    selectedRole === role
+                    selectedRolePreview === role
                       ? 'bg-white text-indigo-700 shadow-xs font-semibold'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  {role}
+                  {role.toLowerCase()}
                 </button>
               ))}
             </div>
@@ -78,9 +138,12 @@ export const LoginPage: React.FC = () => {
               id="email"
               label="College Email Address"
               type="email"
-              placeholder="e.g. roll_or_faculty@college.edu"
+              placeholder="e.g. admin@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errorMessage) setErrorMessage(null);
+              }}
               leftIcon={<Mail className="w-4 h-4" />}
               required
             />
@@ -91,31 +154,24 @@ export const LoginPage: React.FC = () => {
               isPassword
               placeholder="Enter your account password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errorMessage) setErrorMessage(null);
+              }}
               leftIcon={<Lock className="w-4 h-4" />}
               required
             />
 
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                <span>Remember session</span>
-              </label>
-              <span className="text-slate-400 hover:underline cursor-not-allowed" title="Available in Phase 2">
-                Forgot password?
-              </span>
-            </div>
-
-            {/* Development Notice Alert */}
-            {devMessage ? (
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2.5 animate-in fade-in">
-                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <span className="font-semibold block">Phase 1 Development Mode</span>
-                  <p className="text-[11px] leading-relaxed text-amber-800">{devMessage}</p>
+            {/* Error Message Display */}
+            {errorMessage && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2.5 animate-in fade-in" role="alert">
+                <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-semibold block">Authentication Error</span>
+                  <p className="text-[11px] leading-relaxed text-rose-800">{errorMessage}</p>
                 </div>
               </div>
-            ) : null}
+            )}
 
             <Button
               type="submit"
@@ -127,27 +183,11 @@ export const LoginPage: React.FC = () => {
             </Button>
           </form>
 
-          {/* Quick Direct Links to Role Dashboards for Demonstration */}
-          <div className="pt-3 border-t border-slate-100 text-center space-y-2">
-            <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">
-              Quick Demonstration Shortcuts:
-            </p>
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              <Link to="/admin">
-                <Badge variant="info" className="hover:bg-blue-100 transition cursor-pointer">
-                  Go to /admin
-                </Badge>
-              </Link>
-              <Link to="/teacher">
-                <Badge variant="warning" className="hover:bg-amber-100 transition cursor-pointer">
-                  Go to /teacher
-                </Badge>
-              </Link>
-              <Link to="/student">
-                <Badge variant="success" className="hover:bg-emerald-100 transition cursor-pointer">
-                  Go to /student
-                </Badge>
-              </Link>
+          {/* Quick Notice */}
+          <div className="pt-3 border-t border-slate-100 text-center space-y-1.5">
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Admin seed credentials: <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">admin@example.com</code></span>
             </div>
           </div>
         </CardContent>
@@ -156,7 +196,7 @@ export const LoginPage: React.FC = () => {
       {/* Security Banner */}
       <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 text-center">
         <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
-        <span>GORM & PostgreSQL Secure College Portal Architecture</span>
+        <span>GORM & PostgreSQL JWT Authentication</span>
       </div>
     </div>
   );

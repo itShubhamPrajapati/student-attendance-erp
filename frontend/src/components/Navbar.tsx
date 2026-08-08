@@ -1,20 +1,43 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { QrCode, Menu, X, Shield, GraduationCap, School, LogIn, Home } from 'lucide-react';
+import { QrCode, Menu, X, Shield, GraduationCap, School, LogIn, LogOut, Home, Users } from 'lucide-react';
 import { ConnectionStatus } from './ConnectionStatus';
 import { MobileMenu } from './MobileMenu';
+import { Badge } from './Badge';
+import { useAuth } from '../auth/AuthContext';
 import { cn } from '../utils/cn';
 
 export const Navbar: React.FC = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const location = useLocation();
+  const { user, isAuthenticated, logout } = useAuth();
 
-  const navLinks = [
-    { name: 'Home', path: '/', icon: <Home className="w-4 h-4" /> },
-    { name: 'Admin', path: '/admin', icon: <Shield className="w-4 h-4" /> },
-    { name: 'Teacher', path: '/teacher', icon: <School className="w-4 h-4" /> },
-    { name: 'Student', path: '/student', icon: <GraduationCap className="w-4 h-4" /> },
-  ];
+  const getNavLinks = () => {
+    if (!isAuthenticated || !user) {
+      return [
+        { name: 'Home', path: '/', icon: <Home className="w-4 h-4" /> },
+        { name: 'Admin', path: '/admin', icon: <Shield className="w-4 h-4" /> },
+        { name: 'Teacher', path: '/teacher', icon: <School className="w-4 h-4" /> },
+        { name: 'Student', path: '/student', icon: <GraduationCap className="w-4 h-4" /> },
+      ];
+    }
+
+    if (user.role === 'ADMIN') {
+      return [
+        { name: 'Dashboard', path: '/admin', icon: <Shield className="w-4 h-4" /> },
+        { name: 'Students', path: '/admin/students', icon: <Users className="w-4 h-4" /> },
+        { name: 'Teachers', path: '/admin/teachers', icon: <School className="w-4 h-4" /> },
+      ];
+    }
+
+    if (user.role === 'TEACHER') {
+      return [{ name: 'Teacher Portal', path: '/teacher', icon: <School className="w-4 h-4" /> }];
+    }
+
+    return [{ name: 'Student Portal', path: '/student', icon: <GraduationCap className="w-4 h-4" /> }];
+  };
+
+  const navLinks = getNavLinks();
 
   return (
     <>
@@ -62,24 +85,47 @@ export const Navbar: React.FC = () => {
             })}
           </nav>
 
-          {/* Right Actions & Health Pill */}
+          {/* Right Actions & Auth Status */}
           <div className="flex items-center gap-3">
             <div className="hidden lg:block">
               <ConnectionStatus compact />
             </div>
 
-            <Link
-              to="/login"
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-medium transition shadow-sm',
-                location.pathname === '/login'
-                  ? 'bg-indigo-600 text-white shadow'
-                  : 'bg-slate-900 text-white hover:bg-slate-800'
-              )}
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Login</span>
-            </Link>
+            {isAuthenticated && user ? (
+              <div className="flex items-center gap-2.5">
+                <div className="hidden sm:flex flex-col items-end text-right">
+                  <span className="text-xs font-bold text-slate-900 truncate max-w-[140px]">{user.name}</span>
+                  <Badge
+                    variant={user.role === 'ADMIN' ? 'info' : user.role === 'TEACHER' ? 'warning' : 'success'}
+                    className="text-[10px] px-1.5 py-0"
+                  >
+                    {user.role}
+                  </Badge>
+                </div>
+
+                <button
+                  onClick={logout}
+                  title="Log out of account"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition shadow-sm active:scale-95"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Logout</span>
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-medium transition shadow-sm',
+                  location.pathname === '/login'
+                    ? 'bg-indigo-600 text-white shadow'
+                    : 'bg-slate-900 text-white hover:bg-slate-800'
+                )}
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Login</span>
+              </Link>
+            )}
 
             {/* Mobile Hamburger Button */}
             <button
