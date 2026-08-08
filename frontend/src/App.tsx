@@ -15,8 +15,12 @@ import { AdminTeachersPage } from './pages/AdminTeachersPage';
 import { AdminSubjectsPage } from './pages/AdminSubjectsPage';
 import { AdminClassesPage } from './pages/AdminClassesPage';
 import { AdminAssignmentsPage } from './pages/AdminAssignmentsPage';
+import { AdminAttendancePage } from './pages/AdminAttendancePage';
 import { TeacherDashboard } from './pages/TeacherDashboard';
+import { TeacherAttendanceSessionPage } from './pages/TeacherAttendanceSessionPage';
+import { TeacherSessionAttendancePage } from './pages/TeacherSessionAttendancePage';
 import { StudentDashboard } from './pages/StudentDashboard';
+import { StudentScanAttendancePage } from './pages/StudentScanAttendancePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Root layout for public pages
@@ -27,7 +31,7 @@ const PublicLayout: React.FC = () => (
       <Outlet />
     </main>
     <footer className="border-t border-slate-200/80 bg-white py-4 px-6 text-center text-xs text-slate-500">
-      QR-Based Student Attendance Management System &bull; Phase 3 Academic Structure &bull; College Field Project
+      QR-Based Student Attendance Management System &bull; Phase 4 QR-Based Attendance &bull; College Field Project
     </footer>
   </div>
 );
@@ -52,7 +56,9 @@ export const App: React.FC = () => {
             }
           />
 
-          {/* Protected Admin Routes (ADMIN only) */}
+          {/* ================================================================ */}
+          {/* ADMIN ROUTES (Protected: ADMIN only)                            */}
+          {/* ================================================================ */}
           <Route
             path="/admin"
             element={
@@ -119,7 +125,20 @@ export const App: React.FC = () => {
             }
           />
 
-          {/* Protected Teacher Route (TEACHER only) */}
+          <Route
+            path="/admin/attendance"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <DashboardLayout role="ADMIN">
+                  <AdminAttendancePage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ================================================================ */}
+          {/* TEACHER ROUTES (Protected: TEACHER only)                         */}
+          {/* ================================================================ */}
           <Route
             path="/teacher"
             element={
@@ -131,13 +150,48 @@ export const App: React.FC = () => {
             }
           />
 
-          {/* Protected Student Route (STUDENT only) */}
+          <Route
+            path="/teacher/attendance/:sessionId"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER']}>
+                <DashboardLayout role="TEACHER">
+                  <TeacherAttendanceSessionPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/teacher/attendance/:sessionId/records"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER']}>
+                <DashboardLayout role="TEACHER">
+                  <TeacherSessionAttendancePage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ================================================================ */}
+          {/* STUDENT ROUTES (Protected: STUDENT only)                         */}
+          {/* ================================================================ */}
           <Route
             path="/student"
             element={
               <ProtectedRoute allowedRoles={['STUDENT']}>
                 <DashboardLayout role="STUDENT">
                   <StudentDashboard />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/attendance/scan"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <DashboardLayout role="STUDENT">
+                  <StudentScanAttendancePage />
                 </DashboardLayout>
               </ProtectedRoute>
             }

@@ -37,7 +37,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		api.GET("/info", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"name":        "QR-Based Student Attendance Management System API",
-				"version":     "3.0.0 (Phase 3 Academic Structure & Class Management)",
+				"version":     "4.0.0 (Phase 4 QR-Based Attendance System)",
 				"environment": cfg.Environment,
 			})
 		})
@@ -71,22 +71,26 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			adminGroup.PUT("/teachers/:id", handlers.UpdateTeacherHandler(database.DB))
 			adminGroup.PATCH("/teachers/:id/status", handlers.ToggleTeacherStatusHandler(database.DB))
 
-			// Subject Management (Phase 3)
+			// Subject Management
 			adminGroup.GET("/subjects", handlers.GetSubjectsHandler(database.DB))
 			adminGroup.POST("/subjects", handlers.CreateSubjectHandler(database.DB))
 			adminGroup.PUT("/subjects/:id", handlers.UpdateSubjectHandler(database.DB))
 			adminGroup.DELETE("/subjects/:id", handlers.DeleteSubjectHandler(database.DB))
 
-			// Class Management (Phase 3)
+			// Class Management
 			adminGroup.GET("/classes", handlers.GetClassesHandler(database.DB))
 			adminGroup.POST("/classes", handlers.CreateClassHandler(database.DB))
 			adminGroup.PUT("/classes/:id", handlers.UpdateClassHandler(database.DB))
 			adminGroup.DELETE("/classes/:id", handlers.DeleteClassHandler(database.DB))
 
-			// Teaching Assignments Management (Phase 3)
+			// Teaching Assignments Management
 			adminGroup.GET("/assignments", handlers.GetAssignmentsHandler(database.DB))
 			adminGroup.POST("/assignments", handlers.CreateAssignmentHandler(database.DB))
 			adminGroup.DELETE("/assignments/:id", handlers.DeleteAssignmentHandler(database.DB))
+
+			// Attendance Audit Management (Phase 4)
+			adminGroup.GET("/attendance/sessions", handlers.GetAdminAttendanceSessionsHandler(database.DB))
+			adminGroup.GET("/attendance/sessions/:id/records", handlers.GetAdminSessionRecordsHandler(database.DB))
 		}
 
 		// ==============================================================================
@@ -98,6 +102,13 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		{
 			teacherGroup.GET("/profile", handlers.GetTeacherProfileHandler(database.DB))
 			teacherGroup.GET("/assignments", handlers.GetTeacherAssignmentsHandler(database.DB))
+
+			// Live Attendance Session Management (Phase 4)
+			teacherGroup.POST("/attendance/sessions", handlers.CreateAttendanceSessionHandler(database.DB))
+			teacherGroup.GET("/attendance/sessions", handlers.GetTeacherSessionsHandler(database.DB))
+			teacherGroup.GET("/attendance/sessions/:id", handlers.GetTeacherSessionByIDHandler(database.DB))
+			teacherGroup.POST("/attendance/sessions/:id/end", handlers.EndAttendanceSessionHandler(database.DB))
+			teacherGroup.GET("/attendance/sessions/:id/records", handlers.GetTeacherSessionRecordsHandler(database.DB))
 		}
 
 		// ==============================================================================
@@ -109,6 +120,20 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		{
 			studentGroup.GET("/profile", handlers.GetStudentProfileHandler(database.DB))
 			studentGroup.GET("/subjects", handlers.GetStudentSubjectsHandler(database.DB))
+
+			// Student Attendance Summaries (Phase 4)
+			studentGroup.GET("/attendance/summary", handlers.GetStudentAttendanceSummaryHandler(database.DB))
+			studentGroup.GET("/attendance/recent", handlers.GetStudentRecentAttendanceHandler(database.DB))
+		}
+
+		// ==============================================================================
+		// STUDENT ATTENDANCE SCANNING (Protected: RequireAuth + RequireRole("STUDENT"))
+		// ==============================================================================
+		attendanceGroup := api.Group("/attendance")
+		attendanceGroup.Use(middleware.RequireAuth(cfg.JWTSecret))
+		attendanceGroup.Use(middleware.RequireRole(models.RoleStudent))
+		{
+			attendanceGroup.POST("/mark", handlers.MarkAttendanceHandler(database.DB))
 		}
 	}
 

@@ -495,8 +495,10 @@ func GetTeacherAssignmentsByUserID(db *gorm.DB, userID string) ([]models.Teacher
 	query := `
 		SELECT 
 			tsc.id AS assignment_id,
+			tsc.subject_id,
 			s.name AS subject,
 			s.code,
+			tsc.class_id,
 			c.name AS class,
 			c.department,
 			c.semester,

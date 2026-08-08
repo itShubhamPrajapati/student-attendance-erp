@@ -1,4 +1,3 @@
-/// <reference types="vite/client" />
 import {
   HealthCheckResponse,
   User,
@@ -20,13 +19,18 @@ import {
   CreateClassPayload,
   UpdateClassPayload,
   CreateAssignmentPayload,
+  AttendanceSession,
+  SessionAttendanceDetails,
+  MarkAttendanceResponse,
+  StudentAttendanceSummary,
+  StudentRecentAttendanceItem,
+  CreateAttendanceSessionPayload,
 } from '../types';
 import { getToken } from '../auth/authService';
 
 export const BACKEND_URL =
-  typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_BACKEND_URL
-    ? import.meta.env.VITE_BACKEND_URL
-    : 'http://localhost:8080';
+  (import.meta as unknown as { env?: { VITE_BACKEND_URL?: string } })?.env?.VITE_BACKEND_URL ||
+  'http://localhost:8080';
 
 /**
  * Generic fetch wrapper attaching JSON headers and Authorization Bearer token if present
@@ -302,3 +306,127 @@ export async function apiGetStudentSubjects(): Promise<{ success: boolean; data:
     method: 'GET',
   });
 }
+
+// ==============================================================================
+// PHASE 4: ATTENDANCE APIS
+// ==============================================================================
+
+// Teacher Live Session APIs
+export async function apiCreateAttendanceSession(
+  payload: CreateAttendanceSessionPayload
+): Promise<{ success: boolean; message: string; data: AttendanceSession }> {
+  return request<{ success: boolean; message: string; data: AttendanceSession }>(
+    '/api/teacher/attendance/sessions',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function apiGetTeacherSessions(): Promise<{ success: boolean; data: AttendanceSession[] }> {
+  return request<{ success: boolean; data: AttendanceSession[] }>('/api/teacher/attendance/sessions', {
+    method: 'GET',
+  });
+}
+
+export async function apiGetTeacherSessionDetails(
+  sessionId: string
+): Promise<{ success: boolean; data: AttendanceSession }> {
+  return request<{ success: boolean; data: AttendanceSession }>(
+    `/api/teacher/attendance/sessions/${sessionId}`,
+    {
+      method: 'GET',
+    }
+  );
+}
+
+export async function apiEndAttendanceSession(
+  sessionId: string
+): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(
+    `/api/teacher/attendance/sessions/${sessionId}/end`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+export async function apiGetSessionAttendanceRecords(
+  sessionId: string
+): Promise<{ success: boolean; data: SessionAttendanceDetails }> {
+  return request<{ success: boolean; data: SessionAttendanceDetails }>(
+    `/api/teacher/attendance/sessions/${sessionId}/records`,
+    {
+      method: 'GET',
+    }
+  );
+}
+
+// Student QR Submission & Attendance Summary APIs
+export async function apiMarkAttendance(
+  sessionToken: string
+): Promise<{ success: boolean; message: string; data: MarkAttendanceResponse }> {
+  return request<{ success: boolean; message: string; data: MarkAttendanceResponse }>(
+    '/api/attendance/mark',
+    {
+      method: 'POST',
+      body: JSON.stringify({ session_token: sessionToken }),
+    }
+  );
+}
+
+export async function apiGetStudentAttendanceSummary(): Promise<{
+  success: boolean;
+  data: StudentAttendanceSummary;
+}> {
+  return request<{ success: boolean; data: StudentAttendanceSummary }>(
+    '/api/student/attendance/summary',
+    {
+      method: 'GET',
+    }
+  );
+}
+
+export async function apiGetStudentRecentAttendance(): Promise<{
+  success: boolean;
+  data: StudentRecentAttendanceItem[];
+}> {
+  return request<{ success: boolean; data: StudentRecentAttendanceItem[] }>(
+    '/api/student/attendance/recent',
+    {
+      method: 'GET',
+    }
+  );
+}
+
+// Admin Attendance Audit APIs
+export async function apiGetAdminAttendanceSessions(params?: {
+  date?: string;
+  subject_id?: string;
+  class_id?: string;
+}): Promise<{ success: boolean; data: AttendanceSession[] }> {
+  const searchParams = new URLSearchParams();
+  if (params?.date) searchParams.set('date', params.date);
+  if (params?.subject_id) searchParams.set('subject_id', params.subject_id);
+  if (params?.class_id) searchParams.set('class_id', params.class_id);
+
+  const qs = searchParams.toString();
+  const endpoint = `/api/admin/attendance/sessions${qs ? `?${qs}` : ''}`;
+
+  return request<{ success: boolean; data: AttendanceSession[] }>(endpoint, {
+    method: 'GET',
+  });
+}
+
+export async function apiGetAdminSessionRecords(
+  sessionId: string
+): Promise<{ success: boolean; data: SessionAttendanceDetails }> {
+  return request<{ success: boolean; data: SessionAttendanceDetails }>(
+    `/api/admin/attendance/sessions/${sessionId}/records`,
+    {
+      method: 'GET',
+    }
+  );
+}
+

@@ -1,6 +1,19 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, School, GraduationCap, ArrowLeft, Layers, Users, BookOpen, Building2, UserCheck2, LogOut } from 'lucide-react';
+import {
+  Shield,
+  School,
+  GraduationCap,
+  ArrowLeft,
+  Layers,
+  Users,
+  BookOpen,
+  Building2,
+  UserCheck2,
+  LogOut,
+  Calendar,
+  Camera,
+} from 'lucide-react';
 import { UserRole } from '../types';
 import { Badge } from './Badge';
 import { useAuth } from '../auth/AuthContext';
@@ -24,14 +37,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = 'ADMIN' }) => {
           { name: 'Subjects Directory', path: '/admin/subjects', icon: <BookOpen className="w-4 h-4" /> },
           { name: 'Classes & Batches', path: '/admin/classes', icon: <Building2 className="w-4 h-4" /> },
           { name: 'Teaching Assignments', path: '/admin/assignments', icon: <UserCheck2 className="w-4 h-4" /> },
+          { name: 'Attendance History', path: '/admin/attendance', icon: <Calendar className="w-4 h-4" /> },
         ];
       case 'TEACHER':
         return [
-          { name: 'Teacher Overview', path: '/teacher', icon: <Layers className="w-4 h-4" /> },
+          { name: 'My Classes & Sessions', path: '/teacher', icon: <Layers className="w-4 h-4" /> },
         ];
       case 'STUDENT':
         return [
-          { name: 'My Attendance Portal', path: '/student', icon: <Layers className="w-4 h-4" /> },
+          { name: 'My Attendance Overview', path: '/student', icon: <Layers className="w-4 h-4" /> },
+          { name: 'Scan Attendance QR', path: '/attendance/scan', icon: <Camera className="w-4 h-4" /> },
         ];
       default:
         return [];

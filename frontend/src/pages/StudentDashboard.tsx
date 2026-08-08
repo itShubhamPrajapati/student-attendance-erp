@@ -1,19 +1,42 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { GraduationCap, Building2, BookOpen, QrCode, LogOut, RefreshCw, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  GraduationCap,
+  Building2,
+  BookOpen,
+  LogOut,
+  RefreshCw,
+  AlertCircle,
+  Camera,
+  CheckCircle2,
+  Clock,
+} from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { StudentProfile, Subject } from '../types';
-import { apiGetStudentProfile, apiGetStudentSubjects } from '../services/api';
+import {
+  StudentProfile,
+  Subject,
+  StudentAttendanceSummary,
+  StudentRecentAttendanceItem,
+} from '../types';
+import {
+  apiGetStudentProfile,
+  apiGetStudentSubjects,
+  apiGetStudentAttendanceSummary,
+  apiGetStudentRecentAttendance,
+} from '../services/api';
 import { useAuth } from '../auth/AuthContext';
 
 export const StudentDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [summary, setSummary] = useState<StudentAttendanceSummary | null>(null);
+  const [recentAttendance, setRecentAttendance] = useState<StudentRecentAttendanceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,12 +44,18 @@ export const StudentDashboard: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [profileRes, subjectsRes] = await Promise.all([
+      const [profileRes, subjectsRes, summaryRes, recentRes] = await Promise.all([
         apiGetStudentProfile(),
         apiGetStudentSubjects(),
+        apiGetStudentAttendanceSummary().catch(() => ({ data: null })),
+        apiGetStudentRecentAttendance().catch(() => ({ data: [] })),
       ]);
       setProfile(profileRes.student);
       setSubjects(subjectsRes.data || []);
+      if (summaryRes?.data) {
+        setSummary(summaryRes.data);
+      }
+      setRecentAttendance(recentRes.data || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unable to load student profile');
     } finally {
@@ -43,7 +72,7 @@ export const StudentDashboard: React.FC = () => {
       {/* Header */}
       <PageHeader
         title={`Hello, ${profile?.name || user?.name || 'Student'}`}
-        description="Student academic portal. Access your enrolled class batch, course subjects curriculum, and upcoming attendance tools."
+        description="Student academic portal. Scan live lecture QR codes, track your overall attendance percentage, and review course metrics."
         badge={
           <Badge variant="success" withDot>
             Student Workspace
@@ -51,6 +80,11 @@ export const StudentDashboard: React.FC = () => {
         }
         actions={
           <div className="flex items-center gap-2">
+            <Link to="/attendance/scan">
+              <Button variant="primary" size="sm" leftIcon={<Camera className="w-3.5 h-3.5" />}>
+                Scan Attendance QR
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="sm"
@@ -81,12 +115,12 @@ export const StudentDashboard: React.FC = () => {
 
       {loading ? (
         <div className="min-h-[35vh] flex flex-col items-center justify-center p-8">
-          <LoadingSpinner size="lg" label="Loading your academic profile..." />
+          <LoadingSpinner size="lg" label="Loading your academic profile & attendance summary..." />
         </div>
       ) : (
         <>
-          {/* Top Profile & Class Summary Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Top Grid: Profile + Class + Attendance KPI Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* 1. Student Profile Details */}
             <Card className="p-5 shadow-xs bg-white border-slate-200/80 space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -98,7 +132,7 @@ export const StudentDashboard: React.FC = () => {
                     <h3 className="text-sm font-bold text-slate-900 font-heading">
                       {profile?.name || user?.name}
                     </h3>
-                    <p className="text-xs text-slate-500">{profile?.email || user?.email}</p>
+                    <p className="text-xs text-slate-500 font-mono">{profile?.email || user?.email}</p>
                   </div>
                 </div>
                 <Badge variant="success" withDot className="text-[10px]">
@@ -107,25 +141,25 @@ export const StudentDashboard: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
                   <span className="text-[10px] uppercase font-bold text-slate-400">Roll Number</span>
                   <p className="font-mono font-bold text-indigo-600 text-xs mt-0.5">
                     {profile?.roll_number || 'N/A'}
                   </p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
                   <span className="text-[10px] uppercase font-bold text-slate-400">Department</span>
                   <p className="font-semibold text-slate-800 text-xs mt-0.5 truncate">
                     {profile?.department || 'Computer Science'}
                   </p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
                   <span className="text-[10px] uppercase font-bold text-slate-400">Semester & Section</span>
                   <p className="font-semibold text-slate-800 text-xs mt-0.5">
                     Sem {profile?.semester} &bull; Sec {profile?.section}
                   </p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
                   <span className="text-[10px] uppercase font-bold text-slate-400">System Role</span>
                   <p className="font-semibold text-emerald-700 text-xs mt-0.5">Student</p>
                 </div>
@@ -142,7 +176,7 @@ export const StudentDashboard: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-slate-900 font-heading">
-                        Assigned Class Batch
+                        Assigned Class
                       </h3>
                       <p className="text-xs text-slate-500">Academic grouping</p>
                     </div>
@@ -155,83 +189,144 @@ export const StudentDashboard: React.FC = () => {
                 </div>
 
                 {profile?.class ? (
-                  <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-1.5">
-                    <h4 className="text-base font-bold text-indigo-900 font-heading">
+                  <div className="p-3.5 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-1">
+                    <h4 className="text-sm font-bold text-indigo-900 font-heading">
                       {profile.class.name}
                     </h4>
                     <p className="text-xs text-slate-600 font-medium">
                       Department: {profile.class.department}
                     </p>
-                    <div className="flex items-center gap-3 text-xs font-mono text-indigo-700 pt-1">
-                      <span>Semester {profile.class.semester}</span>
+                    <div className="flex items-center gap-2 text-xs font-mono text-indigo-700 pt-1">
+                      <span>Sem {profile.class.semester}</span>
                       <span>&bull;</span>
-                      <span>Section {profile.class.section}</span>
+                      <span>Sec {profile.class.section}</span>
                       <span>&bull;</span>
-                      <span>Year: {profile.class.academic_year}</span>
+                      <span>{profile.class.academic_year}</span>
                     </div>
                   </div>
                 ) : (
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 text-center space-y-1">
-                    <p className="text-xs font-bold text-slate-700">No class assigned yet</p>
+                    <p className="text-xs font-bold text-slate-700">No class assigned</p>
                     <p className="text-[11px] text-slate-400">
-                      The administrator has not yet assigned your account to a class batch.
+                      Awaiting batch assignment from admin.
                     </p>
                   </div>
                 )}
               </div>
             </Card>
+
+            {/* 3. Overall Attendance KPI Card */}
+            <Card className="p-5 shadow-xs bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 text-white flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-300">
+                    Attendance Overview
+                  </span>
+                  <Badge variant="success" withDot className="text-[10px] bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
+                    Verified Metric
+                  </Badge>
+                </div>
+                <div className="flex items-baseline justify-between pt-1">
+                  <div className="font-heading text-4xl font-extrabold text-white">
+                    {summary ? summary.overall_percentage : 0}%
+                  </div>
+                  <span className="text-xs font-mono text-indigo-200 font-semibold">
+                    {summary ? summary.total_present : 0} / {summary ? summary.total_sessions : 0} Lectures
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-snug">
+                  Cumulative presence across all subjects and lectures held for your class batch.
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800">
+                <Link to="/attendance/scan">
+                  <Button variant="primary" size="sm" className="w-full text-xs" leftIcon={<Camera className="w-3.5 h-3.5" />}>
+                    Scan Live QR Code
+                  </Button>
+                </Link>
+              </div>
+            </Card>
           </div>
 
-          {/* Section: My Subjects Curriculum */}
-          <div className="space-y-4">
+          {/* Section: Subject-Wise Attendance Breakdown */}
+          <div className="space-y-4 pt-2">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-slate-900 font-heading">
-                  My Subjects Curriculum
+                  Subject-Wise Attendance Breakdown
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Course subjects taught to your assigned academic class
+                  Track your presence in each individual course module
                 </p>
               </div>
               <Badge variant="info">
-                {subjects.length} Subjects
+                {summary?.subjects?.length || subjects.length} Subjects
               </Badge>
             </div>
 
-            {subjects.length === 0 ? (
+            {(!summary || summary.subjects.length === 0) && subjects.length === 0 ? (
               <EmptyState
                 icon={<BookOpen className="w-8 h-8" />}
-                title="No subjects assigned yet"
-                description={
-                  profile?.class
-                    ? "Your class does not have any teaching allocations assigned yet. Once the Admin allocates teachers to your class, course subjects will appear here."
-                    : "Assign your account to an academic class to view the semester curriculum subjects."
-                }
-                badgeText="Curriculum Awaiting Allocation"
+                title="No subjects enrolled"
+                description="Once your class is assigned to faculty courses, attendance metrics will be calculated here."
+                badgeText="Curriculum Pending"
               />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {subjects.map((subject) => (
-                  <Card key={subject.id} hoverEffect className="p-5 flex flex-col justify-between border-slate-200/80 shadow-xs space-y-3">
+                {(summary?.subjects && summary.subjects.length > 0
+                  ? summary.subjects
+                  : subjects.map((s) => ({
+                      subject_id: s.id,
+                      subject_name: s.name,
+                      subject_code: s.code,
+                      present_sessions: 0,
+                      total_sessions: 0,
+                      percentage: 0.0,
+                    }))
+                ).map((sub) => (
+                  <Card key={sub.subject_id} hoverEffect className="p-5 flex flex-col justify-between border-slate-200/80 shadow-xs space-y-3 bg-white">
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
                           <BookOpen className="w-4 h-4" />
                         </div>
                         <Badge variant="info" className="font-mono text-[11px]">
-                          {subject.code}
+                          {sub.subject_code}
                         </Badge>
                       </div>
 
                       <div>
-                        <h4 className="text-sm font-bold text-slate-900 font-heading">{subject.name}</h4>
-                        <p className="text-xs text-slate-500 font-medium">{subject.department}</p>
+                        <h4 className="text-sm font-bold text-slate-900 font-heading">{sub.subject_name}</h4>
+                        <div className="flex items-baseline justify-between text-xs pt-2">
+                          <span className="text-slate-500">Lectures Attended:</span>
+                          <span className="font-mono font-bold text-slate-900">
+                            {sub.present_sessions} / {sub.total_sessions}
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                      <span>Semester {subject.semester}</span>
-                      <span className="text-indigo-600 font-semibold text-[11px]">Enrolled</span>
+                      {/* Progress Bar */}
+                      <div className="space-y-1 pt-1">
+                        <div className="flex justify-between text-[11px] font-mono">
+                          <span className="text-slate-400">Attendance Rate</span>
+                          <span
+                            className={`font-bold ${
+                              sub.percentage >= 75 ? 'text-emerald-700' : 'text-amber-700'
+                            }`}
+                          >
+                            {sub.percentage}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`h-2 rounded-full transition-all duration-500 ${
+                              sub.percentage >= 75 ? 'bg-emerald-600' : 'bg-amber-500'
+                            }`}
+                            style={{ width: `${Math.min(100, sub.percentage)}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </Card>
                 ))}
@@ -239,25 +334,74 @@ export const StudentDashboard: React.FC = () => {
             )}
           </div>
 
-          {/* Future QR Attendance Notice */}
-          <Card className="p-5 bg-gradient-to-r from-emerald-50/60 via-white to-indigo-50/40 border-emerald-100 shadow-xs">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <QrCode className="w-4 h-4" />
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-emerald-900 font-heading">
-                    QR Attendance Scanner Preview
-                  </span>
-                  <Badge variant="success" className="text-[10px]">Phase 4 Upcoming</Badge>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Mobile camera QR code scanning, subject-wise attendance percentage calculation, and class check-in history will be activated in the upcoming phase using this academic structure.
+          {/* Section: Recent Attendance Log */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 font-heading">
+                  Recent Attendance Check-Ins
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Your verified QR scan history across recent lectures
                 </p>
               </div>
+              <span className="text-xs text-slate-400 font-medium">
+                {recentAttendance.length} logs recorded
+              </span>
             </div>
-          </Card>
+
+            {recentAttendance.length === 0 ? (
+              <Card className="p-6 text-center bg-white border-slate-200/80 space-y-2">
+                <Clock className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="text-xs text-slate-500">
+                  No attendance scans recorded yet. Use the "Scan Attendance QR" button when your teacher starts a live session.
+                </p>
+              </Card>
+            ) : (
+              <Card className="p-0 overflow-hidden bg-white border-slate-200/80 shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase tracking-wider font-semibold">
+                      <tr>
+                        <th className="py-3 px-4">Subject</th>
+                        <th className="py-3 px-4">Classroom</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Marked Time</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {recentAttendance.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50 transition">
+                          <td className="py-3 px-4">
+                            <div className="font-semibold text-slate-900 font-heading">{item.subject_name}</div>
+                            <span className="font-mono text-[10px] text-indigo-600 font-semibold">
+                              {item.subject_code}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-slate-700 font-medium">{item.class_name}</td>
+                          <td className="py-3 px-4">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200/60">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>{item.status}</span>
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono text-[11px] text-slate-500">
+                            {new Date(item.marked_at).toLocaleDateString()}{' '}
+                            <span className="text-slate-800 font-semibold">
+                              {new Date(item.marked_at).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+          </div>
         </>
       )}
     </div>

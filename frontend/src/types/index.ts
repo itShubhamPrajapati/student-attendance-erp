@@ -82,8 +82,10 @@ export interface TeachingAssignment {
 
 export interface TeacherAssignmentItem {
   assignment_id: string;
+  subject_id: string;
   subject: string;
   code: string;
+  class_id: string;
   class: string;
   department: string;
   semester: number;
@@ -217,8 +219,90 @@ export interface CreateAssignmentPayload {
   class_id: string;
 }
 
+export interface AttendanceSession {
+  id: string;
+  teacher_id: string;
+  teacher_name: string;
+  teacher_employee_id: string;
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  class_id: string;
+  class_name: string;
+  department: string;
+  semester: number;
+  section: string;
+  academic_year: string;
+  session_token: string;
+  started_at: string;
+  expires_at: string;
+  is_active: boolean;
+  is_expired: boolean;
+  present_count: number;
+  total_students: number;
+  percentage: number;
+  created_at: string;
+}
+
+export interface AttendanceStudentRecord {
+  student_id: string;
+  roll_number: string;
+  name: string;
+  email: string;
+  status: 'PRESENT' | 'ABSENT';
+  marked_at?: string | null;
+}
+
+export interface SessionAttendanceDetails {
+  session: AttendanceSession;
+  records: AttendanceStudentRecord[];
+  present_count: number;
+  total_students: number;
+  percentage: number;
+}
+
+export interface MarkAttendanceResponse {
+  marked_at: string;
+  subject_name: string;
+  subject_code: string;
+  class_name: string;
+  status: string;
+}
+
+export interface SubjectAttendanceStat {
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  present_sessions: number;
+  total_sessions: number;
+  percentage: number;
+}
+
+export interface StudentAttendanceSummary {
+  overall_percentage: number;
+  total_sessions: number;
+  total_present: number;
+  subjects: SubjectAttendanceStat[];
+}
+
+export interface StudentRecentAttendanceItem {
+  session_id: string;
+  subject_name: string;
+  subject_code: string;
+  class_name: string;
+  marked_at: string;
+  status: string;
+}
+
+export interface CreateAttendanceSessionPayload {
+  subject_id: string;
+  class_id: string;
+  duration_minutes: number;
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
   data?: T;
 }
+

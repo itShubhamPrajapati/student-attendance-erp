@@ -174,8 +174,10 @@ type AssignmentResponse struct {
 // TeacherAssignmentItem represents assignment viewed from teacher's personal portal
 type TeacherAssignmentItem struct {
 	AssignmentID string `json:"assignment_id"`
+	SubjectID    string `json:"subject_id"`
 	Subject      string `json:"subject"`
 	Code         string `json:"code"`
+	ClassID      string `json:"class_id"`
 	Class        string `json:"class"`
 	Department   string `json:"department"`
 	Semester     int    `json:"semester"`
@@ -225,4 +227,114 @@ type DashboardStatsResponse struct {
 		Total int64 `json:"total"`
 	} `json:"classes"`
 	RecentAssignments []AssignmentResponse `json:"recent_assignments"`
+}
+
+// AttendanceSession represents a live or past QR attendance session initiated by a teacher
+type AttendanceSession struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TeacherID    string    `gorm:"type:uuid;not null" json:"teacher_id"`
+	Teacher      Teacher   `gorm:"foreignKey:TeacherID" json:"teacher,omitempty"`
+	SubjectID    string    `gorm:"type:uuid;not null" json:"subject_id"`
+	Subject      Subject   `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
+	ClassID      string    `gorm:"type:uuid;not null" json:"class_id"`
+	Class        Class     `gorm:"foreignKey:ClassID" json:"class,omitempty"`
+	SessionToken string    `gorm:"type:text;unique;not null" json:"session_token"`
+	StartedAt    time.Time `gorm:"not null" json:"started_at"`
+	ExpiresAt    time.Time `gorm:"not null" json:"expires_at"`
+	IsActive     bool      `gorm:"default:true;not null" json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// Attendance represents a verified attendance record submitted by a student
+type Attendance struct {
+	ID        string            `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	SessionID string            `gorm:"type:uuid;not null" json:"session_id"`
+	Session   AttendanceSession `gorm:"foreignKey:SessionID" json:"session,omitempty"`
+	StudentID string            `gorm:"type:uuid;not null" json:"student_id"`
+	Student   Student           `gorm:"foreignKey:StudentID" json:"student,omitempty"`
+	MarkedAt  time.Time         `gorm:"not null" json:"marked_at"`
+	Status    string            `gorm:"type:varchar(20);default:'PRESENT';not null" json:"status"`
+	CreatedAt time.Time         `json:"created_at"`
+}
+
+// AttendanceSessionResponse represents formatted attendance session for UI
+type AttendanceSessionResponse struct {
+	ID                string    `json:"id"`
+	TeacherID         string    `json:"teacher_id"`
+	TeacherName       string    `json:"teacher_name"`
+	TeacherEmployeeID string    `json:"teacher_employee_id"`
+	SubjectID         string    `json:"subject_id"`
+	SubjectName       string    `json:"subject_name"`
+	SubjectCode       string    `json:"subject_code"`
+	ClassID           string    `json:"class_id"`
+	ClassName         string    `json:"class_name"`
+	Department        string    `json:"department"`
+	Semester          int       `json:"semester"`
+	Section           string    `json:"section"`
+	AcademicYear      string    `json:"academic_year"`
+	SessionToken      string    `json:"session_token"`
+	StartedAt         time.Time `json:"started_at"`
+	ExpiresAt         time.Time `json:"expires_at"`
+	IsActive          bool      `json:"is_active"`
+	IsExpired         bool      `json:"is_expired"`
+	PresentCount      int64     `json:"present_count"`
+	TotalStudents     int64     `json:"total_students"`
+	Percentage        float64   `json:"percentage"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
+// AttendanceStudentRecord represents individual student attendance status in a session
+type AttendanceStudentRecord struct {
+	StudentID  string     `json:"student_id"`
+	RollNumber string     `json:"roll_number"`
+	Name       string     `json:"name"`
+	Email      string     `json:"email"`
+	Status     string     `json:"status"` // PRESENT or ABSENT
+	MarkedAt   *time.Time `json:"marked_at,omitempty"`
+}
+
+// SessionAttendanceDetailsResponse represents complete session summary and full roster
+type SessionAttendanceDetailsResponse struct {
+	Session       AttendanceSessionResponse `json:"session"`
+	Records       []AttendanceStudentRecord `json:"records"`
+	PresentCount  int64                     `json:"present_count"`
+	TotalStudents int64                     `json:"total_students"`
+	Percentage    float64                   `json:"percentage"`
+}
+
+// MarkAttendanceResponse represents student scan confirmation data
+type MarkAttendanceResponse struct {
+	MarkedAt    time.Time `json:"marked_at"`
+	SubjectName string    `json:"subject_name"`
+	SubjectCode string    `json:"subject_code"`
+	ClassName   string    `json:"class_name"`
+	Status      string    `json:"status"`
+}
+
+// SubjectAttendanceStat represents student attendance in a single course module
+type SubjectAttendanceStat struct {
+	SubjectID       string  `json:"subject_id"`
+	SubjectName     string  `json:"subject_name"`
+	SubjectCode     string  `json:"subject_code"`
+	PresentSessions int64   `json:"present_sessions"`
+	TotalSessions   int64   `json:"total_sessions"`
+	Percentage      float64 `json:"percentage"`
+}
+
+// StudentAttendanceSummary represents overall and subject-wise metrics for student portal
+type StudentAttendanceSummary struct {
+	OverallPercentage float64                 `json:"overall_percentage"`
+	TotalSessions     int64                   `json:"total_sessions"`
+	TotalPresent      int64                   `json:"total_present"`
+	Subjects          []SubjectAttendanceStat `json:"subjects"`
+}
+
+// StudentRecentAttendanceItem represents recent attendance log entry
+type StudentRecentAttendanceItem struct {
+	SessionID   string    `json:"session_id"`
+	SubjectName string    `json:"subject_name"`
+	SubjectCode string    `json:"subject_code"`
+	ClassName   string    `json:"class_name"`
+	MarkedAt    time.Time `json:"marked_at"`
+	Status      string    `json:"status"`
 }
