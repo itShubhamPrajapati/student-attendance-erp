@@ -15,11 +15,13 @@ func CORSMiddleware(allowedOrigin string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 
-		// Allow configured origin or localhost dev port
-		if origin == allowedOrigin || origin == "http://localhost:5173" || origin == "http://127.0.0.1:5173" {
+		// Allow any mobile/LAN origin or configured origin
+		if origin != "" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-		} else {
+		} else if allowedOrigin != "" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		} else {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		}
 
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
