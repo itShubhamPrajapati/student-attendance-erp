@@ -26,13 +26,38 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
-	// Development CORS configuration
-	// Root-level aliases (handles cloud load balancers, direct probes, and reverse proxies)
+	// Global CORS configuration (supports Vercel frontend, LAN, and custom domains)
+	router.Use(middleware.CORSMiddleware(cfg.FrontendURL))
+
+	// Root status handler (returns 200 OK for base URL / probes instead of 404 NoRoute)
+	rootHandler := func(c *gin.Context) {
+		dbStatus := "connected"
+		if err := database.CheckConnection(); err != nil {
+			dbStatus = "disconnected"
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"name":        "QR-Based Student Attendance Management System API",
+			"status":      "ok",
+			"database":    dbStatus,
+			"version":     "4.0.0 (Production)",
+			"environment": cfg.Environment,
+			"endpoints": gin.H{
+				"health": "/api/health",
+				"login":  "/api/auth/login",
+				"info":   "/api/info",
+			},
+		})
+	}
+
+	router.GET("/", rootHandler)
+	router.GET("/api", rootHandler)
+
+	// Direct root-level aliases (handles cloud load balancers and proxies)
 	router.GET("/health", handlers.HealthCheckHandler)
 	router.GET("/info", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"name":        "QR-Based Student Attendance Management System API",
-			"version":     "4.0.0 (Phase 4 QR-Based Attendance System)",
+			"version":     "4.0.0 (Production)",
 			"environment": cfg.Environment,
 		})
 	})
@@ -47,7 +72,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		api.GET("/info", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"name":        "QR-Based Student Attendance Management System API",
-				"version":     "4.0.0 (Phase 4 QR-Based Attendance System)",
+				"version":     "4.0.0 (Production)",
 				"environment": cfg.Environment,
 			})
 		})
