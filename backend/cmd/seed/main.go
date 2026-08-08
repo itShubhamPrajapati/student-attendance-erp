@@ -17,7 +17,7 @@ import (
 
 func main() {
 	fmt.Println("==================================================")
-	fmt.Println("QR Attendance System — Complete Demo Dataset Seed")
+	fmt.Println("QR Attendance System — Production Demo Dataset Seed")
 	fmt.Println("==================================================")
 
 	// 1. Load configuration
@@ -98,7 +98,7 @@ func main() {
 	}
 
 	fmt.Println("==================================================")
-	fmt.Println("Demo Dataset Seed Completed Successfully!")
+	fmt.Println("Demo Dataset Verified & Seeded Successfully!")
 	fmt.Println("Admin:   admin@example.com   / ChangeThisPassword123")
 	fmt.Println("Teacher: teacher@example.com / teacher123")
 	fmt.Println("Student: student@example.com / student123")
@@ -110,10 +110,18 @@ func seedAdmin(db *gorm.DB) {
 	adminPassword := getEnv("ADMIN_PASSWORD", "ChangeThisPassword123")
 	adminName := getEnv("ADMIN_NAME", "System Administrator")
 
-	var count int64
-	db.Model(&models.User{}).Where("LOWER(email) = ?", adminEmail).Count(&count)
-	if count > 0 {
-		fmt.Printf("[SEED] Admin '%s' already exists.\n", adminEmail)
+	var user models.User
+	err := db.Where("LOWER(email) = ?", adminEmail).First(&user).Error
+	if err == nil {
+		fmt.Printf("[SEED] Admin '%s' exists (ID: %s).\n", adminEmail, user.ID)
+		// Ensure password hash matches configured password
+		if !services.CheckPassword(user.PasswordHash, adminPassword) {
+			newHash, hashErr := services.HashPassword(adminPassword)
+			if hashErr == nil {
+				db.Model(&user).Update("password_hash", newHash)
+				fmt.Printf("[SEED] Synced password for Admin '%s'.\n", adminEmail)
+			}
+		}
 		return
 	}
 
@@ -141,6 +149,14 @@ func seedTeacher(db *gorm.DB, name, email, password, employeeID, department stri
 	var user models.User
 	err := db.Where("LOWER(email) = ?", cleanEmail).First(&user).Error
 	if err == nil {
+		// Ensure password hash matches configured password
+		if !services.CheckPassword(user.PasswordHash, password) {
+			newHash, hashErr := services.HashPassword(password)
+			if hashErr == nil {
+				db.Model(&user).Update("password_hash", newHash)
+				fmt.Printf("[SEED] Synced password for Teacher '%s'.\n", cleanEmail)
+			}
+		}
 		var teacher models.Teacher
 		db.Where("user_id = ?", user.ID).First(&teacher)
 		return &teacher
@@ -256,6 +272,14 @@ func seedStudent(db *gorm.DB, name, email, password, rollNumber, department stri
 	var user models.User
 	err := db.Where("LOWER(email) = ?", cleanEmail).First(&user).Error
 	if err == nil {
+		// Ensure password hash matches configured password
+		if !services.CheckPassword(user.PasswordHash, password) {
+			newHash, hashErr := services.HashPassword(password)
+			if hashErr == nil {
+				db.Model(&user).Update("password_hash", newHash)
+				fmt.Printf("[SEED] Synced password for Student '%s'.\n", cleanEmail)
+			}
+		}
 		// Update student class if not set
 		var student models.Student
 		if err := db.Where("user_id = ?", user.ID).First(&student).Error; err == nil {
