@@ -17,6 +17,8 @@ export interface Student {
   department: string;
   semester: number;
   section: string;
+  class_id?: string | null;
+  class_name?: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -32,6 +34,85 @@ export interface Teacher {
   created_at: string;
 }
 
+export interface Subject {
+  id: string;
+  name: string;
+  code: string;
+  department: string;
+  semester: number;
+  created_at: string;
+}
+
+export interface Class {
+  id: string;
+  name: string;
+  department: string;
+  semester: number;
+  section: string;
+  academic_year: string;
+  student_count?: number;
+  created_at: string;
+}
+
+export interface ClassBrief {
+  id: string;
+  name: string;
+  department: string;
+  semester: number;
+  section: string;
+  academic_year: string;
+}
+
+export interface TeachingAssignment {
+  id: string;
+  teacher_id: string;
+  teacher_name: string;
+  teacher_employee_id: string;
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  class_id: string;
+  class_name: string;
+  department: string;
+  semester: number;
+  section: string;
+  academic_year: string;
+  created_at: string;
+}
+
+export interface TeacherAssignmentItem {
+  assignment_id: string;
+  subject: string;
+  code: string;
+  class: string;
+  department: string;
+  semester: number;
+  section: string;
+  academic_year: string;
+}
+
+export interface TeacherProfile {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  employee_id: string;
+  department: string;
+  is_active: boolean;
+}
+
+export interface StudentProfile {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  roll_number: string;
+  department: string;
+  semester: number;
+  section: string;
+  class?: ClassBrief | null;
+}
+
 export interface DashboardStats {
   success: boolean;
   students: {
@@ -42,6 +123,13 @@ export interface DashboardStats {
     total: number;
     active: number;
   };
+  subjects: {
+    total: number;
+  };
+  classes: {
+    total: number;
+  };
+  recent_assignments?: TeachingAssignment[];
 }
 
 export interface HealthCheckResponse {
@@ -58,6 +146,7 @@ export interface ConnectionState {
   error?: string;
 }
 
+// Creation & Update Payloads
 export interface CreateStudentPayload {
   name: string;
   email: string;
@@ -90,6 +179,42 @@ export interface UpdateTeacherPayload {
   email: string;
   employee_id: string;
   department: string;
+}
+
+export interface CreateSubjectPayload {
+  name: string;
+  code: string;
+  department: string;
+  semester: number;
+}
+
+export interface UpdateSubjectPayload {
+  name: string;
+  code: string;
+  department: string;
+  semester: number;
+}
+
+export interface CreateClassPayload {
+  name: string;
+  department: string;
+  semester: number;
+  section: string;
+  academic_year: string;
+}
+
+export interface UpdateClassPayload {
+  name: string;
+  department: string;
+  semester: number;
+  section: string;
+  academic_year: string;
+}
+
+export interface CreateAssignmentPayload {
+  teacher_id: string;
+  subject_id: string;
+  class_id: string;
 }
 
 export interface ApiResponse<T = unknown> {

@@ -4,64 +4,112 @@ import (
 	"time"
 )
 
-// Role constants
+// User Roles Enum Constants
 const (
 	RoleAdmin   = "ADMIN"
 	RoleTeacher = "TEACHER"
 	RoleStudent = "STUDENT"
 )
 
-// User represents the base authentication entity
+// User represents the system authentication account
 type User struct {
 	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	Name         string    `gorm:"type:varchar(100);not null" json:"name"`
-	Email        string    `gorm:"type:varchar(150);uniqueIndex;not null" json:"email"`
-	PasswordHash string    `gorm:"type:text;not null" json:"-"` // Never expose in JSON responses
+	Email        string    `gorm:"type:varchar(150);unique;not null" json:"email"`
+	PasswordHash string    `gorm:"not null" json:"-"`
 	Role         string    `gorm:"type:varchar(20);not null" json:"role"`
 	IsActive     bool      `gorm:"default:true;not null" json:"is_active"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
-// Student profile entity linked to User
+// Student represents an enrolled academic student
 type Student struct {
 	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	UserID     string    `gorm:"type:uuid;uniqueIndex;not null" json:"user_id"`
-	User       User      `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
-	RollNumber string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"roll_number"`
+	UserID     string    `gorm:"type:uuid;unique;not null" json:"user_id"`
+	User       User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	RollNumber string    `gorm:"type:varchar(50);unique;not null" json:"roll_number"`
 	Department string    `gorm:"type:varchar(100);not null" json:"department"`
 	Semester   int       `gorm:"not null" json:"semester"`
 	Section    string    `gorm:"type:varchar(20);not null" json:"section"`
+	ClassID    *string   `gorm:"type:uuid" json:"class_id,omitempty"`
+	Class      *Class    `gorm:"foreignKey:ClassID" json:"class,omitempty"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
-// Teacher profile entity linked to User
+// Teacher represents a faculty instructor
 type Teacher struct {
 	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	UserID     string    `gorm:"type:uuid;uniqueIndex;not null" json:"user_id"`
-	User       User      `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
-	EmployeeID string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"employee_id"`
+	UserID     string    `gorm:"type:uuid;unique;not null" json:"user_id"`
+	User       User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	EmployeeID string    `gorm:"type:varchar(50);unique;not null" json:"employee_id"`
 	Department string    `gorm:"type:varchar(100);not null" json:"department"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
-// StudentResponse represents the student object for Admin API responses
-type StudentResponse struct {
-	ID         string    `json:"id"`
-	UserID     string    `json:"user_id"`
-	Name       string    `json:"name"`
-	Email      string    `json:"email"`
-	RollNumber string    `json:"roll_number"`
-	Department string    `json:"department"`
-	Semester   int       `json:"semester"`
-	Section    string    `json:"section"`
-	IsActive   bool      `json:"is_active"`
+// Subject represents an academic course module
+type Subject struct {
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Name       string    `gorm:"type:varchar(150);not null" json:"name"`
+	Code       string    `gorm:"type:varchar(30);unique;not null" json:"code"`
+	Department string    `gorm:"type:varchar(100);not null" json:"department"`
+	Semester   int       `gorm:"not null" json:"semester"`
 	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
-// TeacherResponse represents the teacher object for Admin API responses
+// Class represents an academic class batch
+type Class struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Name         string    `gorm:"type:varchar(100);not null" json:"name"`
+	Department   string    `gorm:"type:varchar(100);not null" json:"department"`
+	Semester     int       `gorm:"not null" json:"semester"`
+	Section      string    `gorm:"type:varchar(20);not null" json:"section"`
+	AcademicYear string    `gorm:"type:varchar(20);not null" json:"academic_year"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// TeacherSubjectClass represents the assignment: Teacher teaches Subject to Class
+type TeacherSubjectClass struct {
+	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TeacherID string    `gorm:"type:uuid;not null" json:"teacher_id"`
+	Teacher   Teacher   `gorm:"foreignKey:TeacherID" json:"teacher,omitempty"`
+	SubjectID string    `gorm:"type:uuid;not null" json:"subject_id"`
+	Subject   Subject   `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
+	ClassID   string    `gorm:"type:uuid;not null" json:"class_id"`
+	Class     Class     `gorm:"foreignKey:ClassID" json:"class,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// UserSafeResponse represents sanitized user information without password hash
+type UserSafeResponse struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+	IsActive bool   `json:"is_active"`
+}
+
+// StudentResponse represents formatted student directory record
+type StudentResponse struct {
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	Name        string    `json:"name"`
+	Email       string    `json:"email"`
+	RollNumber  string    `json:"roll_number"`
+	Department  string    `json:"department"`
+	Semester    int       `json:"semester"`
+	Section     string    `json:"section"`
+	ClassID     *string   `json:"class_id,omitempty"`
+	ClassName   *string   `json:"class_name,omitempty"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// TeacherResponse represents formatted teacher directory record
 type TeacherResponse struct {
 	ID         string    `json:"id"`
 	UserID     string    `json:"user_id"`
@@ -73,16 +121,93 @@ type TeacherResponse struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-// UserSafeResponse represents user info returned upon login and /api/auth/me
-type UserSafeResponse struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Role     string `json:"role"`
-	IsActive bool   `json:"is_active"`
+// SubjectResponse represents formatted subject response
+type SubjectResponse struct {
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	Code       string    `json:"code"`
+	Department string    `json:"department"`
+	Semester   int       `json:"semester"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
-// DashboardStatsResponse represents aggregated counts for the Admin console
+// ClassResponse represents formatted class response with calculated student count
+type ClassResponse struct {
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	Department   string    `json:"department"`
+	Semester     int       `json:"semester"`
+	Section      string    `json:"section"`
+	AcademicYear string    `json:"academic_year"`
+	StudentCount int64     `json:"student_count"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// ClassBriefResponse represents brief class info for student profile
+type ClassBriefResponse struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Department   string `json:"department"`
+	Semester     int    `json:"semester"`
+	Section      string `json:"section"`
+	AcademicYear string `json:"academic_year"`
+}
+
+// AssignmentResponse represents formatted teaching assignment record
+type AssignmentResponse struct {
+	ID                string    `json:"id"`
+	TeacherID         string    `json:"teacher_id"`
+	TeacherName       string    `json:"teacher_name"`
+	TeacherEmployeeID string    `json:"teacher_employee_id"`
+	SubjectID         string    `json:"subject_id"`
+	SubjectName       string    `json:"subject_name"`
+	SubjectCode       string    `json:"subject_code"`
+	ClassID           string    `json:"class_id"`
+	ClassName         string    `json:"class_name"`
+	Department        string    `json:"department"`
+	Semester          int       `json:"semester"`
+	Section           string    `json:"section"`
+	AcademicYear      string    `json:"academic_year"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
+// TeacherAssignmentItem represents assignment viewed from teacher's personal portal
+type TeacherAssignmentItem struct {
+	AssignmentID string `json:"assignment_id"`
+	Subject      string `json:"subject"`
+	Code         string `json:"code"`
+	Class        string `json:"class"`
+	Department   string `json:"department"`
+	Semester     int    `json:"semester"`
+	Section      string `json:"section"`
+	AcademicYear string `json:"academic_year"`
+}
+
+// TeacherProfileResponse represents teacher portal profile
+type TeacherProfileResponse struct {
+	ID         string `json:"id"`
+	UserID     string `json:"user_id"`
+	Name       string `json:"name"`
+	Email      string `json:"email"`
+	EmployeeID string `json:"employee_id"`
+	Department string `json:"department"`
+	IsActive   bool   `json:"is_active"`
+}
+
+// StudentProfileResponse represents student portal profile
+type StudentProfileResponse struct {
+	ID         string              `json:"id"`
+	UserID     string              `json:"user_id"`
+	Name       string              `json:"name"`
+	Email      string              `json:"email"`
+	RollNumber string              `json:"roll_number"`
+	Department string              `json:"department"`
+	Semester   int                 `json:"semester"`
+	Section    string              `json:"section"`
+	Class      *ClassBriefResponse `json:"class,omitempty"`
+}
+
+// DashboardStatsResponse represents extended Admin Dashboard metrics
 type DashboardStatsResponse struct {
 	Success  bool `json:"success"`
 	Students struct {
@@ -93,4 +218,11 @@ type DashboardStatsResponse struct {
 		Total  int64 `json:"total"`
 		Active int64 `json:"active"`
 	} `json:"teachers"`
+	Subjects struct {
+		Total int64 `json:"total"`
+	} `json:"subjects"`
+	Classes struct {
+		Total int64 `json:"total"`
+	} `json:"classes"`
+	RecentAssignments []AssignmentResponse `json:"recent_assignments"`
 }

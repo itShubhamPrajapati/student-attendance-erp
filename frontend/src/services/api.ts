@@ -4,11 +4,22 @@ import {
   User,
   Student,
   Teacher,
+  Subject,
+  Class,
+  TeachingAssignment,
+  TeacherAssignmentItem,
+  TeacherProfile,
+  StudentProfile,
   DashboardStats,
   CreateStudentPayload,
   UpdateStudentPayload,
   CreateTeacherPayload,
   UpdateTeacherPayload,
+  CreateSubjectPayload,
+  UpdateSubjectPayload,
+  CreateClassPayload,
+  UpdateClassPayload,
+  CreateAssignmentPayload,
 } from '../types';
 import { getToken } from '../auth/authService';
 
@@ -157,6 +168,13 @@ export async function apiToggleStudentStatus(id: string, isActive: boolean): Pro
   });
 }
 
+export async function apiAssignStudentClass(studentId: string, classId: string | null): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/api/admin/students/${studentId}/class`, {
+    method: 'PATCH',
+    body: JSON.stringify({ class_id: classId }),
+  });
+}
+
 // Teacher APIs
 export async function apiGetTeachers(): Promise<{ success: boolean; data: Teacher[] }> {
   return request<{ success: boolean; data: Teacher[] }>('/api/admin/teachers', {
@@ -182,5 +200,105 @@ export async function apiToggleTeacherStatus(id: string, isActive: boolean): Pro
   return request<{ success: boolean; message: string }>(`/api/admin/teachers/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ is_active: isActive }),
+  });
+}
+
+// Subject APIs (Phase 3)
+export async function apiGetSubjects(): Promise<{ success: boolean; data: Subject[] }> {
+  return request<{ success: boolean; data: Subject[] }>('/api/admin/subjects', {
+    method: 'GET',
+  });
+}
+
+export async function apiCreateSubject(payload: CreateSubjectPayload): Promise<{ success: boolean; message: string; data: Subject }> {
+  return request<{ success: boolean; message: string; data: Subject }>('/api/admin/subjects', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiUpdateSubject(id: string, payload: UpdateSubjectPayload): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/api/admin/subjects/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiDeleteSubject(id: string): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/api/admin/subjects/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// Class APIs (Phase 3)
+export async function apiGetClasses(): Promise<{ success: boolean; data: Class[] }> {
+  return request<{ success: boolean; data: Class[] }>('/api/admin/classes', {
+    method: 'GET',
+  });
+}
+
+export async function apiCreateClass(payload: CreateClassPayload): Promise<{ success: boolean; message: string; data: Class }> {
+  return request<{ success: boolean; message: string; data: Class }>('/api/admin/classes', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiUpdateClass(id: string, payload: UpdateClassPayload): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/api/admin/classes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiDeleteClass(id: string): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/api/admin/classes/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// Teaching Assignment APIs (Phase 3)
+export async function apiGetAssignments(): Promise<{ success: boolean; data: TeachingAssignment[] }> {
+  return request<{ success: boolean; data: TeachingAssignment[] }>('/api/admin/assignments', {
+    method: 'GET',
+  });
+}
+
+export async function apiCreateAssignment(payload: CreateAssignmentPayload): Promise<{ success: boolean; message: string; data: TeachingAssignment }> {
+  return request<{ success: boolean; message: string; data: TeachingAssignment }>('/api/admin/assignments', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiDeleteAssignment(id: string): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/api/admin/assignments/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// Teacher Portal APIs (Phase 3)
+export async function apiGetTeacherProfile(): Promise<{ success: boolean; profile: TeacherProfile }> {
+  return request<{ success: boolean; profile: TeacherProfile }>('/api/teacher/profile', {
+    method: 'GET',
+  });
+}
+
+export async function apiGetTeacherAssignments(): Promise<{ success: boolean; data: TeacherAssignmentItem[] }> {
+  return request<{ success: boolean; data: TeacherAssignmentItem[] }>('/api/teacher/assignments', {
+    method: 'GET',
+  });
+}
+
+// Student Portal APIs (Phase 3)
+export async function apiGetStudentProfile(): Promise<{ success: boolean; student: StudentProfile }> {
+  return request<{ success: boolean; student: StudentProfile }>('/api/student/profile', {
+    method: 'GET',
+  });
+}
+
+export async function apiGetStudentSubjects(): Promise<{ success: boolean; data: Subject[] }> {
+  return request<{ success: boolean; data: Subject[] }>('/api/student/subjects', {
+    method: 'GET',
   });
 }

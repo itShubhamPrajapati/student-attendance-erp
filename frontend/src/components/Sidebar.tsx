@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, School, GraduationCap, ArrowLeft, Layers, Users, LogOut } from 'lucide-react';
+import { Shield, School, GraduationCap, ArrowLeft, Layers, Users, BookOpen, Building2, UserCheck2, LogOut } from 'lucide-react';
 import { UserRole } from '../types';
 import { Badge } from './Badge';
 import { useAuth } from '../auth/AuthContext';
@@ -21,6 +21,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = 'ADMIN' }) => {
           { name: 'Dashboard Overview', path: '/admin', icon: <Layers className="w-4 h-4" /> },
           { name: 'Students Directory', path: '/admin/students', icon: <Users className="w-4 h-4" /> },
           { name: 'Faculty & Teachers', path: '/admin/teachers', icon: <School className="w-4 h-4" /> },
+          { name: 'Subjects Directory', path: '/admin/subjects', icon: <BookOpen className="w-4 h-4" /> },
+          { name: 'Classes & Batches', path: '/admin/classes', icon: <Building2 className="w-4 h-4" /> },
+          { name: 'Teaching Assignments', path: '/admin/assignments', icon: <UserCheck2 className="w-4 h-4" /> },
         ];
       case 'TEACHER':
         return [
@@ -65,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = 'ADMIN' }) => {
               key={link.name}
               to={link.path}
               className={cn(
-                'flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150',
+                'flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition duration-150',
                 isActive
                   ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-xs'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'

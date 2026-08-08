@@ -12,6 +12,9 @@ import { LoginPage } from './pages/LoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminStudentsPage } from './pages/AdminStudentsPage';
 import { AdminTeachersPage } from './pages/AdminTeachersPage';
+import { AdminSubjectsPage } from './pages/AdminSubjectsPage';
+import { AdminClassesPage } from './pages/AdminClassesPage';
+import { AdminAssignmentsPage } from './pages/AdminAssignmentsPage';
 import { TeacherDashboard } from './pages/TeacherDashboard';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -24,7 +27,7 @@ const PublicLayout: React.FC = () => (
       <Outlet />
     </main>
     <footer className="border-t border-slate-200/80 bg-white py-4 px-6 text-center text-xs text-slate-500">
-      QR-Based Student Attendance Management System &bull; Phase 2 Auth & Management &bull; College Field Project
+      QR-Based Student Attendance Management System &bull; Phase 3 Academic Structure &bull; College Field Project
     </footer>
   </div>
 );
@@ -78,6 +81,39 @@ export const App: React.FC = () => {
               <ProtectedRoute allowedRoles={['ADMIN']}>
                 <DashboardLayout role="ADMIN">
                   <AdminTeachersPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/subjects"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <DashboardLayout role="ADMIN">
+                  <AdminSubjectsPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/classes"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <DashboardLayout role="ADMIN">
+                  <AdminClassesPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/assignments"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <DashboardLayout role="ADMIN">
+                  <AdminAssignmentsPage />
                 </DashboardLayout>
               </ProtectedRoute>
             }

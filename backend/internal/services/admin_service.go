@@ -351,7 +351,7 @@ func ToggleTeacherStatus(db *gorm.DB, teacherID string, isActive bool) error {
 	return db.Model(&models.User{}).Where("id = ?", teacher.UserID).Update("is_active", isActive).Error
 }
 
-// GetDashboardStats calculates live total and active student and teacher counts
+// GetDashboardStats calculates live metrics for Students, Teachers, Subjects, Classes, and Recent Assignments
 func GetDashboardStats(db *gorm.DB) (*models.DashboardStatsResponse, error) {
 	var resp models.DashboardStatsResponse
 	resp.Success = true
@@ -369,6 +369,24 @@ func GetDashboardStats(db *gorm.DB) (*models.DashboardStatsResponse, error) {
 		Joins("JOIN users u ON t.user_id = u.id").
 		Where("u.is_active = ?", true).
 		Count(&resp.Teachers.Active)
+
+	// Subject counts
+	db.Model(&models.Subject{}).Count(&resp.Subjects.Total)
+
+	// Class counts
+	db.Model(&models.Class{}).Count(&resp.Classes.Total)
+
+	// Recent Assignments (Top 5)
+	assignments, err := GetAssignments(db)
+	if err == nil {
+		if len(assignments) > 5 {
+			resp.RecentAssignments = assignments[:5]
+		} else {
+			resp.RecentAssignments = assignments
+		}
+	} else {
+		resp.RecentAssignments = []models.AssignmentResponse{}
+	}
 
 	return &resp, nil
 }

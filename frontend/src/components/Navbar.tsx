@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { QrCode, Menu, X, Shield, GraduationCap, School, LogIn, LogOut, Home, Users } from 'lucide-react';
+import { QrCode, Menu, X, Shield, GraduationCap, School, LogIn, LogOut, Home, Users, BookOpen, Building2, UserCheck2 } from 'lucide-react';
 import { ConnectionStatus } from './ConnectionStatus';
 import { MobileMenu } from './MobileMenu';
 import { Badge } from './Badge';
@@ -27,6 +27,9 @@ export const Navbar: React.FC = () => {
         { name: 'Dashboard', path: '/admin', icon: <Shield className="w-4 h-4" /> },
         { name: 'Students', path: '/admin/students', icon: <Users className="w-4 h-4" /> },
         { name: 'Teachers', path: '/admin/teachers', icon: <School className="w-4 h-4" /> },
+        { name: 'Subjects', path: '/admin/subjects', icon: <BookOpen className="w-4 h-4" /> },
+        { name: 'Classes', path: '/admin/classes', icon: <Building2 className="w-4 h-4" /> },
+        { name: 'Assignments', path: '/admin/assignments', icon: <UserCheck2 className="w-4 h-4" /> },
       ];
     }
 
@@ -64,7 +67,7 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden xl:flex items-center gap-1">
             {navLinks.map((link) => {
               const isActive = location.pathname === link.path;
               return (
@@ -72,7 +75,7 @@ export const Navbar: React.FC = () => {
                   key={link.path}
                   to={link.path}
                   className={cn(
-                    'flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-medium transition duration-150',
+                    'flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition duration-150',
                     isActive
                       ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-xs'
                       : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
@@ -131,7 +134,7 @@ export const Navbar: React.FC = () => {
             <button
               onClick={() => setIsMobileOpen((prev) => !prev)}
               aria-label={isMobileOpen ? 'Close Menu' : 'Open Menu'}
-              className="flex md:hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 active:scale-95 transition"
+              className="flex xl:hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 active:scale-95 transition"
             >
               {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>

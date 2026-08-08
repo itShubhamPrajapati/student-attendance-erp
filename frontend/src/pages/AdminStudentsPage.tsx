@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Plus, Edit2, UserCheck, UserX, AlertCircle, RefreshCw, X } from 'lucide-react';
+import { Users, Plus, Edit2, UserCheck, UserX, AlertCircle, RefreshCw, X, Building2, Link2 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
@@ -7,11 +7,19 @@ import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { Student, CreateStudentPayload, UpdateStudentPayload } from '../types';
-import { apiGetStudents, apiCreateStudent, apiUpdateStudent, apiToggleStudentStatus } from '../services/api';
+import { Student, Class, CreateStudentPayload, UpdateStudentPayload } from '../types';
+import {
+  apiGetStudents,
+  apiCreateStudent,
+  apiUpdateStudent,
+  apiToggleStudentStatus,
+  apiGetClasses,
+  apiAssignStudentClass,
+} from '../services/api';
 
 export const AdminStudentsPage: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -19,6 +27,10 @@ export const AdminStudentsPage: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [statusTargetStudent, setStatusTargetStudent] = useState<Student | null>(null);
+  const [assignClassStudent, setAssignClassStudent] = useState<Student | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
   // Add Form State
   const [addForm, setAddForm] = useState<CreateStudentPayload>({
@@ -48,22 +60,26 @@ export const AdminStudentsPage: React.FC = () => {
   // Status toggle state
   const [statusLoading, setStatusLoading] = useState(false);
 
-  const fetchStudentsList = useCallback(async () => {
+  const fetchStudentsAndClasses = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
     try {
-      const res = await apiGetStudents();
-      setStudents(res.data || []);
+      const [studentsRes, classesRes] = await Promise.all([
+        apiGetStudents(),
+        apiGetClasses().catch(() => ({ data: [] })),
+      ]);
+      setStudents(studentsRes.data || []);
+      setClasses(classesRes.data || []);
     } catch (err: unknown) {
-      setErrorMessage(err instanceof Error ? err.message : 'Unable to load students');
+      setErrorMessage(err instanceof Error ? err.message : 'Unable to load student directory');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchStudentsList();
-  }, [fetchStudentsList]);
+    fetchStudentsAndClasses();
+  }, [fetchStudentsAndClasses]);
 
   // Handle Create Student
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -83,7 +99,7 @@ export const AdminStudentsPage: React.FC = () => {
         semester: 1,
         section: 'A',
       });
-      await fetchStudentsList();
+      await fetchStudentsAndClasses();
     } catch (err: unknown) {
       setAddError(err instanceof Error ? err.message : 'Failed to create student');
     } finally {
@@ -115,7 +131,7 @@ export const AdminStudentsPage: React.FC = () => {
     try {
       await apiUpdateStudent(editingStudent.id, editForm);
       setEditingStudent(null);
-      await fetchStudentsList();
+      await fetchStudentsAndClasses();
     } catch (err: unknown) {
       setEditError(err instanceof Error ? err.message : 'Failed to update student');
     } finally {
@@ -131,7 +147,7 @@ export const AdminStudentsPage: React.FC = () => {
     try {
       await apiToggleStudentStatus(statusTargetStudent.id, !statusTargetStudent.is_active);
       setStatusTargetStudent(null);
-      await fetchStudentsList();
+      await fetchStudentsAndClasses();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Failed to update status');
     } finally {
@@ -139,11 +155,47 @@ export const AdminStudentsPage: React.FC = () => {
     }
   };
 
+  // Open Assign Class Modal
+  const openAssignClassModal = (student: Student) => {
+    setAssignClassStudent(student);
+    setSelectedClassId(student.class_id || '');
+    setAssignError(null);
+  };
+
+  // Handle Assign Class Submit
+  const handleAssignClassSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assignClassStudent) return;
+    setAssignError(null);
+    setAssignLoading(true);
+
+    try {
+      const classIdPayload = selectedClassId === '' ? null : selectedClassId;
+      await apiAssignStudentClass(assignClassStudent.id, classIdPayload);
+      setAssignClassStudent(null);
+      await fetchStudentsAndClasses();
+    } catch (err: unknown) {
+      setAssignError(err instanceof Error ? err.message : 'Failed to assign class');
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  // Helper to find class details
+  const getStudentClassInfo = (student: Student) => {
+    if (!student.class_id) return null;
+    const found = classes.find((c) => c.id === student.class_id);
+    if (found) {
+      return `${found.name} • Sem ${found.semester} • Sec ${found.section}`;
+    }
+    return student.class_name || 'Assigned Class';
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <PageHeader
         title="Students Management"
-        description="Register new student accounts, manage enrollments, edit academic batch assignments, and deactivate accounts."
+        description="Register new student accounts, manage enrollments, edit academic batch assignments, and assign students to classes."
         badge={
           <Badge variant="info" withDot>
             {students.length} Registered
@@ -154,7 +206,7 @@ export const AdminStudentsPage: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchStudentsList}
+              onClick={fetchStudentsAndClasses}
               isLoading={loading}
               leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
             >
@@ -180,7 +232,7 @@ export const AdminStudentsPage: React.FC = () => {
             <AlertCircle className="w-4 h-4 text-rose-600" />
             <span>{errorMessage}</span>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchStudentsList}>
+          <Button variant="outline" size="sm" onClick={fetchStudentsAndClasses}>
             Retry
           </Button>
         </div>
@@ -215,107 +267,216 @@ export const AdminStudentsPage: React.FC = () => {
                       <th className="py-3.5 px-4">Roll Number</th>
                       <th className="py-3.5 px-4">Email</th>
                       <th className="py-3.5 px-4">Dept / Sem / Sec</th>
+                      <th className="py-3.5 px-4">Assigned Class</th>
                       <th className="py-3.5 px-4">Status</th>
                       <th className="py-3.5 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {students.map((student) => (
-                      <tr key={student.id} className="hover:bg-slate-50/50 transition">
-                        <td className="py-3.5 px-4 font-semibold text-slate-900 font-heading">
-                          {student.name}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono font-medium text-indigo-600 bg-indigo-50/30 rounded">
-                          {student.roll_number}
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-600 font-mono text-[11px]">
-                          {student.email}
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-700">
-                          {student.department} &bull; Sem {student.semester} &bull; Sec {student.section}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <Badge variant={student.is_active ? 'success' : 'error'} withDot>
-                            {student.is_active ? '● Active' : '● Inactive'}
-                          </Badge>
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="inline-flex items-center gap-1.5">
-                            <button
-                              onClick={() => openEditModal(student)}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition"
-                              title="Edit student"
-                              aria-label="Edit student"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => setStatusTargetStudent(student)}
-                              className={`p-1.5 rounded-lg transition ${
-                                student.is_active
-                                  ? 'text-slate-500 hover:text-rose-600 hover:bg-rose-50'
-                                  : 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
-                              }`}
-                              title={student.is_active ? 'Deactivate student' : 'Activate student'}
-                              aria-label={student.is_active ? 'Deactivate student' : 'Activate student'}
-                            >
-                              {student.is_active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {students.map((student) => {
+                      const classInfo = getStudentClassInfo(student);
+                      return (
+                        <tr key={student.id} className="hover:bg-slate-50/50 transition">
+                          <td className="py-3.5 px-4 font-semibold text-slate-900 font-heading">
+                            {student.name}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono font-medium text-indigo-600 bg-indigo-50/30 rounded">
+                            {student.roll_number}
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-600 font-mono text-[11px]">
+                            {student.email}
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-700">
+                            {student.department} &bull; Sem {student.semester} &bull; Sec {student.section}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {classInfo ? (
+                              <div className="flex items-center gap-1.5 font-medium text-slate-800">
+                                <Building2 className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" />
+                                <span className="truncate max-w-[160px]">{classInfo}</span>
+                              </div>
+                            ) : (
+                              <Badge variant="neutral" className="text-[10px]">
+                                Not Assigned
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <Badge variant={student.is_active ? 'success' : 'error'} withDot>
+                              {student.is_active ? '● Active' : '● Inactive'}
+                            </Badge>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                onClick={() => openAssignClassModal(student)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition"
+                                title="Assign to Class"
+                                aria-label="Assign to Class"
+                              >
+                                <Link2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => openEditModal(student)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition"
+                                title="Edit student"
+                                aria-label="Edit student"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setStatusTargetStudent(student)}
+                                className={`p-1.5 rounded-lg transition ${
+                                  student.is_active
+                                    ? 'text-slate-500 hover:text-rose-600 hover:bg-rose-50'
+                                    : 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
+                                }`}
+                                title={student.is_active ? 'Deactivate student' : 'Activate student'}
+                                aria-label={student.is_active ? 'Deactivate student' : 'Activate student'}
+                              >
+                                {student.is_active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             </Card>
           </div>
 
-          {/* Mobile Cards View (Touch-friendly, no overflow) */}
+          {/* Mobile Cards View */}
           <div className="grid grid-cols-1 gap-3.5 md:hidden">
-            {students.map((student) => (
-              <Card key={student.id} className="p-4 shadow-sm space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                  <div>
-                    <h4 className="font-bold text-sm text-slate-900 font-heading">{student.name}</h4>
-                    <span className="font-mono text-xs text-indigo-600 font-medium">{student.roll_number}</span>
+            {students.map((student) => {
+              const classInfo = getStudentClassInfo(student);
+              return (
+                <Card key={student.id} className="p-4 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-900 font-heading">{student.name}</h4>
+                      <span className="font-mono text-xs text-indigo-600 font-medium">{student.roll_number}</span>
+                    </div>
+                    <Badge variant={student.is_active ? 'success' : 'error'} withDot>
+                      {student.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
                   </div>
-                  <Badge variant={student.is_active ? 'success' : 'error'} withDot>
-                    {student.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
 
-                <div className="text-xs text-slate-600 space-y-1">
-                  <p className="font-mono text-[11px] text-slate-500 truncate">{student.email}</p>
-                  <p className="font-medium text-slate-700">
-                    {student.department} &bull; Sem {student.semester} &bull; Sec {student.section}
-                  </p>
-                </div>
+                  <div className="text-xs text-slate-600 space-y-1">
+                    <p className="font-mono text-[11px] text-slate-500 truncate">{student.email}</p>
+                    <p className="font-medium text-slate-700">
+                      {student.department} &bull; Sem {student.semester} &bull; Sec {student.section}
+                    </p>
+                    <div className="pt-1 flex items-center gap-1.5">
+                      <span className="text-slate-400 font-semibold">Class:</span>
+                      {classInfo ? (
+                        <span className="font-medium text-indigo-700">{classInfo}</span>
+                      ) : (
+                        <Badge variant="neutral" className="text-[10px]">
+                          Not Assigned
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEditModal(student)}
-                    leftIcon={<Edit2 className="w-3.5 h-3.5" />}
-                    className="min-h-[40px]"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant={student.is_active ? 'outline' : 'primary'}
-                    size="sm"
-                    onClick={() => setStatusTargetStudent(student)}
-                    leftIcon={student.is_active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
-                    className={student.is_active ? 'text-rose-600 hover:bg-rose-50 min-h-[40px]' : 'min-h-[40px]'}
-                  >
-                    {student.is_active ? 'Deactivate' : 'Activate'}
-                  </Button>
-                </div>
-              </Card>
-            ))}
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openAssignClassModal(student)}
+                      leftIcon={<Link2 className="w-3.5 h-3.5" />}
+                      className="min-h-[40px]"
+                    >
+                      Assign Class
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditModal(student)}
+                      leftIcon={<Edit2 className="w-3.5 h-3.5" />}
+                      className="min-h-[40px]"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant={student.is_active ? 'outline' : 'primary'}
+                      size="sm"
+                      onClick={() => setStatusTargetStudent(student)}
+                      leftIcon={student.is_active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                      className={student.is_active ? 'text-rose-600 hover:bg-rose-50 min-h-[40px]' : 'min-h-[40px]'}
+                    >
+                      {student.is_active ? 'Deactivate' : 'Activate'}
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         </>
+      )}
+
+      {/* Assign Class Modal */}
+      {assignClassStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900 font-heading">Assign Student to Class</h3>
+              </div>
+              <button
+                onClick={() => setAssignClassStudent(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs">
+              <span className="text-slate-500 font-semibold">Student:</span>
+              <p className="text-slate-900 font-bold font-heading">{assignClassStudent.name} ({assignClassStudent.roll_number})</p>
+            </div>
+
+            {assignError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <span>{assignError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAssignClassSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Select Academic Class
+                </label>
+                <select
+                  className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  value={selectedClassId}
+                  onChange={(e) => setSelectedClassId(e.target.value)}
+                >
+                  <option value="">-- Not Assigned (Unassign from Class) --</option>
+                  {classes.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name} — Sem {cls.semester} — Sec {cls.section} ({cls.academic_year})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <Button type="button" variant="outline" onClick={() => setAssignClassStudent(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" isLoading={assignLoading}>
+                  Save Class Assignment
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Add Student Modal */}

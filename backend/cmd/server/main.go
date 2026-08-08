@@ -41,7 +41,7 @@ func main() {
 
 	// 4. Print Clean Startup Logging Banner
 	fmt.Println("==================================================")
-	fmt.Println("QR Attendance API — Phase 2 Auth & Management")
+	fmt.Println("QR Attendance API — Phase 3 Academic Structure & Class Management")
 	fmt.Printf("Environment: %s\n", cfg.Environment)
 	fmt.Printf("Server: :%s\n", cfg.ServerPort)
 	fmt.Printf("Database: %s\n", dbStatus)
