@@ -248,13 +248,20 @@ export const TeacherDashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-bold text-slate-900 font-heading">
-              Attendance Sessions History
+              Recent Attendance Sessions
             </h3>
             <p className="text-xs text-slate-500">
               Review live and concluded lecture sessions and verify student records
             </p>
           </div>
-          <span className="text-xs text-slate-400 font-medium">{sessions.length} sessions</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-400 font-medium hidden sm:inline">{sessions.length} sessions</span>
+            <Link to="/teacher/attendance/history">
+              <Button variant="outline" size="sm" className="text-xs py-1">
+                View All History &rarr;
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {sessions.length === 0 ? (

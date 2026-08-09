@@ -41,7 +41,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = 'ADMIN' }) => {
         ];
       case 'TEACHER':
         return [
-          { name: 'My Classes & Sessions', path: '/teacher', icon: <Layers className="w-4 h-4" /> },
+          { name: 'My Classes & QR', path: '/teacher', icon: <Layers className="w-4 h-4" /> },
+          { name: 'Attendance History', path: '/teacher/attendance/history', icon: <Calendar className="w-4 h-4" /> },
         ];
       case 'STUDENT':
         return [

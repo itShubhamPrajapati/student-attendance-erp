@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { QrCode, Menu, X, Shield, GraduationCap, School, LogIn, LogOut, Home, Users, BookOpen, Building2, UserCheck2 } from 'lucide-react';
+import { QrCode, Menu, X, Shield, GraduationCap, School, LogIn, LogOut, Home, Users, BookOpen, Building2, UserCheck2, Calendar } from 'lucide-react';
 import { ConnectionStatus } from './ConnectionStatus';
 import { MobileMenu } from './MobileMenu';
 import { Badge } from './Badge';
@@ -34,7 +34,10 @@ export const Navbar: React.FC = () => {
     }
 
     if (user.role === 'TEACHER') {
-      return [{ name: 'Teacher Portal', path: '/teacher', icon: <School className="w-4 h-4" /> }];
+      return [
+        { name: 'Teacher Portal', path: '/teacher', icon: <School className="w-4 h-4" /> },
+        { name: 'Attendance Sessions', path: '/teacher/attendance/history', icon: <Calendar className="w-4 h-4" /> },
+      ];
     }
 
     return [{ name: 'Student Portal', path: '/student', icon: <GraduationCap className="w-4 h-4" /> }];

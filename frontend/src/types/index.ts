@@ -236,11 +236,14 @@ export interface AttendanceSession {
   session_token: string;
   started_at: string;
   expires_at: string;
+  duration_minutes?: number;
   is_active: boolean;
   is_expired: boolean;
   present_count: number;
+  absent_count?: number;
   total_students: number;
   percentage: number;
+  status?: string;
   created_at: string;
 }
 

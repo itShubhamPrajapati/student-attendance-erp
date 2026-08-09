@@ -62,7 +62,12 @@ func CreateAttendanceSessionHandler(db *gorm.DB) gin.HandlerFunc {
 func GetTeacherSessionsHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.GetString("user_id")
-		sessions, err := services.GetTeacherSessions(db, userID)
+		subjectFilter := c.Query("subject_id")
+		classFilter := c.Query("class_id")
+		dateFilter := c.Query("date")
+		statusFilter := c.Query("status")
+
+		sessions, err := services.GetTeacherSessions(db, userID, subjectFilter, classFilter, dateFilter, statusFilter)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,

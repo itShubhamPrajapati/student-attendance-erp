@@ -106,6 +106,8 @@ func CreateAttendanceSession(db *gorm.DB, teacherUserID string, input *CreateSes
 	var totalStudents int64
 	db.Model(&models.Student{}).Where("class_id = ?", class.ID).Count(&totalStudents)
 
+	durationMins := computeDurationMinutes(session.StartedAt, session.ExpiresAt)
+
 	return &models.AttendanceSessionResponse{
 		ID:                session.ID,
 		TeacherID:         teacher.ID,
@@ -123,31 +125,82 @@ func CreateAttendanceSession(db *gorm.DB, teacherUserID string, input *CreateSes
 		SessionToken:      session.SessionToken,
 		StartedAt:         session.StartedAt,
 		ExpiresAt:         session.ExpiresAt,
+		DurationMinutes:   durationMins,
 		IsActive:          session.IsActive,
 		IsExpired:         false,
 		PresentCount:      0,
+		AbsentCount:       totalStudents,
 		TotalStudents:     totalStudents,
 		Percentage:        0.0,
+		Status:            "ACTIVE",
 		CreatedAt:         session.CreatedAt,
 	}, nil
 }
 
-// GetTeacherSessions retrieves all attendance sessions created by the logged-in teacher
-func GetTeacherSessions(db *gorm.DB, teacherUserID string) ([]models.AttendanceSessionResponse, error) {
+// computeSessionStatus calculates normalized status string
+func computeSessionStatus(isActive, isExpired bool) string {
+	if isActive && !isExpired {
+		return "ACTIVE"
+	}
+	if !isActive {
+		return "COMPLETED"
+	}
+	return "EXPIRED"
+}
+
+// computeDurationMinutes calculates elapsed/allocated duration in minutes
+func computeDurationMinutes(startedAt, expiresAt time.Time) int {
+	mins := int(math.Round(expiresAt.Sub(startedAt).Minutes()))
+	if mins <= 0 {
+		return 5
+	}
+	return mins
+}
+
+// computeAbsentCount calculates expected absent students
+func computeAbsentCount(totalStudents, presentCount int64) int64 {
+	absent := totalStudents - presentCount
+	if absent < 0 {
+		return 0
+	}
+	return absent
+}
+
+// GetTeacherSessions retrieves all attendance sessions created by the logged-in teacher with optional filtering
+func GetTeacherSessions(db *gorm.DB, teacherUserID string, subjectFilter, classFilter, dateFilter, statusFilter string) ([]models.AttendanceSessionResponse, error) {
 	var teacher models.Teacher
 	if err := db.Where("user_id = ?", teacherUserID).First(&teacher).Error; err != nil {
 		return nil, errors.New("Teacher profile not found.")
 	}
 
-	var sessions []models.AttendanceSession
-	if err := db.Preload("Subject").Preload("Class").
-		Where("teacher_id = ?", teacher.ID).
-		Order("created_at DESC").
-		Find(&sessions).Error; err != nil {
-		return nil, fmt.Errorf("failed to retrieve teacher attendance sessions: %w", err)
+	query := db.Preload("Subject").Preload("Class").
+		Where("teacher_id = ?", teacher.ID)
+
+	if strings.TrimSpace(subjectFilter) != "" {
+		query = query.Where("subject_id = ?", strings.TrimSpace(subjectFilter))
+	}
+	if strings.TrimSpace(classFilter) != "" {
+		query = query.Where("class_id = ?", strings.TrimSpace(classFilter))
+	}
+	if strings.TrimSpace(dateFilter) != "" {
+		query = query.Where("DATE(started_at) = ?", strings.TrimSpace(dateFilter))
 	}
 
 	now := time.Now().UTC()
+	statusClean := strings.ToUpper(strings.TrimSpace(statusFilter))
+	if statusClean == "ACTIVE" {
+		query = query.Where("is_active = ? AND expires_at > ?", true, now)
+	} else if statusClean == "COMPLETED" {
+		query = query.Where("is_active = ? OR expires_at <= ?", false, now)
+	} else if statusClean == "EXPIRED" {
+		query = query.Where("expires_at <= ?", now)
+	}
+
+	var sessions []models.AttendanceSession
+	if err := query.Order("started_at DESC").Find(&sessions).Error; err != nil {
+		return nil, fmt.Errorf("failed to retrieve teacher attendance sessions: %w", err)
+	}
+
 	results := make([]models.AttendanceSessionResponse, len(sessions))
 
 	for i, s := range sessions {
@@ -163,6 +216,9 @@ func GetTeacherSessions(db *gorm.DB, teacherUserID string) ([]models.AttendanceS
 		}
 
 		isExpired := now.After(s.ExpiresAt)
+		duration := computeDurationMinutes(s.StartedAt, s.ExpiresAt)
+		absentCount := computeAbsentCount(totalStudents, presentCount)
+		sessionStatus := computeSessionStatus(s.IsActive, isExpired)
 
 		results[i] = models.AttendanceSessionResponse{
 			ID:                s.ID,
@@ -179,11 +235,14 @@ func GetTeacherSessions(db *gorm.DB, teacherUserID string) ([]models.AttendanceS
 			SessionToken:      s.SessionToken,
 			StartedAt:         s.StartedAt,
 			ExpiresAt:         s.ExpiresAt,
+			DurationMinutes:   duration,
 			IsActive:          s.IsActive,
 			IsExpired:         isExpired,
 			PresentCount:      presentCount,
+			AbsentCount:       absentCount,
 			TotalStudents:     totalStudents,
 			Percentage:        pct,
+			Status:            sessionStatus,
 			CreatedAt:         s.CreatedAt,
 		}
 	}
@@ -221,6 +280,9 @@ func GetTeacherSessionByID(db *gorm.DB, teacherUserID string, sessionID string) 
 
 	now := time.Now().UTC()
 	isExpired := now.After(session.ExpiresAt)
+	duration := computeDurationMinutes(session.StartedAt, session.ExpiresAt)
+	absentCount := computeAbsentCount(totalStudents, presentCount)
+	sessionStatus := computeSessionStatus(session.IsActive, isExpired)
 
 	return &models.AttendanceSessionResponse{
 		ID:                session.ID,
@@ -239,11 +301,14 @@ func GetTeacherSessionByID(db *gorm.DB, teacherUserID string, sessionID string) 
 		SessionToken:      session.SessionToken,
 		StartedAt:         session.StartedAt,
 		ExpiresAt:         session.ExpiresAt,
+		DurationMinutes:   duration,
 		IsActive:          session.IsActive,
 		IsExpired:         isExpired,
 		PresentCount:      presentCount,
+		AbsentCount:       absentCount,
 		TotalStudents:     totalStudents,
 		Percentage:        pct,
+		Status:            sessionStatus,
 		CreatedAt:         session.CreatedAt,
 	}, nil
 }
@@ -355,6 +420,9 @@ func GetSessionAttendanceRecords(db *gorm.DB, sessionID string, teacherUserID *s
 
 	now := time.Now().UTC()
 	isExpired := now.After(session.ExpiresAt)
+	duration := computeDurationMinutes(session.StartedAt, session.ExpiresAt)
+	absentCount := computeAbsentCount(totalStudents, presentCount)
+	sessionStatus := computeSessionStatus(session.IsActive, isExpired)
 
 	return &models.SessionAttendanceDetailsResponse{
 		Session: models.AttendanceSessionResponse{
@@ -374,11 +442,14 @@ func GetSessionAttendanceRecords(db *gorm.DB, sessionID string, teacherUserID *s
 			SessionToken:      session.SessionToken,
 			StartedAt:         session.StartedAt,
 			ExpiresAt:         session.ExpiresAt,
+			DurationMinutes:   duration,
 			IsActive:          session.IsActive,
 			IsExpired:         isExpired,
 			PresentCount:      presentCount,
+			AbsentCount:       absentCount,
 			TotalStudents:     totalStudents,
 			Percentage:        pct,
+			Status:            sessionStatus,
 			CreatedAt:         session.CreatedAt,
 		},
 		Records:       records,
@@ -641,6 +712,9 @@ func GetAdminAttendanceSessions(db *gorm.DB, dateFilter, subjectFilter, classFil
 		}
 
 		isExpired := now.After(s.ExpiresAt)
+		duration := computeDurationMinutes(s.StartedAt, s.ExpiresAt)
+		absentCount := computeAbsentCount(totalStudents, presentCount)
+		sessionStatus := computeSessionStatus(s.IsActive, isExpired)
 
 		results[i] = models.AttendanceSessionResponse{
 			ID:                s.ID,
@@ -659,11 +733,14 @@ func GetAdminAttendanceSessions(db *gorm.DB, dateFilter, subjectFilter, classFil
 			SessionToken:      s.SessionToken,
 			StartedAt:         s.StartedAt,
 			ExpiresAt:         s.ExpiresAt,
+			DurationMinutes:   duration,
 			IsActive:          s.IsActive,
 			IsExpired:         isExpired,
 			PresentCount:      presentCount,
+			AbsentCount:       absentCount,
 			TotalStudents:     totalStudents,
 			Percentage:        pct,
+			Status:            sessionStatus,
 			CreatedAt:         s.CreatedAt,
 		}
 	}

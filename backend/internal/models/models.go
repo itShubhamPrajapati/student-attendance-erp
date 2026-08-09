@@ -308,11 +308,14 @@ type AttendanceSessionResponse struct {
 	SessionToken      string    `json:"session_token"`
 	StartedAt         time.Time `json:"started_at"`
 	ExpiresAt         time.Time `json:"expires_at"`
+	DurationMinutes   int       `json:"duration_minutes"`
 	IsActive          bool      `json:"is_active"`
 	IsExpired         bool      `json:"is_expired"`
 	PresentCount      int64     `json:"present_count"`
+	AbsentCount       int64     `json:"absent_count"`
 	TotalStudents     int64     `json:"total_students"`
 	Percentage        float64   `json:"percentage"`
+	Status            string    `json:"status"` // "ACTIVE", "COMPLETED", "EXPIRED"
 	CreatedAt         time.Time `json:"created_at"`
 }
 

@@ -351,8 +351,22 @@ export async function apiCreateAttendanceSession(
   );
 }
 
-export async function apiGetTeacherSessions(): Promise<{ success: boolean; data: AttendanceSession[] }> {
-  return request<{ success: boolean; data: AttendanceSession[] }>('/api/teacher/attendance/sessions', {
+export async function apiGetTeacherSessions(filters?: {
+  subject_id?: string;
+  class_id?: string;
+  date?: string;
+  status?: string;
+}): Promise<{ success: boolean; data: AttendanceSession[] }> {
+  const params = new URLSearchParams();
+  if (filters?.subject_id) params.append('subject_id', filters.subject_id);
+  if (filters?.class_id) params.append('class_id', filters.class_id);
+  if (filters?.date) params.append('date', filters.date);
+  if (filters?.status) params.append('status', filters.status);
+
+  const qs = params.toString();
+  const url = qs ? `/api/teacher/attendance/sessions?${qs}` : '/api/teacher/attendance/sessions';
+
+  return request<{ success: boolean; data: AttendanceSession[] }>(url, {
     method: 'GET',
   });
 }

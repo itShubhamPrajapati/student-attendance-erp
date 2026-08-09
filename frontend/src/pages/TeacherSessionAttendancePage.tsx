@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Users,
@@ -6,8 +6,8 @@ import {
   XCircle,
   ArrowLeft,
   RefreshCw,
-  Calendar,
   Printer,
+  Clock,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -24,6 +24,7 @@ export const TeacherSessionAttendancePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PRESENT' | 'ABSENT'>('ALL');
 
   const fetchRecords = useCallback(async () => {
     if (!sessionId) return;
@@ -43,11 +44,20 @@ export const TeacherSessionAttendancePage: React.FC = () => {
     fetchRecords();
   }, [fetchRecords]);
 
-  // Filter students by name or roll number
-  const filteredRecords = data?.records.filter((r) => {
-    const q = searchQuery.toLowerCase();
-    return r.name.toLowerCase().includes(q) || r.roll_number.toLowerCase().includes(q);
-  }) || [];
+  // Filter students by name, roll number, and status
+  const filteredRecords = useMemo(() => {
+    if (!data) return [];
+    return data.records.filter((r) => {
+      if (statusFilter !== 'ALL' && r.status !== statusFilter) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return r.name.toLowerCase().includes(q) || r.roll_number.toLowerCase().includes(q) || r.email.toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [data, searchQuery, statusFilter]);
 
   if (loading) {
     return (
@@ -68,10 +78,15 @@ export const TeacherSessionAttendancePage: React.FC = () => {
             <h3 className="text-base font-bold text-slate-900 font-heading">Attendance Record Error</h3>
             <p className="text-xs text-slate-500 mt-1">{error || 'Session records not found.'}</p>
           </div>
-          <div className="pt-2">
+          <div className="pt-2 flex items-center justify-center gap-2">
+            <Link to="/teacher/attendance/history">
+              <Button size="sm" variant="outline" leftIcon={<ArrowLeft className="w-3.5 h-3.5" />}>
+                All Sessions
+              </Button>
+            </Link>
             <Link to="/teacher">
-              <Button size="sm" leftIcon={<ArrowLeft className="w-3.5 h-3.5" />}>
-                Back to Teacher Portal
+              <Button size="sm" variant="primary">
+                Teacher Dashboard
               </Button>
             </Link>
           </div>
@@ -81,6 +96,9 @@ export const TeacherSessionAttendancePage: React.FC = () => {
   }
 
   const { session } = data;
+  const duration = session.duration_minutes || Math.max(1, Math.round((new Date(session.expires_at).getTime() - new Date(session.started_at).getTime()) / 60000));
+  const absentCount = Math.max(0, data.total_students - data.present_count);
+  const isLive = session.is_active && !session.is_expired;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -88,15 +106,21 @@ export const TeacherSessionAttendancePage: React.FC = () => {
         title={`${session.subject_name} — Attendance Roster`}
         description={`Classroom attendance report for ${session.class_name} • Semester ${session.semester} (${session.section}).`}
         badge={
-          <Badge variant="info" withDot>
-            {data.percentage}% Overall Attendance
-          </Badge>
+          isLive ? (
+            <Badge variant="success" withDot>
+              LIVE SESSION
+            </Badge>
+          ) : session.is_expired ? (
+            <Badge variant="neutral">EXPIRED</Badge>
+          ) : (
+            <Badge variant="warning">COMPLETED</Badge>
+          )
         }
         actions={
           <div className="flex items-center gap-2">
-            <Link to="/teacher">
+            <Link to="/teacher/attendance/history">
               <Button variant="outline" size="sm" leftIcon={<ArrowLeft className="w-3.5 h-3.5" />}>
-                Dashboard
+                All Sessions
               </Button>
             </Link>
             <Button
@@ -122,46 +146,46 @@ export const TeacherSessionAttendancePage: React.FC = () => {
       />
 
       {/* Session Overview KPI Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
         <Card className="p-4 bg-white border-slate-200/80 shadow-xs space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Course Subject</span>
-          <p className="text-sm font-bold text-slate-900 font-heading truncate">{session.subject_name}</p>
-          <span className="font-mono text-xs text-indigo-600 font-semibold">{session.subject_code}</span>
-        </Card>
-
-        <Card className="p-4 bg-white border-slate-200/80 shadow-xs space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Class Batch</span>
-          <p className="text-sm font-bold text-slate-900 font-heading truncate">{session.class_name}</p>
-          <span className="text-xs text-slate-500 font-medium">
-            Sem {session.semester} &bull; Sec {session.section}
-          </span>
-        </Card>
-
-        <Card className="p-4 bg-white border-slate-200/80 shadow-xs space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Session Timing</span>
-          <div className="flex items-center gap-1 text-xs font-semibold text-slate-800">
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>{new Date(session.started_at).toLocaleDateString()}</span>
-          </div>
-          <span className="text-[11px] text-slate-500 font-mono">
-            {new Date(session.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Students</span>
+          <p className="text-2xl font-bold text-slate-900 font-heading">{data.total_students}</p>
+          <span className="text-[11px] text-slate-400 font-medium">Enrolled Roster</span>
         </Card>
 
         <Card className="p-4 bg-white border-emerald-100 shadow-xs space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Attendance Rate</span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-emerald-800 font-heading">
-              {data.present_count} / {data.total_students}
-            </span>
-            <span className="text-sm font-bold text-emerald-700 font-mono">{data.percentage}%</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Present</span>
+          <p className="text-2xl font-bold text-emerald-800 font-heading">{data.present_count}</p>
+          <span className="text-[11px] text-emerald-600 font-medium">Verified Marks</span>
+        </Card>
+
+        <Card className="p-4 bg-white border-slate-200 shadow-xs space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Absent</span>
+          <p className="text-2xl font-bold text-slate-700 font-heading">{absentCount}</p>
+          <span className="text-[11px] text-slate-400 font-medium">Not Marked</span>
+        </Card>
+
+        <Card className="p-4 bg-white border-indigo-100 shadow-xs space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">Attendance Rate</span>
+          <p className="text-2xl font-bold text-indigo-900 font-heading font-mono">{data.percentage}%</p>
+          <span className="text-[11px] text-indigo-600 font-medium">Class Turnout</span>
+        </Card>
+
+        <Card className="p-4 bg-white border-slate-200/80 shadow-xs space-y-1 col-span-2 sm:col-span-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Session Window</span>
+          <div className="flex items-center gap-1 text-xs font-bold text-slate-800 pt-0.5">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span>{duration} Minutes</span>
           </div>
+          <span className="text-[11px] text-slate-400 block font-mono">
+            {new Date(session.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
         </Card>
       </div>
 
       {/* Student Roster Table Card */}
       <Card className="p-0 overflow-hidden bg-white border-slate-200/80 shadow-sm">
-        {/* Search Header */}
+        {/* Search & Filter Header */}
         <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-indigo-600" />
@@ -170,13 +194,47 @@ export const TeacherSessionAttendancePage: React.FC = () => {
             </h4>
           </div>
 
-          <div className="w-full sm:w-64">
-            <Input
-              placeholder="Search by student or roll no..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="text-xs py-1.5"
-            />
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {/* Status Segmented Buttons */}
+            <div className="inline-flex rounded-xl border border-slate-200 bg-white p-0.5 text-xs shadow-xs">
+              <button
+                type="button"
+                onClick={() => setStatusFilter('ALL')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition ${
+                  statusFilter === 'ALL' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                All ({data.records.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('PRESENT')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition ${
+                  statusFilter === 'PRESENT' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Present ({data.present_count})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('ABSENT')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition ${
+                  statusFilter === 'ABSENT' ? 'bg-slate-700 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Absent ({absentCount})
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="w-full sm:w-60">
+              <Input
+                placeholder="Search student or roll no..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="text-xs py-1.5"
+              />
+            </div>
           </div>
         </div>
 
@@ -196,7 +254,7 @@ export const TeacherSessionAttendancePage: React.FC = () => {
               {filteredRecords.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-xs text-slate-400">
-                    No matching student records found for this class.
+                    No matching student records found.
                   </td>
                 </tr>
               ) : (
@@ -238,3 +296,4 @@ export const TeacherSessionAttendancePage: React.FC = () => {
     </div>
   );
 };
+
