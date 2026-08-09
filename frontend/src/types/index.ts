@@ -348,6 +348,39 @@ export interface StudentCalendarResponse {
   days: StudentCalendarDay[];
 }
 
+export interface StudentAttendanceHistoryRecord {
+  session_id: string;
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  class_id: string;
+  class_name: string;
+  started_at: string;
+  ended_at: string;
+  status: 'PRESENT' | 'ABSENT';
+  marked_at: string | null;
+}
+
+export interface StudentAttendanceHistoryPagination {
+  page: number;
+  limit: number;
+  total_records: number;
+  total_pages: number;
+}
+
+export interface StudentAttendanceHistorySummary {
+  total: number;
+  present: number;
+  absent: number;
+  percentage: number;
+}
+
+export interface StudentAttendanceHistoryResponse {
+  records: StudentAttendanceHistoryRecord[];
+  pagination: StudentAttendanceHistoryPagination;
+  summary: StudentAttendanceHistorySummary;
+}
+
 export interface CreateAttendanceSessionPayload {
   subject_id: string;
   class_id: string;

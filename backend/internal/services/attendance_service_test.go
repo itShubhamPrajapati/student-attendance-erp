@@ -1,6 +1,7 @@
 package services
 
 import (
+	"math"
 	"sync"
 	"testing"
 	"time"
@@ -294,6 +295,117 @@ func TestStudentCalendarDayStatusAggregation(t *testing.T) {
 
 			if dayStatus != tt.expectedStatus {
 				t.Errorf("expected day status %s, got %s", tt.expectedStatus, dayStatus)
+			}
+		})
+	}
+}
+
+// TestStudentAttendanceHistoryPaginationAndSummary verifies page counts, limit constraints, and summary percentages
+func TestStudentAttendanceHistoryPaginationAndSummary(t *testing.T) {
+	tests := []struct {
+		name          string
+		totalRecords  int64
+		presentCount  int64
+		inputPage     int
+		inputLimit    int
+		expectedPage  int
+		expectedLimit int
+		expectedPages int
+		expectedAbsent int64
+		expectedPct   float64
+	}{
+		{
+			name:          "Zero records",
+			totalRecords:  0,
+			presentCount:  0,
+			inputPage:     1,
+			inputLimit:    20,
+			expectedPage:  1,
+			expectedLimit: 20,
+			expectedPages: 0,
+			expectedAbsent: 0,
+			expectedPct:   0.0,
+		},
+		{
+			name:          "Standard 42 records with limit 20 (3 pages)",
+			totalRecords:  42,
+			presentCount:  35,
+			inputPage:     1,
+			inputLimit:    20,
+			expectedPage:  1,
+			expectedLimit: 20,
+			expectedPages: 3,
+			expectedAbsent: 7,
+			expectedPct:   83.3,
+		},
+		{
+			name:          "Page below minimum adjusted to 1",
+			totalRecords:  15,
+			presentCount:  15,
+			inputPage:     -5,
+			inputLimit:    10,
+			expectedPage:  1,
+			expectedLimit: 10,
+			expectedPages: 2,
+			expectedAbsent: 0,
+			expectedPct:   100.0,
+		},
+		{
+			name:          "Limit above maximum 100 capped at 100",
+			totalRecords:  250,
+			presentCount:  175,
+			inputPage:     2,
+			inputLimit:    500,
+			expectedPage:  2,
+			expectedLimit: 100,
+			expectedPages: 3,
+			expectedAbsent: 75,
+			expectedPct:   70.0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			page := tt.inputPage
+			if page < 1 {
+				page = 1
+			}
+			limit := tt.inputLimit
+			if limit < 1 {
+				limit = 20
+			} else if limit > 100 {
+				limit = 100
+			}
+
+			totalPages := 0
+			if tt.totalRecords > 0 {
+				totalPages = int(math.Ceil(float64(tt.totalRecords) / float64(limit)))
+			}
+
+			absent := int64(0)
+			if tt.totalRecords > tt.presentCount {
+				absent = tt.totalRecords - tt.presentCount
+			}
+
+			pct := 0.0
+			if tt.totalRecords > 0 {
+				pct = math.Round((float64(tt.presentCount)/float64(tt.totalRecords))*1000) / 10
+			}
+
+			if page != tt.expectedPage {
+				t.Errorf("expected page %d, got %d", tt.expectedPage, page)
+			}
+			if limit != tt.expectedLimit {
+				t.Errorf("expected limit %d, got %d", tt.expectedLimit, limit)
+			}
+			if totalPages != tt.expectedPages {
+				t.Errorf("expected total pages %d, got %d", tt.expectedPages, totalPages)
+			}
+			if absent != tt.expectedAbsent {
+				t.Errorf("expected absent %d, got %d", tt.expectedAbsent, absent)
+			}
+			if pct != tt.expectedPct {
+				t.Errorf("expected percentage %.1f, got %.1f", tt.expectedPct, pct)
 			}
 		})
 	}

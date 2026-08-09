@@ -430,3 +430,40 @@ type StudentCalendarResponse struct {
 	Summary StudentCalendarSummary `json:"summary"`
 	Days    []StudentCalendarDay   `json:"days"`
 }
+
+// StudentAttendanceHistoryRecord represents a single lecture attendance record in history
+type StudentAttendanceHistoryRecord struct {
+	SessionID   string     `json:"session_id"`
+	SubjectID   string     `json:"subject_id"`
+	SubjectName string     `json:"subject_name"`
+	SubjectCode string     `json:"subject_code"`
+	ClassID     string     `json:"class_id"`
+	ClassName   string     `json:"class_name"`
+	StartedAt   time.Time  `json:"started_at"`
+	EndedAt     time.Time  `json:"ended_at"`
+	Status      string     `json:"status"` // "PRESENT" or "ABSENT"
+	MarkedAt    *time.Time `json:"marked_at"`
+}
+
+// StudentAttendanceHistoryPagination represents server-side pagination metadata
+type StudentAttendanceHistoryPagination struct {
+	Page         int   `json:"page"`
+	Limit        int   `json:"limit"`
+	TotalRecords int64 `json:"total_records"`
+	TotalPages   int   `json:"total_pages"`
+}
+
+// StudentAttendanceHistorySummary represents overall metrics for the filtered history
+type StudentAttendanceHistorySummary struct {
+	Total      int64   `json:"total"`
+	Present    int64   `json:"present"`
+	Absent     int64   `json:"absent"`
+	Percentage float64 `json:"percentage"`
+}
+
+// StudentAttendanceHistoryResponse represents the full payload of GET /api/student/attendance/history
+type StudentAttendanceHistoryResponse struct {
+	Records    []StudentAttendanceHistoryRecord   `json:"records"`
+	Pagination StudentAttendanceHistoryPagination `json:"pagination"`
+	Summary    StudentAttendanceHistorySummary    `json:"summary"`
+}

@@ -18,6 +18,7 @@ import {
   TrendingUp,
   ShieldAlert,
   Info,
+  History,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -150,12 +151,17 @@ export const StudentDashboard: React.FC = () => {
           <div className="flex items-center gap-2 flex-wrap">
             <Link to="/student/attendance/calendar">
               <Button variant="outline" size="sm" leftIcon={<Calendar className="w-3.5 h-3.5" />}>
-                Attendance Calendar
+                Calendar
+              </Button>
+            </Link>
+            <Link to="/student/attendance/history">
+              <Button variant="outline" size="sm" leftIcon={<History className="w-3.5 h-3.5" />}>
+                History
               </Button>
             </Link>
             <Link to="/attendance/scan">
               <Button variant="primary" size="sm" leftIcon={<Camera className="w-3.5 h-3.5" />}>
-                Scan Attendance QR
+                Scan QR
               </Button>
             </Link>
             <Button

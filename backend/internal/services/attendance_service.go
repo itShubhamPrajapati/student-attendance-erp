@@ -946,6 +946,210 @@ func GetStudentAttendanceCalendar(db *gorm.DB, studentUserID string, monthStr st
 	}, nil
 }
 
+// GetStudentAttendanceHistory retrieves paginated and filtered attendance history for a student
+func GetStudentAttendanceHistory(
+	db *gorm.DB,
+	studentUserID string,
+	subjectID string,
+	statusFilter string,
+	fromDate string,
+	toDate string,
+	searchQuery string,
+	page int,
+	limit int,
+) (*models.StudentAttendanceHistoryResponse, error) {
+	var student models.Student
+	if err := db.Where("user_id = ?", studentUserID).First(&student).Error; err != nil {
+		return nil, errors.New("Student profile not found.")
+	}
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 20
+	} else if limit > 100 {
+		limit = 100
+	}
+
+	if student.ClassID == nil || *student.ClassID == "" {
+		return &models.StudentAttendanceHistoryResponse{
+			Records: []models.StudentAttendanceHistoryRecord{},
+			Pagination: models.StudentAttendanceHistoryPagination{
+				Page:         page,
+				Limit:        limit,
+				TotalRecords: 0,
+				TotalPages:   0,
+			},
+			Summary: models.StudentAttendanceHistorySummary{
+				Total:      0,
+				Present:    0,
+				Absent:     0,
+				Percentage: 0.0,
+			},
+		}, nil
+	}
+
+	// 1. Build base WHERE clause for the student's class sessions
+	baseQuery := `
+		FROM attendance_sessions ses
+		JOIN subjects s ON ses.subject_id = s.id
+		JOIN classes c ON ses.class_id = c.id
+		LEFT JOIN attendance a ON a.session_id = ses.id AND a.student_id = ?
+		WHERE ses.class_id = ?
+	`
+	args := []interface{}{student.ID, *student.ClassID}
+
+	if strings.TrimSpace(subjectID) != "" {
+		baseQuery += " AND ses.subject_id = ?"
+		args = append(args, strings.TrimSpace(subjectID))
+	}
+
+	if strings.TrimSpace(fromDate) != "" {
+		baseQuery += " AND DATE(ses.started_at) >= ?"
+		args = append(args, strings.TrimSpace(fromDate))
+	}
+
+	if strings.TrimSpace(toDate) != "" {
+		baseQuery += " AND DATE(ses.started_at) <= ?"
+		args = append(args, strings.TrimSpace(toDate))
+	}
+
+	if strings.TrimSpace(searchQuery) != "" {
+		searchPattern := "%" + strings.ToLower(strings.TrimSpace(searchQuery)) + "%"
+		baseQuery += " AND (LOWER(s.name) LIKE ? OR LOWER(s.code) LIKE ?)"
+		args = append(args, searchPattern, searchPattern)
+	}
+
+	cleanStatus := strings.ToUpper(strings.TrimSpace(statusFilter))
+	if cleanStatus == "PRESENT" {
+		baseQuery += " AND a.id IS NOT NULL AND a.status = 'PRESENT'"
+	} else if cleanStatus == "ABSENT" {
+		baseQuery += " AND (a.id IS NULL OR a.status != 'PRESENT')"
+	}
+
+	// 2. Count total matching records and present count for summary
+	type summaryCounts struct {
+		TotalCount   int64 `gorm:"column:total_count"`
+		PresentCount int64 `gorm:"column:present_count"`
+	}
+	var counts summaryCounts
+	summarySQL := `
+		SELECT 
+			COUNT(*) AS total_count,
+			COUNT(CASE WHEN a.id IS NOT NULL AND a.status = 'PRESENT' THEN 1 END) AS present_count
+	` + baseQuery
+
+	if err := db.Raw(summarySQL, args...).Scan(&counts).Error; err != nil {
+		return nil, fmt.Errorf("failed to compute history summary: %w", err)
+	}
+
+	totalRecords := counts.TotalCount
+	totalPages := 0
+	if totalRecords > 0 {
+		totalPages = int(math.Ceil(float64(totalRecords) / float64(limit)))
+	}
+
+	totalPresent := counts.PresentCount
+	totalAbsent := int64(0)
+	if totalRecords > totalPresent {
+		totalAbsent = totalRecords - totalPresent
+	}
+
+	pct := 0.0
+	if totalRecords > 0 {
+		pct = math.Round((float64(totalPresent)/float64(totalRecords))*1000) / 10
+	}
+
+	summary := models.StudentAttendanceHistorySummary{
+		Total:      totalRecords,
+		Present:    totalPresent,
+		Absent:     totalAbsent,
+		Percentage: pct,
+	}
+
+	if totalRecords == 0 {
+		return &models.StudentAttendanceHistoryResponse{
+			Records: []models.StudentAttendanceHistoryRecord{},
+			Pagination: models.StudentAttendanceHistoryPagination{
+				Page:         page,
+				Limit:        limit,
+				TotalRecords: 0,
+				TotalPages:   0,
+			},
+			Summary: summary,
+		}, nil
+	}
+
+	// 3. Fetch paginated records
+	offset := (page - 1) * limit
+	selectSQL := `
+		SELECT 
+			ses.id AS session_id,
+			ses.subject_id,
+			s.name AS subject_name,
+			s.code AS subject_code,
+			c.id AS class_id,
+			c.name AS class_name,
+			ses.started_at,
+			ses.expires_at AS ended_at,
+			CASE 
+				WHEN a.id IS NOT NULL AND a.status = 'PRESENT' THEN 'PRESENT' 
+				ELSE 'ABSENT' 
+			END AS status,
+			a.marked_at
+	` + baseQuery + `
+		ORDER BY ses.started_at DESC
+		LIMIT ? OFFSET ?
+	`
+	pagedArgs := append(args, limit, offset)
+
+	type rowItem struct {
+		SessionID   string
+		SubjectID   string
+		SubjectName string
+		SubjectCode string
+		ClassID     string
+		ClassName   string
+		StartedAt   time.Time
+		EndedAt     time.Time
+		Status      string
+		MarkedAt    *time.Time
+	}
+
+	var rows []rowItem
+	if err := db.Raw(selectSQL, pagedArgs...).Scan(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch attendance history records: %w", err)
+	}
+
+	records := make([]models.StudentAttendanceHistoryRecord, len(rows))
+	for i, r := range rows {
+		records[i] = models.StudentAttendanceHistoryRecord{
+			SessionID:   r.SessionID,
+			SubjectID:   r.SubjectID,
+			SubjectName: r.SubjectName,
+			SubjectCode: r.SubjectCode,
+			ClassID:     r.ClassID,
+			ClassName:   r.ClassName,
+			StartedAt:   r.StartedAt,
+			EndedAt:     r.EndedAt,
+			Status:      r.Status,
+			MarkedAt:    r.MarkedAt,
+		}
+	}
+
+	return &models.StudentAttendanceHistoryResponse{
+		Records: records,
+		Pagination: models.StudentAttendanceHistoryPagination{
+			Page:         page,
+			Limit:        limit,
+			TotalRecords: totalRecords,
+			TotalPages:   totalPages,
+		},
+		Summary: summary,
+	}, nil
+}
+
 // ==============================================================================
 // ADMIN ATTENDANCE SERVICES
 // ==============================================================================

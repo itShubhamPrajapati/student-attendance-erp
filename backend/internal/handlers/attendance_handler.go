@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"qr-attendance-backend/internal/services"
@@ -351,6 +352,45 @@ func GetStudentAttendanceCalendarHandler(db *gorm.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"data":    calendarData,
+		})
+	}
+}
+
+// GetStudentAttendanceHistoryHandler handles GET /api/student/attendance/history
+func GetStudentAttendanceHistoryHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		subjectID := c.Query("subject_id")
+		statusFilter := c.Query("status")
+		fromDate := c.Query("from")
+		toDate := c.Query("to")
+		searchQuery := c.Query("search")
+
+		page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+		historyData, err := services.GetStudentAttendanceHistory(
+			db,
+			userID,
+			subjectID,
+			statusFilter,
+			fromDate,
+			toDate,
+			searchQuery,
+			page,
+			limit,
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to retrieve attendance history",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    historyData,
 		})
 	}
 }

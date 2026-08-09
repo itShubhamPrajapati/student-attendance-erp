@@ -26,6 +26,7 @@ import {
   StudentAttendanceSummary,
   StudentRecentAttendanceItem,
   StudentCalendarResponse,
+  StudentAttendanceHistoryResponse,
   CreateAttendanceSessionPayload,
 } from '../types';
 import { getToken } from '../auth/authService';
@@ -472,6 +473,50 @@ export async function apiGetStudentAttendanceCalendar(
 
   return request<{ success: boolean; data: StudentCalendarResponse }>(
     `/api/student/attendance/calendar${queryString}`,
+    {
+      method: 'GET',
+    }
+  );
+}
+
+export async function apiGetStudentAttendanceHistory(params?: {
+  subject_id?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{
+  success: boolean;
+  data: StudentAttendanceHistoryResponse;
+}> {
+  const query = new URLSearchParams();
+  if (params?.subject_id && params.subject_id.trim() !== '') {
+    query.append('subject_id', params.subject_id.trim());
+  }
+  if (params?.status && params.status.trim() !== '') {
+    query.append('status', params.status.trim());
+  }
+  if (params?.from && params.from.trim() !== '') {
+    query.append('from', params.from.trim());
+  }
+  if (params?.to && params.to.trim() !== '') {
+    query.append('to', params.to.trim());
+  }
+  if (params?.search && params.search.trim() !== '') {
+    query.append('search', params.search.trim());
+  }
+  if (params?.page && params.page > 0) {
+    query.append('page', String(params.page));
+  }
+  if (params?.limit && params.limit > 0) {
+    query.append('limit', String(params.limit));
+  }
+
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  return request<{ success: boolean; data: StudentAttendanceHistoryResponse }>(
+    `/api/student/attendance/history${queryString}`,
     {
       method: 'GET',
     }
