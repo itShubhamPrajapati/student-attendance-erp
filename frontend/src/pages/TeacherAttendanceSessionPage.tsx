@@ -92,7 +92,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
     [sessionId, sessionData]
   );
 
-  // Initial Load: fetch session details (for token) and initial live telemetry
+  // Initial Load: fetch session details (for token & metadata) and initial live telemetry
   useEffect(() => {
     let isMounted = true;
 
@@ -101,26 +101,34 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
       setLoading(true);
       setInitialError(null);
       try {
-        const [sessionRes, liveRes] = await Promise.all([
-          apiGetTeacherSessionDetails(sessionId),
-          apiGetTeacherLiveSessionData(sessionId),
-        ]);
+        // 1. Primary session fetch (provides session metadata + session_token for QR)
+        const sessionRes = await apiGetTeacherSessionDetails(sessionId);
+        if (!sessionRes.data) {
+          throw new Error('Attendance session not found.');
+        }
 
         if (isMounted) {
-          if (sessionRes.data) setSession(sessionRes.data);
-          if (liveRes.data) {
+          setSession(sessionRes.data);
+          const expiryTime = new Date(sessionRes.data.expires_at).getTime();
+          const now = Date.now();
+          const diffSecs = Math.max(0, Math.floor((expiryTime - now) / 1000));
+          setSecondsRemaining(diffSecs);
+          if (!sessionRes.data.is_active || diffSecs <= 0 || sessionRes.data.is_expired) {
+            setIsExpiredOrEnded(true);
+          } else {
+            setIsExpiredOrEnded(false);
+          }
+        }
+
+        // 2. Fetch initial live telemetry if available (non-blocking for QR generation)
+        try {
+          const liveRes = await apiGetTeacherLiveSessionData(sessionId);
+          if (liveRes.data && isMounted) {
             setSessionData(liveRes.data);
             setLastUpdated(new Date());
-            const expiryTime = new Date(liveRes.data.qr_expires_at).getTime();
-            const now = Date.now();
-            const diffSecs = Math.max(0, Math.floor((expiryTime - now) / 1000));
-            setSecondsRemaining(diffSecs);
-            if (!liveRes.data.is_active || diffSecs <= 0 || liveRes.data.is_expired) {
-              setIsExpiredOrEnded(true);
-            } else {
-              setIsExpiredOrEnded(false);
-            }
           }
+        } catch {
+          // Telemetry polling will retry automatically every 3.5s
         }
       } catch (err: unknown) {
         if (isMounted) {
@@ -140,7 +148,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
 
   // Visibility-Aware Polling Interval (every 3.5s while active)
   useEffect(() => {
-    if (isExpiredOrEnded || !sessionData?.is_active) {
+    if (isExpiredOrEnded || !session?.is_active) {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
       return;
     }
@@ -170,7 +178,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchLiveData, isExpiredOrEnded, sessionData?.is_active]);
+  }, [fetchLiveData, isExpiredOrEnded, session?.is_active]);
 
   // Countdown timer 1-second ticker effect
   useEffect(() => {
@@ -197,6 +205,9 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
       await apiEndAttendanceSession(sessionId);
       setShowEndModal(false);
       setIsExpiredOrEnded(true);
+      if (session) {
+        setSession({ ...session, is_active: false });
+      }
       await fetchLiveData(true);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Failed to end attendance session');
@@ -233,7 +244,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
     );
   }
 
-  if (initialError || !sessionData) {
+  if (initialError || !session) {
     return (
       <div className="max-w-xl mx-auto p-6 space-y-4 text-center">
         <Card className="p-8 space-y-4">
@@ -261,20 +272,26 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
     );
   }
 
-  const isLive = sessionData.is_active && !isExpiredOrEnded;
+  const isLive = session.is_active && !isExpiredOrEnded;
+  const presentCount = sessionData?.present_count ?? session.present_count;
+  const totalStudents = sessionData?.total_students ?? session.total_students;
+  const attendancePercentage = sessionData?.attendance_percentage ?? session.percentage;
+  const absentCount = sessionData?.absent_count ?? session.absent_count ?? Math.max(0, totalStudents - presentCount);
+  const durationMinutes = sessionData?.duration_minutes ?? session.duration_minutes;
+  const studentsList = sessionData?.students ?? [];
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Header with Navigation & Live Badge */}
       <PageHeader
         title="Live QR Attendance Session"
-        description={`Display this dynamic QR code on screen. Students scan with mobile camera to log real-time attendance for ${sessionData.class_name}.`}
+        description={`Display this dynamic QR code on screen. Students scan with mobile camera to log real-time attendance for ${session.class_name}.`}
         badge={
           isLive ? (
             <Badge variant="success" withDot>
               ● ATTENDANCE ACTIVE
             </Badge>
-          ) : sessionData.is_expired || isExpiredOrEnded ? (
+          ) : session.is_expired || isExpiredOrEnded ? (
             <Badge variant="neutral">
               🔒 QR EXPIRED
             </Badge>
@@ -310,7 +327,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                 End Attendance
               </Button>
             ) : (
-              <Link to={`/teacher/attendance/${sessionData.session_id}/records`}>
+              <Link to={`/teacher/attendance/${session.id}/records`}>
                 <Button variant="primary" size="sm" leftIcon={<FileText className="w-3.5 h-3.5" />}>
                   View Attendance Records
                 </Button>
@@ -328,14 +345,14 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
           <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 text-left">
             <div>
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Course Subject</span>
-              <h3 className="text-base font-bold text-slate-900 font-heading">{sessionData.subject_name}</h3>
-              <p className="text-xs font-mono font-semibold text-indigo-600">{sessionData.subject_code}</p>
+              <h3 className="text-base font-bold text-slate-900 font-heading">{session.subject_name}</h3>
+              <p className="text-xs font-mono font-semibold text-indigo-600">{session.subject_code}</p>
             </div>
             <div className="text-right">
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Class Batch</span>
-              <p className="text-xs font-bold text-slate-800">{sessionData.class_name}</p>
+              <p className="text-xs font-bold text-slate-800">{session.class_name}</p>
               <p className="text-[11px] text-slate-500 font-medium">
-                Sem {sessionData.semester} &bull; Section {sessionData.section}
+                Sem {session.semester} &bull; Section {session.section}
               </p>
             </div>
           </div>
@@ -365,14 +382,14 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="text-base font-bold font-heading">
-                    {!sessionData.is_active ? 'Attendance Session Concluded' : 'QR Code Expired'}
+                    {!session.is_active ? 'Attendance Session Concluded' : 'QR Code Expired'}
                   </h4>
                   <p className="text-xs text-slate-300 max-w-xs text-center mt-1">
                     Student attendance recording is closed for this session token.
                   </p>
                 </div>
                 <div className="pt-2 flex flex-col sm:flex-row items-center gap-2 w-full px-4">
-                  <Link to={`/teacher/attendance/${sessionData.session_id}/records`} className="w-full">
+                  <Link to={`/teacher/attendance/${session.id}/records`} className="w-full">
                     <Button size="sm" variant="primary" className="w-full text-xs">
                       View Attendance Records
                     </Button>
@@ -393,7 +410,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
               <Clock className="w-3.5 h-3.5 text-slate-400" />
               <span>QR Status:</span>
               <span className={isLive ? 'text-emerald-700 font-bold' : 'text-slate-500 font-semibold'}>
-                {isLive ? '● ACTIVE' : !sessionData.is_active ? 'COMPLETED' : 'EXPIRED'}
+                {isLive ? '● ACTIVE' : !session.is_active ? 'COMPLETED' : 'EXPIRED'}
               </span>
             </div>
 
@@ -469,10 +486,10 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                 </span>
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-extrabold text-slate-900 font-heading">
-                    {sessionData.present_count}
+                    {presentCount}
                   </span>
                   <span className="text-sm font-semibold text-slate-400">
-                    / {sessionData.total_students}
+                    / {totalStudents}
                   </span>
                 </div>
               </div>
@@ -482,7 +499,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                   Attendance Rate
                 </span>
                 <span className="text-2xl font-extrabold text-indigo-600 font-heading font-mono">
-                  {sessionData.attendance_percentage}%
+                  {attendancePercentage}%
                 </span>
               </div>
             </div>
@@ -492,12 +509,12 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
               <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                 <div
                   className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${Math.min(100, sessionData.attendance_percentage)}%` }}
+                  style={{ width: `${Math.min(100, attendancePercentage)}%` }}
                 />
               </div>
               <div className="flex justify-between text-[10px] text-slate-400 font-medium">
-                <span>{sessionData.present_count} Marked Present</span>
-                <span>{sessionData.absent_count} Pending / Absent</span>
+                <span>{presentCount} Marked Present</span>
+                <span>{absentCount} Pending / Absent</span>
               </div>
             </div>
 
@@ -505,10 +522,10 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
               <div className="flex items-center gap-1 font-medium">
                 <Clock className="w-3 h-3 text-slate-400" />
-                <span>Duration: {sessionData.duration_minutes} min</span>
+                <span>Duration: {durationMinutes} min</span>
               </div>
               <span className="font-mono text-slate-400">
-                Started {new Date(sessionData.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                Started {new Date(session.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           </Card>
@@ -520,7 +537,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-heading">
-                    Live Attendance ({sessionData.present_count})
+                    Live Attendance ({presentCount})
                   </h4>
                   {isLive && (
                     <span className="flex h-2 w-2 relative">
@@ -567,7 +584,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
 
             {/* List Stream (Sorted Newest First) */}
             <div className="p-3 max-h-80 overflow-y-auto divide-y divide-slate-100 space-y-1.5">
-              {sessionData.students.length === 0 ? (
+              {studentsList.length === 0 ? (
                 <div className="py-10 text-center space-y-2 px-4">
                   <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 mx-auto flex items-center justify-center">
                     <Users className="w-5 h-5" />
@@ -640,14 +657,14 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Are you sure you want to conclude attendance for <strong>{sessionData.subject_name}</strong> (
-              {sessionData.class_name})? Once ended, students will no longer be able to scan the QR code.
+              Are you sure you want to conclude attendance for <strong>{session.subject_name}</strong> (
+              {session.class_name})? Once ended, students will no longer be able to scan the QR code.
             </p>
 
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs font-mono">
               <span className="text-slate-500">Current Present Count:</span>
               <span className="font-bold text-slate-900">
-                {sessionData.present_count} / {sessionData.total_students} ({sessionData.attendance_percentage}%)
+                {presentCount} / {totalStudents} ({attendancePercentage}%)
               </span>
             </div>
 
