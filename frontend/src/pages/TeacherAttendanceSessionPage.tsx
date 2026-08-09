@@ -78,18 +78,16 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
           }
         }
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Unable to refresh live attendance';
-        if (!sessionData) {
-          setInitialError(msg);
-        } else {
-          // Non-blocking error during active session polling
-          setPollError(msg);
-        }
+        // Polling failure is strictly supplementary and non-blocking.
+        // It must NEVER cause a fatal "Session Unavailable" error, NEVER clear session,
+        // and NEVER disrupt the QR code or countdown.
+        const msg = err instanceof Error ? err.message : 'Live attendance updates temporarily unavailable';
+        setPollError(msg);
       } finally {
         if (isManualRefresh) setIsRefreshing(false);
       }
     },
-    [sessionId, sessionData]
+    [sessionId]
   );
 
   // Initial Load: fetch session details (for token & metadata) and initial live telemetry
@@ -558,7 +556,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                 <div className="p-2 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-between text-[11px] text-amber-800">
                   <div className="flex items-center gap-1.5">
                     <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                    <span>Unable to refresh live feed</span>
+                    <span>Live attendance updates temporarily unavailable</span>
                   </div>
                   <button
                     onClick={() => fetchLiveData(true)}
