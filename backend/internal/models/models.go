@@ -338,6 +338,28 @@ type SessionAttendanceDetailsResponse struct {
 	Percentage    float64                   `json:"percentage"`
 }
 
+// LiveAttendanceSessionResponse represents live polling telemetry for an active attendance session
+type LiveAttendanceSessionResponse struct {
+	SessionID            string                    `json:"session_id"`
+	Status               string                    `json:"status"` // "ACTIVE", "COMPLETED", "EXPIRED"
+	TotalStudents        int64                     `json:"total_students"`
+	PresentCount         int64                     `json:"present_count"`
+	AbsentCount          int64                     `json:"absent_count"`
+	AttendancePercentage float64                   `json:"attendance_percentage"`
+	QRExpiresAt          time.Time                 `json:"qr_expires_at"`
+	StartedAt            time.Time                 `json:"started_at"`
+	DurationMinutes      int                       `json:"duration_minutes"`
+	IsActive             bool                      `json:"is_active"`
+	IsExpired            bool                      `json:"is_expired"`
+	SessionToken         string                    `json:"session_token"`
+	SubjectName          string                    `json:"subject_name"`
+	SubjectCode          string                    `json:"subject_code"`
+	ClassName            string                    `json:"class_name"`
+	Semester             int                       `json:"semester"`
+	Section              string                    `json:"section"`
+	Students             []AttendanceStudentRecord `json:"students"`
+}
+
 // MarkAttendanceResponse represents student scan confirmation data
 type MarkAttendanceResponse struct {
 	MarkedAt    time.Time `json:"marked_at"`

@@ -114,6 +114,37 @@ func GetTeacherSessionByIDHandler(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+// GetTeacherLiveSessionHandler handles GET /api/teacher/attendance/sessions/:id/live
+func GetTeacherLiveSessionHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		sessionID := c.Param("id")
+		if sessionID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Session ID is required"})
+			return
+		}
+
+		liveData, err := services.GetLiveSessionData(db, userID, sessionID)
+		if err != nil {
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "access denied") {
+				c.JSON(http.StatusNotFound, gin.H{"success": false, "message": errMsg})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to retrieve live session telemetry",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    liveData,
+		})
+	}
+}
+
 // EndAttendanceSessionHandler handles POST /api/teacher/attendance/sessions/:id/end
 func EndAttendanceSessionHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

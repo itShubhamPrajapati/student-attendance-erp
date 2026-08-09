@@ -264,6 +264,27 @@ export interface SessionAttendanceDetails {
   percentage: number;
 }
 
+export interface LiveAttendanceSessionData {
+  session_id: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'EXPIRED' | string;
+  total_students: number;
+  present_count: number;
+  absent_count: number;
+  attendance_percentage: number;
+  qr_expires_at: string;
+  started_at: string;
+  duration_minutes: number;
+  is_active: boolean;
+  is_expired: boolean;
+  session_token: string;
+  subject_name: string;
+  subject_code: string;
+  class_name: string;
+  semester: number;
+  section: string;
+  students: AttendanceStudentRecord[];
+}
+
 export interface MarkAttendanceResponse {
   marked_at: string;
   subject_name: string;

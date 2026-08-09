@@ -313,6 +313,95 @@ func GetTeacherSessionByID(db *gorm.DB, teacherUserID string, sessionID string) 
 	}, nil
 }
 
+// GetLiveSessionData returns real-time attendance polling metrics and recent check-ins for active session
+func GetLiveSessionData(db *gorm.DB, teacherUserID string, sessionID string) (*models.LiveAttendanceSessionResponse, error) {
+	var teacher models.Teacher
+	if err := db.Where("user_id = ?", teacherUserID).First(&teacher).Error; err != nil {
+		return nil, errors.New("Teacher profile not found.")
+	}
+
+	var session models.AttendanceSession
+	if err := db.Preload("Subject").Preload("Class").
+		Where("id = ? AND teacher_id = ?", sessionID, teacher.ID).
+		First(&session).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("Attendance session not found or access denied.")
+		}
+		return nil, err
+	}
+
+	// Total students in class
+	var totalStudents int64
+	db.Model(&models.Student{}).Where("class_id = ?", session.ClassID).Count(&totalStudents)
+
+	// Fetch all PRESENT attendances for this session joined with student and user details, ordered newest marked_at first
+	type presentRow struct {
+		StudentID  string
+		RollNumber string
+		Name       string
+		Email      string
+		MarkedAt   time.Time
+	}
+	var presentRows []presentRow
+	query := `
+		SELECT a.student_id, s.roll_number, u.name, u.email, a.marked_at
+		FROM attendance a
+		JOIN students s ON a.student_id = s.id
+		JOIN users u ON s.user_id = u.id
+		WHERE a.session_id = ?
+		ORDER BY a.marked_at DESC
+	`
+	if err := db.Raw(query, session.ID).Scan(&presentRows).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch live attendance check-ins: %w", err)
+	}
+
+	presentCount := int64(len(presentRows))
+	absentCount := computeAbsentCount(totalStudents, presentCount)
+	pct := 0.0
+	if totalStudents > 0 {
+		pct = math.Round((float64(presentCount)/float64(totalStudents))*1000) / 10
+	}
+
+	now := time.Now().UTC()
+	isExpired := now.After(session.ExpiresAt)
+	duration := computeDurationMinutes(session.StartedAt, session.ExpiresAt)
+	sessionStatus := computeSessionStatus(session.IsActive, isExpired)
+
+	students := make([]models.AttendanceStudentRecord, len(presentRows))
+	for i, r := range presentRows {
+		mTime := r.MarkedAt
+		students[i] = models.AttendanceStudentRecord{
+			StudentID:  r.StudentID,
+			RollNumber: r.RollNumber,
+			Name:       r.Name,
+			Email:      r.Email,
+			Status:     "PRESENT",
+			MarkedAt:   &mTime,
+		}
+	}
+
+	return &models.LiveAttendanceSessionResponse{
+		SessionID:            session.ID,
+		Status:               sessionStatus,
+		TotalStudents:        totalStudents,
+		PresentCount:         presentCount,
+		AbsentCount:          absentCount,
+		AttendancePercentage: pct,
+		QRExpiresAt:          session.ExpiresAt,
+		StartedAt:            session.StartedAt,
+		DurationMinutes:      duration,
+		IsActive:             session.IsActive,
+		IsExpired:            isExpired,
+		SessionToken:         session.SessionToken,
+		SubjectName:          session.Subject.Name,
+		SubjectCode:          session.Subject.Code,
+		ClassName:            session.Class.Name,
+		Semester:             session.Class.Semester,
+		Section:              session.Class.Section,
+		Students:             students,
+	}, nil
+}
+
 // EndAttendanceSession marks a session inactive (is_active = false)
 func EndAttendanceSession(db *gorm.DB, teacherUserID string, sessionID string) error {
 	var teacher models.Teacher

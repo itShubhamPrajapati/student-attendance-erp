@@ -21,6 +21,7 @@ import {
   CreateAssignmentPayload,
   AttendanceSession,
   SessionAttendanceDetails,
+  LiveAttendanceSessionData,
   MarkAttendanceResponse,
   StudentAttendanceSummary,
   StudentRecentAttendanceItem,
@@ -376,6 +377,17 @@ export async function apiGetTeacherSessionDetails(
 ): Promise<{ success: boolean; data: AttendanceSession }> {
   return request<{ success: boolean; data: AttendanceSession }>(
     `/api/teacher/attendance/sessions/${sessionId}`,
+    {
+      method: 'GET',
+    }
+  );
+}
+
+export async function apiGetTeacherLiveSessionData(
+  sessionId: string
+): Promise<{ success: boolean; data: LiveAttendanceSessionData }> {
+  return request<{ success: boolean; data: LiveAttendanceSessionData }>(
+    `/api/teacher/attendance/sessions/${sessionId}/live`,
     {
       method: 'GET',
     }

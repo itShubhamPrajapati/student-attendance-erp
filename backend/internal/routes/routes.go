@@ -142,6 +142,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			teacherGroup.POST("/attendance/sessions", handlers.CreateAttendanceSessionHandler(database.DB))
 			teacherGroup.GET("/attendance/sessions", handlers.GetTeacherSessionsHandler(database.DB))
 			teacherGroup.GET("/attendance/sessions/:id", handlers.GetTeacherSessionByIDHandler(database.DB))
+			teacherGroup.GET("/attendance/sessions/:id/live", handlers.GetTeacherLiveSessionHandler(database.DB))
 			teacherGroup.POST("/attendance/sessions/:id/end", handlers.EndAttendanceSessionHandler(database.DB))
 			teacherGroup.GET("/attendance/sessions/:id/records", handlers.GetTeacherSessionRecordsHandler(database.DB))
 		}
