@@ -297,6 +297,7 @@ export interface SubjectAttendanceStat {
   subject_name: string;
   subject_code: string;
   present_sessions: number;
+  absent_sessions: number;
   total_sessions: number;
   percentage: number;
 }
@@ -305,6 +306,7 @@ export interface StudentAttendanceSummary {
   overall_percentage: number;
   total_sessions: number;
   total_present: number;
+  total_absent: number;
   subjects: SubjectAttendanceStat[];
 }
 

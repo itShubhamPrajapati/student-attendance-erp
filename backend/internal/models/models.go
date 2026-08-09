@@ -374,6 +374,7 @@ type SubjectAttendanceStat struct {
 	SubjectName     string  `json:"subject_name"`
 	SubjectCode     string  `json:"subject_code"`
 	PresentSessions int64   `json:"present_sessions"`
+	AbsentSessions  int64   `json:"absent_sessions"`
 	TotalSessions   int64   `json:"total_sessions"`
 	Percentage      float64 `json:"percentage"`
 }
@@ -383,6 +384,7 @@ type StudentAttendanceSummary struct {
 	OverallPercentage float64                 `json:"overall_percentage"`
 	TotalSessions     int64                   `json:"total_sessions"`
 	TotalPresent      int64                   `json:"total_present"`
+	TotalAbsent       int64                   `json:"total_absent"`
 	Subjects          []SubjectAttendanceStat `json:"subjects"`
 }
 

@@ -637,6 +637,7 @@ func GetStudentAttendanceSummary(db *gorm.DB, studentUserID string) (*models.Stu
 			OverallPercentage: 0.0,
 			TotalSessions:     0,
 			TotalPresent:      0,
+			TotalAbsent:       0,
 			Subjects:          []models.SubjectAttendanceStat{},
 		}, nil
 	}
@@ -682,6 +683,11 @@ func GetStudentAttendanceSummary(db *gorm.DB, studentUserID string) (*models.Stu
 			subPct = math.Round((float64(presentSubSessions)/float64(totalSubSessions))*1000) / 10
 		}
 
+		absentSubSessions := int64(0)
+		if totalSubSessions > presentSubSessions {
+			absentSubSessions = totalSubSessions - presentSubSessions
+		}
+
 		totalAllSessions += totalSubSessions
 		totalAllPresent += presentSubSessions
 
@@ -690,6 +696,7 @@ func GetStudentAttendanceSummary(db *gorm.DB, studentUserID string) (*models.Stu
 			SubjectName:     sub.Name,
 			SubjectCode:     sub.Code,
 			PresentSessions: presentSubSessions,
+			AbsentSessions:  absentSubSessions,
 			TotalSessions:   totalSubSessions,
 			Percentage:      subPct,
 		}
@@ -700,10 +707,16 @@ func GetStudentAttendanceSummary(db *gorm.DB, studentUserID string) (*models.Stu
 		overallPct = math.Round((float64(totalAllPresent)/float64(totalAllSessions))*1000) / 10
 	}
 
+	totalAllAbsent := int64(0)
+	if totalAllSessions > totalAllPresent {
+		totalAllAbsent = totalAllSessions - totalAllPresent
+	}
+
 	return &models.StudentAttendanceSummary{
 		OverallPercentage: overallPct,
 		TotalSessions:     totalAllSessions,
 		TotalPresent:      totalAllPresent,
+		TotalAbsent:       totalAllAbsent,
 		Subjects:          subjectsSummary,
 	}, nil
 }

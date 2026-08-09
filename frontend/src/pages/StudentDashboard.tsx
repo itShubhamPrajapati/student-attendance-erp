@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   GraduationCap,
@@ -10,18 +10,24 @@ import {
   Camera,
   CheckCircle2,
   Clock,
+  AlertTriangle,
+  XCircle,
+  Calendar,
+  Search,
+  Filter,
+  TrendingUp,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
-import { EmptyState } from '../components/EmptyState';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import {
   StudentProfile,
   Subject,
   StudentAttendanceSummary,
   StudentRecentAttendanceItem,
+  SubjectAttendanceStat,
 } from '../types';
 import {
   apiGetStudentProfile,
@@ -31,6 +37,9 @@ import {
 } from '../services/api';
 import { useAuth } from '../auth/AuthContext';
 
+// Institutional minimum attendance threshold (75%)
+const ATTENDANCE_THRESHOLD = 75.0;
+
 export const StudentDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState<StudentProfile | null>(null);
@@ -39,6 +48,10 @@ export const StudentDashboard: React.FC = () => {
   const [recentAttendance, setRecentAttendance] = useState<StudentRecentAttendanceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Subject filtering and search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'LOW' | 'MET'>('ALL');
 
   const fetchStudentData = useCallback(async () => {
     setLoading(true);
@@ -57,7 +70,7 @@ export const StudentDashboard: React.FC = () => {
       }
       setRecentAttendance(recentRes.data || []);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unable to load student profile');
+      setError(err instanceof Error ? err.message : 'Unable to load attendance data');
     } finally {
       setLoading(false);
     }
@@ -67,12 +80,59 @@ export const StudentDashboard: React.FC = () => {
     fetchStudentData();
   }, [fetchStudentData]);
 
+  // Merge subjects from curriculum with calculated summary stats
+  const allSubjectStats: SubjectAttendanceStat[] = useMemo(() => {
+    if (summary?.subjects && summary.subjects.length > 0) {
+      return summary.subjects;
+    }
+    // Fallback if subjects exist in class curriculum but summary hasn't had sessions yet
+    return subjects.map((s) => ({
+      subject_id: s.id,
+      subject_name: s.name,
+      subject_code: s.code,
+      present_sessions: 0,
+      absent_sessions: 0,
+      total_sessions: 0,
+      percentage: 0.0,
+    }));
+  }, [summary?.subjects, subjects]);
+
+  // Filtered subjects based on search query and status filter tab
+  const filteredSubjects = useMemo(() => {
+    return allSubjectStats.filter((sub) => {
+      const matchesSearch =
+        searchQuery.trim() === '' ||
+        sub.subject_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        sub.subject_code.toLowerCase().includes(searchQuery.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      if (statusFilter === 'LOW') {
+        return sub.total_sessions > 0 && sub.percentage < ATTENDANCE_THRESHOLD;
+      }
+      if (statusFilter === 'MET') {
+        return sub.total_sessions === 0 || sub.percentage >= ATTENDANCE_THRESHOLD;
+      }
+      return true;
+    });
+  }, [allSubjectStats, searchQuery, statusFilter]);
+
+  // Metric computations
+  const totalClasses = summary?.total_sessions ?? 0;
+  const presentClasses = summary?.total_present ?? 0;
+  const absentClasses = summary?.total_absent ?? Math.max(0, totalClasses - presentClasses);
+  const overallPercentage = summary?.overall_percentage ?? 0.0;
+  const isLowAttendance = totalClasses > 0 && overallPercentage < ATTENDANCE_THRESHOLD;
+  const lowAttendanceCount = allSubjectStats.filter(
+    (s) => s.total_sessions > 0 && s.percentage < ATTENDANCE_THRESHOLD
+  ).length;
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Header */}
       <PageHeader
         title={`Hello, ${profile?.name || user?.name || 'Student'}`}
-        description="Student academic portal. Scan live lecture QR codes, track your overall attendance percentage, and review course metrics."
+        description="Student academic portal. Real-time verified attendance dashboard, subject breakdown, and QR check-in telemetry."
         badge={
           <Badge variant="success" withDot>
             Student Workspace
@@ -101,27 +161,218 @@ export const StudentDashboard: React.FC = () => {
         }
       />
 
+      {/* Error Banner with Retry */}
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-600" />
-            <span>{error}</span>
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+            <div>
+              <p className="font-bold">Unable to load attendance</p>
+              <p className="text-rose-600">{error || "We couldn't retrieve your attendance data."}</p>
+            </div>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchStudentData}>
+          <Button variant="outline" size="sm" onClick={fetchStudentData} className="bg-white">
             Retry
           </Button>
         </div>
       )}
 
       {loading ? (
-        <div className="min-h-[35vh] flex flex-col items-center justify-center p-8">
-          <LoadingSpinner size="lg" label="Loading your academic profile & attendance summary..." />
+        <div className="min-h-[40vh] flex flex-col items-center justify-center p-8">
+          <LoadingSpinner size="lg" label="Computing your attendance metrics and subject records..." />
         </div>
       ) : (
         <>
-          {/* Top Grid: Profile + Class + Attendance KPI Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* 1. Student Profile Details */}
+          {/* Attendance Health Alert Banner (Threshold: 75%) */}
+          {totalClasses > 0 && (
+            <div>
+              {isLowAttendance ? (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/80 to-white border border-amber-300 text-amber-900 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 font-bold">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold font-heading text-amber-950">
+                          ⚠️ Low Attendance Warning
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/80 text-amber-900 border border-amber-300">
+                          Below 75% Threshold
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-800 mt-0.5">
+                        Your overall attendance is currently{' '}
+                        <strong className="font-mono text-amber-950">{overallPercentage}%</strong> (minimum
+                        required: <strong>{ATTENDANCE_THRESHOLD}%</strong>). You have attended{' '}
+                        <strong>{presentClasses}</strong> of <strong>{totalClasses}</strong> scheduled classes.
+                        Attend upcoming lectures to maintain examination eligibility.
+                      </p>
+                    </div>
+                  </div>
+                  <Link to="/attendance/scan" className="flex-shrink-0 w-full sm:w-auto">
+                    <Button size="sm" variant="primary" className="w-full text-xs" leftIcon={<Camera className="w-3.5 h-3.5" />}>
+                      Scan Lecture QR
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-emerald-50/60 to-white border border-emerald-300 text-emerald-900 shadow-xs flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 font-bold">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold font-heading text-emerald-950">
+                          ✓ Attendance Requirement Met
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200/80 text-emerald-900 border border-emerald-300">
+                          Good Standing
+                        </span>
+                      </div>
+                      <p className="text-xs text-emerald-800 mt-0.5">
+                        Your cumulative attendance of{' '}
+                        <strong className="font-mono text-emerald-950">{overallPercentage}%</strong> satisfies the
+                        institutional minimum (<strong>{ATTENDANCE_THRESHOLD}%</strong>). Excellent consistency!
+                      </p>
+                    </div>
+                  </div>
+                  <div className="hidden sm:block text-right">
+                    <span className="text-[10px] uppercase font-bold text-emerald-600 block">Status</span>
+                    <span className="text-xs font-mono font-bold text-emerald-900">
+                      {presentClasses} / {totalClasses} Attended
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 1. Four Summary KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* KPI 1: Overall Attendance % */}
+            <Card className="p-5 shadow-xs bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 text-white flex flex-col justify-between relative overflow-hidden">
+              <div className="space-y-1.5 relative z-10">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-300">
+                    Overall Attendance
+                  </span>
+                  <Badge
+                    variant={overallPercentage >= ATTENDANCE_THRESHOLD ? 'success' : 'warning'}
+                    className={`text-[10px] ${
+                      overallPercentage >= ATTENDANCE_THRESHOLD
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    }`}
+                  >
+                    {totalClasses === 0
+                      ? 'No Data'
+                      : overallPercentage >= ATTENDANCE_THRESHOLD
+                      ? '✓ Met (≥75%)'
+                      : '⚠️ Below 75%'}
+                  </Badge>
+                </div>
+                <div className="flex items-baseline justify-between pt-1">
+                  <span className="text-4xl font-extrabold font-heading font-mono text-white">
+                    {overallPercentage}%
+                  </span>
+                  <span className="text-xs font-mono text-indigo-200">
+                    Target: {ATTENDANCE_THRESHOLD}%
+                  </span>
+                </div>
+                <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden mt-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-700 ${
+                      overallPercentage >= ATTENDANCE_THRESHOLD ? 'bg-emerald-400' : 'bg-amber-400'
+                    }`}
+                    style={{ width: `${Math.min(100, overallPercentage)}%` }}
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-300 pt-3 relative z-10">
+                Calculated across all courses & lectures held for your class batch.
+              </p>
+            </Card>
+
+            {/* KPI 2: Total Present */}
+            <Card className="p-5 shadow-xs bg-white border-slate-200/80 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                    Lectures Attended
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <span className="text-3xl font-extrabold text-slate-900 font-heading font-mono">
+                    {presentClasses}
+                  </span>
+                  <span className="text-xs text-slate-400 ml-1">sessions</span>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Verified Presence</span>
+                <span className="font-semibold text-emerald-700">Marked via QR</span>
+              </div>
+            </Card>
+
+            {/* KPI 3: Total Absent / Missed */}
+            <Card className="p-5 shadow-xs bg-white border-slate-200/80 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                    Lectures Missed
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                    <XCircle className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <span className="text-3xl font-extrabold text-slate-900 font-heading font-mono">
+                    {absentClasses}
+                  </span>
+                  <span className="text-xs text-slate-400 ml-1">sessions</span>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Unrecorded Sessions</span>
+                <span className={`font-semibold ${absentClasses > 0 ? 'text-amber-700' : 'text-slate-500'}`}>
+                  {absentClasses === 0 ? 'Zero Absences' : `${absentClasses} Missed`}
+                </span>
+              </div>
+            </Card>
+
+            {/* KPI 4: Total Held Classes */}
+            <Card className="p-5 shadow-xs bg-white border-slate-200/80 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                    Total Held Classes
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <span className="text-3xl font-extrabold text-slate-900 font-heading font-mono">
+                    {totalClasses}
+                  </span>
+                  <span className="text-xs text-slate-400 ml-1">total lectures</span>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Curriculum Total</span>
+                <span className="font-semibold text-indigo-700">{allSubjectStats.length} Subjects</span>
+              </div>
+            </Card>
+          </div>
+
+          {/* Student Profile Summary + Assigned Class Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Student Profile Card */}
             <Card className="p-5 shadow-xs bg-white border-slate-200/80 space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2.5">
@@ -136,37 +387,47 @@ export const StudentDashboard: React.FC = () => {
                   </div>
                 </div>
                 <Badge variant="success" withDot className="text-[10px]">
-                  Enrolled
+                  Enrolled Student
                 </Badge>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
                   <span className="text-[10px] uppercase font-bold text-slate-400">Roll Number</span>
                   <p className="font-mono font-bold text-indigo-600 text-xs mt-0.5">
                     {profile?.roll_number || 'N/A'}
                   </p>
                 </div>
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
                   <span className="text-[10px] uppercase font-bold text-slate-400">Department</span>
                   <p className="font-semibold text-slate-800 text-xs mt-0.5 truncate">
                     {profile?.department || 'Computer Science'}
                   </p>
                 </div>
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
                   <span className="text-[10px] uppercase font-bold text-slate-400">Semester & Section</span>
                   <p className="font-semibold text-slate-800 text-xs mt-0.5">
                     Sem {profile?.semester} &bull; Sec {profile?.section}
                   </p>
                 </div>
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">System Role</span>
-                  <p className="font-semibold text-emerald-700 text-xs mt-0.5">Student</p>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Attendance Status</span>
+                  <p
+                    className={`font-semibold text-xs mt-0.5 ${
+                      isLowAttendance ? 'text-amber-700' : 'text-emerald-700'
+                    }`}
+                  >
+                    {totalClasses === 0
+                      ? 'Awaiting Sessions'
+                      : isLowAttendance
+                      ? '⚠️ Needs Improvement'
+                      : '✓ In Good Standing'}
+                  </p>
                 </div>
               </div>
             </Card>
 
-            {/* 2. Assigned Class Batch Card */}
+            {/* Assigned Class Batch Card */}
             <Card className="p-5 shadow-xs bg-white border-slate-200/80 flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -176,13 +437,13 @@ export const StudentDashboard: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-slate-900 font-heading">
-                        Assigned Class
+                        Assigned Class Batch
                       </h3>
-                      <p className="text-xs text-slate-500">Academic grouping</p>
+                      <p className="text-xs text-slate-500">Academic classroom allocation</p>
                     </div>
                   </div>
                   {profile?.class ? (
-                    <Badge variant="info">Assigned</Badge>
+                    <Badge variant="info">Batch Active</Badge>
                   ) : (
                     <Badge variant="neutral">Pending</Badge>
                   )}
@@ -208,41 +469,16 @@ export const StudentDashboard: React.FC = () => {
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 text-center space-y-1">
                     <p className="text-xs font-bold text-slate-700">No class assigned</p>
                     <p className="text-[11px] text-slate-400">
-                      Awaiting batch assignment from admin.
+                      Awaiting classroom batch assignment from administration.
                     </p>
                   </div>
                 )}
               </div>
-            </Card>
 
-            {/* 3. Overall Attendance KPI Card */}
-            <Card className="p-5 shadow-xs bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 text-white flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-300">
-                    Attendance Overview
-                  </span>
-                  <Badge variant="success" withDot className="text-[10px] bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
-                    Verified Metric
-                  </Badge>
-                </div>
-                <div className="flex items-baseline justify-between pt-1">
-                  <div className="font-heading text-4xl font-extrabold text-white">
-                    {summary ? summary.overall_percentage : 0}%
-                  </div>
-                  <span className="text-xs font-mono text-indigo-200 font-semibold">
-                    {summary ? summary.total_present : 0} / {summary ? summary.total_sessions : 0} Lectures
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300 leading-snug">
-                  Cumulative presence across all subjects and lectures held for your class batch.
-                </p>
-              </div>
-
-              <div className="pt-3 border-t border-slate-800">
+              <div className="pt-2 flex justify-end">
                 <Link to="/attendance/scan">
-                  <Button variant="primary" size="sm" className="w-full text-xs" leftIcon={<Camera className="w-3.5 h-3.5" />}>
-                    Scan Live QR Code
+                  <Button size="sm" variant="outline" leftIcon={<Camera className="w-3.5 h-3.5" />}>
+                    Open Scanner
                   </Button>
                 </Link>
               </div>
@@ -251,85 +487,237 @@ export const StudentDashboard: React.FC = () => {
 
           {/* Section: Subject-Wise Attendance Breakdown */}
           <div className="space-y-4 pt-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 font-heading">
                   Subject-Wise Attendance Breakdown
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Track your presence in each individual course module
+                  Individual presence percentages, attended sessions, and requirement status per course
                 </p>
               </div>
-              <Badge variant="info">
-                {summary?.subjects?.length || subjects.length} Subjects
-              </Badge>
+
+              {/* Status Segmented Filter Tabs */}
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 border border-slate-200 text-xs">
+                <button
+                  onClick={() => setStatusFilter('ALL')}
+                  className={`px-3 py-1 rounded-lg font-semibold transition ${
+                    statusFilter === 'ALL'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All ({allSubjectStats.length})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('LOW')}
+                  className={`px-3 py-1 rounded-lg font-semibold transition ${
+                    statusFilter === 'LOW'
+                      ? 'bg-amber-100 text-amber-900 shadow-xs font-bold'
+                      : 'text-slate-600 hover:text-amber-700'
+                  }`}
+                >
+                  Low &lt;75% ({lowAttendanceCount})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('MET')}
+                  className={`px-3 py-1 rounded-lg font-semibold transition ${
+                    statusFilter === 'MET'
+                      ? 'bg-emerald-100 text-emerald-900 shadow-xs font-bold'
+                      : 'text-slate-600 hover:text-emerald-700'
+                  }`}
+                >
+                  Met &ge;75% ({allSubjectStats.length - lowAttendanceCount})
+                </button>
+              </div>
             </div>
 
-            {(!summary || summary.subjects.length === 0) && subjects.length === 0 ? (
-              <EmptyState
-                icon={<BookOpen className="w-8 h-8" />}
-                title="No subjects enrolled"
-                description="Once your class is assigned to faculty courses, attendance metrics will be calculated here."
-                badgeText="Curriculum Pending"
+            {/* Search Input Filter */}
+            <div className="relative max-w-md">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search by subject name or course code..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
               />
+            </div>
+
+            {/* Empty State when no subjects enrolled or no attendance recorded yet */}
+            {allSubjectStats.length === 0 ? (
+              <Card className="p-8 text-center bg-white border-slate-200/80 space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 mx-auto flex items-center justify-center">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-slate-900 font-heading">No attendance records yet</h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                    Your attendance statistics will appear here automatically after your classes begin and
+                    you scan your first attendance QR code.
+                  </p>
+                </div>
+                <div>
+                  <Link to="/attendance/scan">
+                    <Button variant="primary" size="sm" leftIcon={<Camera className="w-3.5 h-3.5" />}>
+                      Scan QR Code
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
+            ) : filteredSubjects.length === 0 ? (
+              <div className="p-8 text-center bg-white rounded-2xl border border-slate-200/80 text-xs text-slate-400">
+                <Filter className="w-6 h-6 mx-auto mb-2 text-slate-300" />
+                <p>No subjects match the selected filter query "{searchQuery}".</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3 text-xs"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('ALL');
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </div>
             ) : (
+              /* Grid of Subject Attendance Cards */
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {(summary?.subjects && summary.subjects.length > 0
-                  ? summary.subjects
-                  : subjects.map((s) => ({
-                      subject_id: s.id,
-                      subject_name: s.name,
-                      subject_code: s.code,
-                      present_sessions: 0,
-                      total_sessions: 0,
-                      percentage: 0.0,
-                    }))
-                ).map((sub) => (
-                  <Card key={sub.subject_id} hoverEffect className="p-5 flex flex-col justify-between border-slate-200/80 shadow-xs space-y-3 bg-white">
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-                          <BookOpen className="w-4 h-4" />
+                {filteredSubjects.map((sub) => {
+                  const hasSessions = sub.total_sessions > 0;
+                  const isMet = !hasSessions || sub.percentage >= ATTENDANCE_THRESHOLD;
+
+                  return (
+                    <Card
+                      key={sub.subject_id}
+                      hoverEffect
+                      className="p-5 flex flex-col justify-between border-slate-200/80 shadow-xs space-y-4 bg-white"
+                    >
+                      <div className="space-y-3">
+                        {/* Subject Header & Badges */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold flex-shrink-0">
+                            <BookOpen className="w-4 h-4" />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="info" className="font-mono text-[10px]">
+                              {sub.subject_code}
+                            </Badge>
+                            {hasSessions && (
+                              <Badge
+                                variant={isMet ? 'success' : 'warning'}
+                                className={`text-[10px] ${
+                                  isMet
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                                }`}
+                              >
+                                {isMet ? '✓ Requirement Met' : '⚠️ Below 75%'}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <Badge variant="info" className="font-mono text-[11px]">
-                          {sub.subject_code}
-                        </Badge>
+
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900 font-heading leading-snug">
+                            {sub.subject_name}
+                          </h4>
+                          <p className="text-[11px] font-mono text-slate-400 mt-0.5">{sub.subject_code}</p>
+                        </div>
+
+                        {/* Progress Bar & Rate */}
+                        <div className="space-y-1.5 pt-1">
+                          <div className="flex justify-between items-baseline text-xs font-mono">
+                            <span className="text-[11px] text-slate-500 font-medium font-sans">
+                              Attendance Rate
+                            </span>
+                            <span
+                              className={`text-sm font-bold ${
+                                !hasSessions
+                                  ? 'text-slate-400'
+                                  : sub.percentage >= ATTENDANCE_THRESHOLD
+                                  ? 'text-emerald-700'
+                                  : 'text-amber-700'
+                              }`}
+                            >
+                              {sub.percentage}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                            <div
+                              className={`h-2.5 rounded-full transition-all duration-500 ${
+                                !hasSessions
+                                  ? 'bg-slate-300'
+                                  : sub.percentage >= ATTENDANCE_THRESHOLD
+                                  ? 'bg-emerald-600'
+                                  : sub.percentage >= 60
+                                  ? 'bg-amber-500'
+                                  : 'bg-rose-500'
+                              }`}
+                              style={{ width: `${Math.min(100, sub.percentage)}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Metrics Breakdown Grid */}
+                        <div className="grid grid-cols-3 gap-1.5 pt-2 text-center text-xs">
+                          <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/50">
+                            <span className="text-[9px] uppercase font-bold text-slate-400 block">
+                              Present
+                            </span>
+                            <span className="font-mono font-bold text-emerald-700 text-xs">
+                              {sub.present_sessions}
+                            </span>
+                          </div>
+                          <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/50">
+                            <span className="text-[9px] uppercase font-bold text-slate-400 block">
+                              Absent
+                            </span>
+                            <span
+                              className={`font-mono font-bold text-xs ${
+                                sub.absent_sessions > 0 ? 'text-amber-700' : 'text-slate-500'
+                              }`}
+                            >
+                              {sub.absent_sessions}
+                            </span>
+                          </div>
+                          <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/50">
+                            <span className="text-[9px] uppercase font-bold text-slate-400 block">
+                              Total
+                            </span>
+                            <span className="font-mono font-bold text-slate-800 text-xs">
+                              {sub.total_sessions}
+                            </span>
+                          </div>
+                        </div>
                       </div>
 
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 font-heading">{sub.subject_name}</h4>
-                        <div className="flex items-baseline justify-between text-xs pt-2">
-                          <span className="text-slate-500">Lectures Attended:</span>
-                          <span className="font-mono font-bold text-slate-900">
-                            {sub.present_sessions} / {sub.total_sessions}
-                          </span>
-                        </div>
+                      {/* Card Footer */}
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span className="flex items-center gap-1 font-medium">
+                          <TrendingUp className="w-3 h-3 text-indigo-600" />
+                          <span>Status</span>
+                        </span>
+                        <span
+                          className={`font-semibold ${
+                            !hasSessions
+                              ? 'text-slate-400'
+                              : isMet
+                              ? 'text-emerald-700'
+                              : 'text-amber-700'
+                          }`}
+                        >
+                          {!hasSessions
+                            ? 'No Lectures Held'
+                            : isMet
+                            ? 'Healthy Attendance'
+                            : 'Attendance Action Required'}
+                        </span>
                       </div>
-
-                      {/* Progress Bar */}
-                      <div className="space-y-1 pt-1">
-                        <div className="flex justify-between text-[11px] font-mono">
-                          <span className="text-slate-400">Attendance Rate</span>
-                          <span
-                            className={`font-bold ${
-                              sub.percentage >= 75 ? 'text-emerald-700' : 'text-amber-700'
-                            }`}
-                          >
-                            {sub.percentage}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-500 ${
-                              sub.percentage >= 75 ? 'bg-emerald-600' : 'bg-amber-500'
-                            }`}
-                            style={{ width: `${Math.min(100, sub.percentage)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>
