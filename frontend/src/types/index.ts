@@ -276,7 +276,6 @@ export interface LiveAttendanceSessionData {
   duration_minutes: number;
   is_active: boolean;
   is_expired: boolean;
-  session_token: string;
   subject_name: string;
   subject_code: string;
   class_name: string;

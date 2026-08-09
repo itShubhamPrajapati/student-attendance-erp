@@ -351,7 +351,6 @@ type LiveAttendanceSessionResponse struct {
 	DurationMinutes      int                       `json:"duration_minutes"`
 	IsActive             bool                      `json:"is_active"`
 	IsExpired            bool                      `json:"is_expired"`
-	SessionToken         string                    `json:"session_token"`
 	SubjectName          string                    `json:"subject_name"`
 	SubjectCode          string                    `json:"subject_code"`
 	ClassName            string                    `json:"class_name"`

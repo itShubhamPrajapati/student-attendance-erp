@@ -392,7 +392,6 @@ func GetLiveSessionData(db *gorm.DB, teacherUserID string, sessionID string) (*m
 		DurationMinutes:      duration,
 		IsActive:             session.IsActive,
 		IsExpired:            isExpired,
-		SessionToken:         session.SessionToken,
 		SubjectName:          session.Subject.Name,
 		SubjectCode:          session.Subject.Code,
 		ClassName:            session.Class.Name,

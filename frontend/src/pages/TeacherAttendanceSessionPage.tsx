@@ -18,8 +18,9 @@ import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { LiveAttendanceSessionData } from '../types';
+import { AttendanceSession, LiveAttendanceSessionData } from '../types';
 import {
+  apiGetTeacherSessionDetails,
   apiGetTeacherLiveSessionData,
   apiEndAttendanceSession,
 } from '../services/api';
@@ -27,6 +28,7 @@ import {
 export const TeacherAttendanceSessionPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
 
+  const [session, setSession] = useState<AttendanceSession | null>(null);
   const [sessionData, setSessionData] = useState<LiveAttendanceSessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialError, setInitialError] = useState<string | null>(null);
@@ -46,11 +48,11 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
     (import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL.trim().replace(/\/+$/, '') : '') ||
     window.location.origin;
 
-  const qrScanUrl = sessionData
-    ? `${appBaseUrl}/attendance/scan?token=${encodeURIComponent(sessionData.session_token)}`
+  const qrScanUrl = session?.session_token
+    ? `${appBaseUrl}/attendance/scan?token=${encodeURIComponent(session.session_token)}`
     : '';
 
-  // Core data fetching function (for initial load and periodic polling)
+  // Core data fetching function (for periodic live telemetry polling)
   const fetchLiveData = useCallback(
     async (isManualRefresh = false) => {
       if (!sessionId) return;
@@ -84,17 +86,57 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
           setPollError(msg);
         }
       } finally {
-        setLoading(false);
         if (isManualRefresh) setIsRefreshing(false);
       }
     },
     [sessionId, sessionData]
   );
 
-  // Initial Load
+  // Initial Load: fetch session details (for token) and initial live telemetry
   useEffect(() => {
-    fetchLiveData();
-  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+    let isMounted = true;
+
+    async function initSession() {
+      if (!sessionId) return;
+      setLoading(true);
+      setInitialError(null);
+      try {
+        const [sessionRes, liveRes] = await Promise.all([
+          apiGetTeacherSessionDetails(sessionId),
+          apiGetTeacherLiveSessionData(sessionId),
+        ]);
+
+        if (isMounted) {
+          if (sessionRes.data) setSession(sessionRes.data);
+          if (liveRes.data) {
+            setSessionData(liveRes.data);
+            setLastUpdated(new Date());
+            const expiryTime = new Date(liveRes.data.qr_expires_at).getTime();
+            const now = Date.now();
+            const diffSecs = Math.max(0, Math.floor((expiryTime - now) / 1000));
+            setSecondsRemaining(diffSecs);
+            if (!liveRes.data.is_active || diffSecs <= 0 || liveRes.data.is_expired) {
+              setIsExpiredOrEnded(true);
+            } else {
+              setIsExpiredOrEnded(false);
+            }
+          }
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          setInitialError(err instanceof Error ? err.message : 'Unable to load attendance session');
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    initSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionId]);
 
   // Visibility-Aware Polling Interval (every 3.5s while active)
   useEffect(() => {
