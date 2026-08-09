@@ -187,6 +187,34 @@ func TestStudentAttendanceSummaryCalculation(t *testing.T) {
 			expectedPct:    33.3,
 			expectedAbsent: 2,
 		},
+		{
+			name:           "Exactly 75% boundary (15/20 = 75.0%)",
+			present:        15,
+			total:          20,
+			expectedPct:    75.0,
+			expectedAbsent: 5,
+		},
+		{
+			name:           "Critical zero attendance (0/10 = 0.0%)",
+			present:        0,
+			total:          10,
+			expectedPct:    0.0,
+			expectedAbsent: 10,
+		},
+		{
+			name:           "Critical below 60% (14/25 = 56.0%)",
+			present:        14,
+			total:          25,
+			expectedPct:    56.0,
+			expectedAbsent: 11,
+		},
+		{
+			name:           "Near boundary 74.9% (749/1000 = 74.9%)",
+			present:        749,
+			total:          1000,
+			expectedPct:    74.9,
+			expectedAbsent: 251,
+		},
 	}
 
 	for _, tt := range tests {
