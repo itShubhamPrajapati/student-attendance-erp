@@ -147,7 +147,12 @@ export const StudentDashboard: React.FC = () => {
           </Badge>
         }
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link to="/student/attendance/calendar">
+              <Button variant="outline" size="sm" leftIcon={<Calendar className="w-3.5 h-3.5" />}>
+                Attendance Calendar
+              </Button>
+            </Link>
             <Link to="/attendance/scan">
               <Button variant="primary" size="sm" leftIcon={<Camera className="w-3.5 h-3.5" />}>
                 Scan Attendance QR

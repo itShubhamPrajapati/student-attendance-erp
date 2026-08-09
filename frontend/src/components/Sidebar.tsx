@@ -47,6 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = 'ADMIN' }) => {
       case 'STUDENT':
         return [
           { name: 'My Attendance Overview', path: '/student', icon: <Layers className="w-4 h-4" /> },
+          { name: 'Attendance Calendar', path: '/student/attendance/calendar', icon: <Calendar className="w-4 h-4" /> },
           { name: 'Scan Attendance QR', path: '/attendance/scan', icon: <Camera className="w-4 h-4" /> },
         ];
       default:

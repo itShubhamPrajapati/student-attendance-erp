@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -772,6 +773,177 @@ func GetStudentRecentAttendance(db *gorm.DB, studentUserID string) ([]models.Stu
 	}
 
 	return results, nil
+}
+
+// GetStudentAttendanceCalendar retrieves month-by-month attendance data grouped by calendar date
+func GetStudentAttendanceCalendar(db *gorm.DB, studentUserID string, monthStr string, subjectID string) (*models.StudentCalendarResponse, error) {
+	var student models.Student
+	if err := db.Where("user_id = ?", studentUserID).First(&student).Error; err != nil {
+		return nil, errors.New("Student profile not found.")
+	}
+
+	// Parse month (default to current UTC month if blank or invalid)
+	cleanMonth := strings.TrimSpace(monthStr)
+	if cleanMonth == "" {
+		cleanMonth = time.Now().UTC().Format("2006-01")
+	}
+	tMonth, err := time.Parse("2006-01", cleanMonth)
+	if err != nil {
+		cleanMonth = time.Now().UTC().Format("2006-01")
+		tMonth, _ = time.Parse("2006-01", cleanMonth)
+	}
+
+	startOfMonth := time.Date(tMonth.Year(), tMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
+	startOfNextMonth := startOfMonth.AddDate(0, 1, 0)
+
+	if student.ClassID == nil || *student.ClassID == "" {
+		return &models.StudentCalendarResponse{
+			Month: cleanMonth,
+			Summary: models.StudentCalendarSummary{
+				SessionsHeld: 0,
+				Present:      0,
+				Absent:       0,
+				Percentage:   0.0,
+			},
+			Days: []models.StudentCalendarDay{},
+		}, nil
+	}
+
+	// Fetch all AttendanceSessions held for the student's Class in this month
+	query := db.Model(&models.AttendanceSession{}).
+		Preload("Subject").
+		Where("class_id = ? AND started_at >= ? AND started_at < ?", *student.ClassID, startOfMonth, startOfNextMonth)
+
+	if strings.TrimSpace(subjectID) != "" {
+		query = query.Where("subject_id = ?", strings.TrimSpace(subjectID))
+	}
+
+	var sessions []models.AttendanceSession
+	if err := query.Order("started_at ASC").Find(&sessions).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch calendar attendance sessions: %w", err)
+	}
+
+	if len(sessions) == 0 {
+		return &models.StudentCalendarResponse{
+			Month: cleanMonth,
+			Summary: models.StudentCalendarSummary{
+				SessionsHeld: 0,
+				Present:      0,
+				Absent:       0,
+				Percentage:   0.0,
+			},
+			Days: []models.StudentCalendarDay{},
+		}, nil
+	}
+
+	// Collect session IDs
+	sessionIDs := make([]string, len(sessions))
+	for i, s := range sessions {
+		sessionIDs[i] = s.ID
+	}
+
+	// Fetch student's attendance records for these sessions in a single query
+	var attendances []models.Attendance
+	if err := db.Where("student_id = ? AND session_id IN ?", student.ID, sessionIDs).
+		Find(&attendances).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch student attendance logs: %w", err)
+	}
+
+	// Map session_id -> Attendance
+	attMap := make(map[string]models.Attendance, len(attendances))
+	for _, a := range attendances {
+		attMap[a.SessionID] = a
+	}
+
+	// Group sessions by date YYYY-MM-DD
+	dayMap := make(map[string][]models.StudentCalendarSessionItem)
+	var totalHeld int64 = 0
+	var totalPresent int64 = 0
+	var totalAbsent int64 = 0
+
+	for _, s := range sessions {
+		dateKey := s.StartedAt.Format("2006-01-02")
+		totalHeld++
+
+		att, found := attMap[s.ID]
+		var sessionItem models.StudentCalendarSessionItem
+		if found && att.Status == "PRESENT" {
+			totalPresent++
+			markedAt := att.MarkedAt
+			sessionItem = models.StudentCalendarSessionItem{
+				SessionID:   s.ID,
+				SubjectID:   s.SubjectID,
+				SubjectName: s.Subject.Name,
+				SubjectCode: s.Subject.Code,
+				Status:      "PRESENT",
+				MarkedAt:    &markedAt,
+				StartedAt:   s.StartedAt,
+			}
+		} else {
+			totalAbsent++
+			sessionItem = models.StudentCalendarSessionItem{
+				SessionID:   s.ID,
+				SubjectID:   s.SubjectID,
+				SubjectName: s.Subject.Name,
+				SubjectCode: s.Subject.Code,
+				Status:      "ABSENT",
+				MarkedAt:    nil,
+				StartedAt:   s.StartedAt,
+			}
+		}
+
+		dayMap[dateKey] = append(dayMap[dateKey], sessionItem)
+	}
+
+	// Sort unique dates
+	uniqueDates := make([]string, 0, len(dayMap))
+	for d := range dayMap {
+		uniqueDates = append(uniqueDates, d)
+	}
+	sort.Strings(uniqueDates)
+
+	days := make([]models.StudentCalendarDay, len(uniqueDates))
+	for i, d := range uniqueDates {
+		sessionItems := dayMap[d]
+		presentCount := 0
+		absentCount := 0
+		for _, it := range sessionItems {
+			if it.Status == "PRESENT" {
+				presentCount++
+			} else {
+				absentCount++
+			}
+		}
+
+		dayStatus := "PRESENT"
+		if presentCount > 0 && absentCount > 0 {
+			dayStatus = "PARTIAL"
+		} else if absentCount > 0 && presentCount == 0 {
+			dayStatus = "ABSENT"
+		}
+
+		days[i] = models.StudentCalendarDay{
+			Date:     d,
+			Status:   dayStatus,
+			Sessions: sessionItems,
+		}
+	}
+
+	pct := 0.0
+	if totalHeld > 0 {
+		pct = math.Round((float64(totalPresent)/float64(totalHeld))*1000) / 10
+	}
+
+	return &models.StudentCalendarResponse{
+		Month: cleanMonth,
+		Summary: models.StudentCalendarSummary{
+			SessionsHeld: totalHeld,
+			Present:      totalPresent,
+			Absent:       totalAbsent,
+			Percentage:   pct,
+		},
+		Days: days,
+	}, nil
 }
 
 // ==============================================================================

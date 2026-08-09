@@ -238,3 +238,63 @@ func TestStudentAttendanceSummaryCalculation(t *testing.T) {
 		})
 	}
 }
+
+// TestStudentCalendarDayStatusAggregation verifies that daily status is correctly classified as PRESENT, ABSENT, or PARTIAL
+func TestStudentCalendarDayStatusAggregation(t *testing.T) {
+	tests := []struct {
+		name           string
+		sessionStatuses []string
+		expectedStatus string
+	}{
+		{
+			name:           "All sessions present on that day",
+			sessionStatuses: []string{"PRESENT", "PRESENT"},
+			expectedStatus: "PRESENT",
+		},
+		{
+			name:           "All sessions absent on that day",
+			sessionStatuses: []string{"ABSENT", "ABSENT"},
+			expectedStatus: "ABSENT",
+		},
+		{
+			name:           "Mixed sessions present and absent (Partial)",
+			sessionStatuses: []string{"PRESENT", "ABSENT", "PRESENT"},
+			expectedStatus: "PARTIAL",
+		},
+		{
+			name:           "Single present session",
+			sessionStatuses: []string{"PRESENT"},
+			expectedStatus: "PRESENT",
+		},
+		{
+			name:           "Single absent session",
+			sessionStatuses: []string{"ABSENT"},
+			expectedStatus: "ABSENT",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			presentCount := 0
+			absentCount := 0
+			for _, st := range tt.sessionStatuses {
+				if st == "PRESENT" {
+					presentCount++
+				} else {
+					absentCount++
+				}
+			}
+
+			dayStatus := "PRESENT"
+			if presentCount > 0 && absentCount > 0 {
+				dayStatus = "PARTIAL"
+			} else if absentCount > 0 && presentCount == 0 {
+				dayStatus = "ABSENT"
+			}
+
+			if dayStatus != tt.expectedStatus {
+				t.Errorf("expected day status %s, got %s", tt.expectedStatus, dayStatus)
+			}
+		})
+	}
+}

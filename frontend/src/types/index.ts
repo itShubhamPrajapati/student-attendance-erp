@@ -319,6 +319,35 @@ export interface StudentRecentAttendanceItem {
   status: string;
 }
 
+export interface StudentCalendarSessionItem {
+  session_id: string;
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  status: 'PRESENT' | 'ABSENT';
+  marked_at: string | null;
+  started_at: string;
+}
+
+export interface StudentCalendarDay {
+  date: string; // "YYYY-MM-DD"
+  status: 'PRESENT' | 'ABSENT' | 'PARTIAL';
+  sessions: StudentCalendarSessionItem[];
+}
+
+export interface StudentCalendarSummary {
+  sessions_held: number;
+  present: number;
+  absent: number;
+  percentage: number;
+}
+
+export interface StudentCalendarResponse {
+  month: string; // "YYYY-MM"
+  summary: StudentCalendarSummary;
+  days: StudentCalendarDay[];
+}
+
 export interface CreateAttendanceSessionPayload {
   subject_id: string;
   class_id: string;

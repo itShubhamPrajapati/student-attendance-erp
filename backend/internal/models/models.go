@@ -397,3 +397,36 @@ type StudentRecentAttendanceItem struct {
 	MarkedAt    time.Time `json:"marked_at"`
 	Status      string    `json:"status"`
 }
+
+// StudentCalendarSessionItem represents a single lecture session on a given date for student calendar
+type StudentCalendarSessionItem struct {
+	SessionID   string     `json:"session_id"`
+	SubjectID   string     `json:"subject_id"`
+	SubjectName string     `json:"subject_name"`
+	SubjectCode string     `json:"subject_code"`
+	Status      string     `json:"status"` // "PRESENT" or "ABSENT"
+	MarkedAt    *time.Time `json:"marked_at"`
+	StartedAt   time.Time  `json:"started_at"`
+}
+
+// StudentCalendarDay represents attendance metrics and session items for a calendar date
+type StudentCalendarDay struct {
+	Date     string                       `json:"date"`   // "YYYY-MM-DD"
+	Status   string                       `json:"status"` // "PRESENT", "ABSENT", "PARTIAL"
+	Sessions []StudentCalendarSessionItem `json:"sessions"`
+}
+
+// StudentCalendarSummary represents month summary metrics
+type StudentCalendarSummary struct {
+	SessionsHeld int64   `json:"sessions_held"`
+	Present      int64   `json:"present"`
+	Absent       int64   `json:"absent"`
+	Percentage   float64 `json:"percentage"`
+}
+
+// StudentCalendarResponse represents the full payload returned by GET /api/student/attendance/calendar
+type StudentCalendarResponse struct {
+	Month   string                 `json:"month"` // "YYYY-MM"
+	Summary StudentCalendarSummary `json:"summary"`
+	Days    []StudentCalendarDay   `json:"days"`
+}

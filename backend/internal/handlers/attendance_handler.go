@@ -332,6 +332,29 @@ func GetStudentRecentAttendanceHandler(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+// GetStudentAttendanceCalendarHandler handles GET /api/student/attendance/calendar
+func GetStudentAttendanceCalendarHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		monthParam := c.Query("month")
+		subjectParam := c.Query("subject_id")
+
+		calendarData, err := services.GetStudentAttendanceCalendar(db, userID, monthParam, subjectParam)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to compute attendance calendar",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    calendarData,
+		})
+	}
+}
+
 // ==============================================================================
 // ADMIN ATTENDANCE HANDLERS (RequireRole: ADMIN)
 // ==============================================================================

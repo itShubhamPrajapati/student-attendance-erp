@@ -57,6 +57,9 @@ func TestTeacherSessionRoutesRegistered(t *testing.T) {
 		{"Teacher Session Records", "GET", "/api/teacher/attendance/sessions/12345/records", teacherToken},
 		{"Teacher End Session", "POST", "/api/teacher/attendance/sessions/12345/end", teacherToken},
 		{"Student Mark Attendance", "POST", "/api/attendance/mark", studentToken},
+		{"Student Attendance Summary", "GET", "/api/student/attendance/summary", studentToken},
+		{"Student Attendance Calendar", "GET", "/api/student/attendance/calendar", studentToken},
+		{"Student Recent Attendance", "GET", "/api/student/attendance/recent", studentToken},
 	}
 
 	for _, rt := range routesToTest {

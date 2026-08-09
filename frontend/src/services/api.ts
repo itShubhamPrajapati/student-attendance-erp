@@ -25,6 +25,7 @@ import {
   MarkAttendanceResponse,
   StudentAttendanceSummary,
   StudentRecentAttendanceItem,
+  StudentCalendarResponse,
   CreateAttendanceSessionPayload,
 } from '../types';
 import { getToken } from '../auth/authService';
@@ -447,6 +448,30 @@ export async function apiGetStudentRecentAttendance(): Promise<{
 }> {
   return request<{ success: boolean; data: StudentRecentAttendanceItem[] }>(
     '/api/student/attendance/recent',
+    {
+      method: 'GET',
+    }
+  );
+}
+
+export async function apiGetStudentAttendanceCalendar(
+  month?: string,
+  subjectId?: string
+): Promise<{
+  success: boolean;
+  data: StudentCalendarResponse;
+}> {
+  const params = new URLSearchParams();
+  if (month && month.trim() !== '') {
+    params.append('month', month.trim());
+  }
+  if (subjectId && subjectId.trim() !== '') {
+    params.append('subject_id', subjectId.trim());
+  }
+  const queryString = params.toString() ? `?${params.toString()}` : '';
+
+  return request<{ success: boolean; data: StudentCalendarResponse }>(
+    `/api/student/attendance/calendar${queryString}`,
     {
       method: 'GET',
     }

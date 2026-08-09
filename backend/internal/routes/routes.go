@@ -157,9 +157,10 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			studentGroup.GET("/profile", handlers.GetStudentProfileHandler(database.DB))
 			studentGroup.GET("/subjects", handlers.GetStudentSubjectsHandler(database.DB))
 
-			// Student Attendance Summaries (Phase 4)
+			// Student Attendance Summaries & Calendar (Phase 4 / Feature 5)
 			studentGroup.GET("/attendance/summary", handlers.GetStudentAttendanceSummaryHandler(database.DB))
 			studentGroup.GET("/attendance/recent", handlers.GetStudentRecentAttendanceHandler(database.DB))
+			studentGroup.GET("/attendance/calendar", handlers.GetStudentAttendanceCalendarHandler(database.DB))
 		}
 
 		// ==============================================================================
