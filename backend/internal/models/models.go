@@ -23,6 +23,10 @@ type User struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
+func (User) TableName() string {
+	return "users"
+}
+
 // Student represents an enrolled academic student
 type Student struct {
 	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
@@ -38,6 +42,10 @@ type Student struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
+func (Student) TableName() string {
+	return "students"
+}
+
 // Teacher represents a faculty instructor
 type Teacher struct {
 	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
@@ -49,6 +57,10 @@ type Teacher struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
+func (Teacher) TableName() string {
+	return "teachers"
+}
+
 // Subject represents an academic course module
 type Subject struct {
 	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
@@ -58,6 +70,10 @@ type Subject struct {
 	Semester   int       `gorm:"not null" json:"semester"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+func (Subject) TableName() string {
+	return "subjects"
 }
 
 // Class represents an academic class batch
@@ -72,6 +88,10 @@ type Class struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
+func (Class) TableName() string {
+	return "classes"
+}
+
 // TeacherSubjectClass represents the assignment: Teacher teaches Subject to Class
 type TeacherSubjectClass struct {
 	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
@@ -82,6 +102,10 @@ type TeacherSubjectClass struct {
 	ClassID   string    `gorm:"type:uuid;not null" json:"class_id"`
 	Class     Class     `gorm:"foreignKey:ClassID" json:"class,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+func (TeacherSubjectClass) TableName() string {
+	return "teacher_subject_classes"
 }
 
 // UserSafeResponse represents sanitized user information without password hash
@@ -245,6 +269,10 @@ type AttendanceSession struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
+func (AttendanceSession) TableName() string {
+	return "attendance_sessions"
+}
+
 // Attendance represents a verified attendance record submitted by a student
 type Attendance struct {
 	ID        string            `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
@@ -255,6 +283,11 @@ type Attendance struct {
 	MarkedAt  time.Time         `gorm:"not null" json:"marked_at"`
 	Status    string            `gorm:"type:varchar(20);default:'PRESENT';not null" json:"status"`
 	CreatedAt time.Time         `json:"created_at"`
+}
+
+// TableName overrides GORM's default pluralized table name "attendances" to match PostgreSQL migration "attendance"
+func (Attendance) TableName() string {
+	return "attendance"
 }
 
 // AttendanceSessionResponse represents formatted attendance session for UI

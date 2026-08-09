@@ -1,11 +1,63 @@
 package services
 
 import (
+	"sync"
 	"testing"
 	"time"
 
 	"qr-attendance-backend/internal/models"
+
+	"gorm.io/gorm/schema"
 )
+
+// TestModelTableNames ensures all GORM models map to the exact PostgreSQL table names defined in migrations
+func TestModelTableNames(t *testing.T) {
+	tests := []struct {
+		modelName     string
+		actualTable   string
+		expectedTable string
+	}{
+		{"User", models.User{}.TableName(), "users"},
+		{"Student", models.Student{}.TableName(), "students"},
+		{"Teacher", models.Teacher{}.TableName(), "teachers"},
+		{"Subject", models.Subject{}.TableName(), "subjects"},
+		{"Class", models.Class{}.TableName(), "classes"},
+		{"TeacherSubjectClass", models.TeacherSubjectClass{}.TableName(), "teacher_subject_classes"},
+		{"AttendanceSession", models.AttendanceSession{}.TableName(), "attendance_sessions"},
+		{"Attendance", models.Attendance{}.TableName(), "attendance"}, // Crucial fix: must be "attendance", not "attendances"
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.modelName, func(t *testing.T) {
+			if tt.actualTable != tt.expectedTable {
+				t.Errorf("model %s TableName() = %q, expected %q", tt.modelName, tt.actualTable, tt.expectedTable)
+			}
+		})
+	}
+}
+
+// TestGORMSchemaResolution verifies that GORM's schema parser resolves Attendance to "attendance" table
+func TestGORMSchemaResolution(t *testing.T) {
+	cache := &sync.Map{}
+	namer := schema.NamingStrategy{}
+
+	s, err := schema.Parse(&models.Attendance{}, cache, namer)
+	if err != nil {
+		t.Fatalf("failed to parse Attendance schema with GORM: %v", err)
+	}
+
+	if s.Table != "attendance" {
+		t.Fatalf("GORM resolved table name to %q, expected authoritative migration table name 'attendance'", s.Table)
+	}
+
+	sessionSchema, err := schema.Parse(&models.AttendanceSession{}, cache, namer)
+	if err != nil {
+		t.Fatalf("failed to parse AttendanceSession schema: %v", err)
+	}
+	if sessionSchema.Table != "attendance_sessions" {
+		t.Fatalf("GORM resolved session table name to %q, expected 'attendance_sessions'", sessionSchema.Table)
+	}
+}
 
 // TestGenerateSecureToken validates cryptographic entropy, format, and uniqueness
 func TestGenerateSecureToken(t *testing.T) {
