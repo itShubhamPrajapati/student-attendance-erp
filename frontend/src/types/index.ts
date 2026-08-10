@@ -569,3 +569,6 @@ export interface ApiResponse<T = unknown> {
   data?: T;
 }
 
+export type AttendanceExportFormat = 'csv' | 'excel' | 'pdf';
+
+

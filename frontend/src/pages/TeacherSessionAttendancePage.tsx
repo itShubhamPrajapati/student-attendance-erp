@@ -8,6 +8,11 @@ import {
   RefreshCw,
   Printer,
   Clock,
+  Download,
+  FileText,
+  FileSpreadsheet,
+  FileDown,
+  ChevronDown,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -15,8 +20,8 @@ import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { SessionAttendanceDetails } from '../types';
-import { apiGetSessionAttendanceRecords } from '../services/api';
+import { SessionAttendanceDetails, AttendanceExportFormat } from '../types';
+import { apiGetSessionAttendanceRecords, apiExportTeacherAttendance } from '../services/api';
 
 export const TeacherSessionAttendancePage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -25,6 +30,9 @@ export const TeacherSessionAttendancePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PRESENT' | 'ABSENT'>('ALL');
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<AttendanceExportFormat | null>(null);
 
   const fetchRecords = useCallback(async () => {
     if (!sessionId) return;
@@ -117,12 +125,98 @@ export const TeacherSessionAttendancePage: React.FC = () => {
           )
         }
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Link to="/teacher/attendance/history">
               <Button variant="outline" size="sm" leftIcon={<ArrowLeft className="w-3.5 h-3.5" />}>
                 All Sessions
               </Button>
             </Link>
+
+            {/* Export Roster Dropdown */}
+            <div className="relative inline-block text-left">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsExportMenuOpen((prev) => !prev)}
+                isLoading={isExporting}
+                leftIcon={<Download className="w-3.5 h-3.5 text-indigo-600" />}
+                rightIcon={<ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
+              >
+                {isExporting ? `Exporting ${exportingFormat?.toUpperCase()}...` : 'Export Roster'}
+              </Button>
+
+              {isExportMenuOpen && (
+                <div className="absolute right-0 mt-1.5 w-48 rounded-2xl bg-white shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <button
+                    onClick={async () => {
+                      setIsExportMenuOpen(false);
+                      setIsExporting(true);
+                      setExportingFormat('csv');
+                      try {
+                        await apiExportTeacherAttendance('csv', {
+                          class_id: session.class_id,
+                          subject_id: session.subject_id,
+                          from: session.started_at.slice(0, 10),
+                          to: session.started_at.slice(0, 10),
+                        });
+                      } finally {
+                        setIsExporting(false);
+                        setExportingFormat(null);
+                      }
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                  >
+                    <FileText className="w-4 h-4 text-emerald-600" />
+                    CSV (.csv)
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setIsExportMenuOpen(false);
+                      setIsExporting(true);
+                      setExportingFormat('excel');
+                      try {
+                        await apiExportTeacherAttendance('excel', {
+                          class_id: session.class_id,
+                          subject_id: session.subject_id,
+                          from: session.started_at.slice(0, 10),
+                          to: session.started_at.slice(0, 10),
+                        });
+                      } finally {
+                        setIsExporting(false);
+                        setExportingFormat(null);
+                      }
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    Excel (.xlsx)
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setIsExportMenuOpen(false);
+                      setIsExporting(true);
+                      setExportingFormat('pdf');
+                      try {
+                        await apiExportTeacherAttendance('pdf', {
+                          class_id: session.class_id,
+                          subject_id: session.subject_id,
+                          from: session.started_at.slice(0, 10),
+                          to: session.started_at.slice(0, 10),
+                        });
+                      } finally {
+                        setIsExporting(false);
+                        setExportingFormat(null);
+                      }
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                  >
+                    <FileDown className="w-4 h-4 text-rose-600" />
+                    PDF Document (.pdf)
+                  </button>
+                </div>
+              )}
+            </div>
+
             <Button
               variant="outline"
               size="sm"

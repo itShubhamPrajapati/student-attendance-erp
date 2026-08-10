@@ -675,3 +675,105 @@ export async function apiGetTeacherStudentAttendanceDetail(
   );
 }
 
+// ==============================================================================
+// ATTENDANCE REPORT EXPORT APIs (Feature #10: CSV, Excel, PDF)
+// ==============================================================================
+
+/**
+ * Downloads a binary file (CSV, XLSX, PDF) securely with Authorization headers and triggers browser download
+ */
+async function downloadFileRequest(endpoint: string, fallbackFilename: string): Promise<void> {
+  const token = getToken();
+  const headers = new Headers();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const baseUrl = getBackendBaseUrl();
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const response = await fetch(`${baseUrl}${cleanEndpoint}`, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorMsg = `Export failed with status ${response.status}`;
+    try {
+      const json = await response.json();
+      if (json && json.message) {
+        errorMsg = json.message;
+      }
+    } catch {
+      // ignore json parse error
+    }
+    throw new Error(errorMsg);
+  }
+
+  let filename = fallbackFilename;
+  const disposition = response.headers.get('Content-Disposition');
+  if (disposition && disposition.includes('filename=')) {
+    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+    if (matches != null && matches[1]) {
+      filename = matches[1].replace(/['"]/g, '');
+    }
+  }
+
+  const blob = await response.blob();
+  const blobUrl = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = blobUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  window.URL.revokeObjectURL(blobUrl);
+}
+
+export async function apiExportTeacherAttendance(
+  format: 'csv' | 'excel' | 'pdf',
+  params?: {
+    q?: string;
+    class_id?: string;
+    subject_id?: string;
+    status?: string;
+    from?: string;
+    to?: string;
+  }
+): Promise<void> {
+  const query = new URLSearchParams();
+  if (params?.q && params.q.trim() !== '') query.append('q', params.q.trim());
+  if (params?.class_id && params.class_id.trim() !== '') query.append('class_id', params.class_id.trim());
+  if (params?.subject_id && params.subject_id.trim() !== '') query.append('subject_id', params.subject_id.trim());
+  if (params?.status && params.status.trim() !== '') query.append('status', params.status.trim());
+  if (params?.from && params.from.trim() !== '') query.append('from', params.from.trim());
+  if (params?.to && params.to.trim() !== '') query.append('to', params.to.trim());
+
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  const ext = format === 'excel' ? 'xlsx' : format;
+  const fallback = `attendance-report-${new Date().toISOString().slice(0, 10)}.${ext}`;
+  return downloadFileRequest(`/api/teacher/attendance/export/${format}${qs}`, fallback);
+}
+
+export async function apiExportTeacherStudentAttendance(
+  studentId: string,
+  format: 'csv' | 'excel' | 'pdf',
+  params?: {
+    subject_id?: string;
+    status?: string;
+    from?: string;
+    to?: string;
+  }
+): Promise<void> {
+  const query = new URLSearchParams();
+  if (params?.subject_id && params.subject_id.trim() !== '') query.append('subject_id', params.subject_id.trim());
+  if (params?.status && params.status.trim() !== '') query.append('status', params.status.trim());
+  if (params?.from && params.from.trim() !== '') query.append('from', params.from.trim());
+  if (params?.to && params.to.trim() !== '') query.append('to', params.to.trim());
+
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  const ext = format === 'excel' ? 'xlsx' : format;
+  const fallback = `student-attendance-${studentId}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+  return downloadFileRequest(`/api/teacher/students/${studentId}/attendance/export/${format}${qs}`, fallback);
+}
+
+

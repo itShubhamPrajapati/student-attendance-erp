@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Search,
@@ -16,6 +16,12 @@ import {
   Layers,
   Clock,
   AlertCircle,
+  Download,
+  FileText,
+  FileSpreadsheet,
+  FileDown,
+  ChevronDown,
+  CheckCircle2,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -28,11 +34,14 @@ import {
   TeacherStudentSearchResponse,
   TeacherStudentAttendanceDetailResponse,
   TeacherAssignmentItem,
+  AttendanceExportFormat,
 } from '../types';
 import {
   apiSearchTeacherStudents,
   apiGetTeacherAssignments,
   apiGetTeacherStudentAttendanceDetail,
+  apiExportTeacherAttendance,
+  apiExportTeacherStudentAttendance,
 } from '../services/api';
 
 export const TeacherStudentAttendanceSearchPage: React.FC = () => {
@@ -55,11 +64,24 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
+  // Export State
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<AttendanceExportFormat | null>(null);
+  const [exportFeedback, setExportFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
+
   // Student Attendance Detail Inspection Modal State
   const [inspectingStudentId, setInspectingStudentId] = useState<string | null>(null);
   const [detailData, setDetailData] = useState<TeacherStudentAttendanceDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+
+  // Student Detail Export State
+  const [isStudentExportMenuOpen, setIsStudentExportMenuOpen] = useState(false);
+  const [isStudentExporting, setIsStudentExporting] = useState(false);
+  const [studentExportingFormat, setStudentExportingFormat] = useState<AttendanceExportFormat | null>(null);
+  const studentExportDropdownRef = useRef<HTMLDivElement>(null);
 
   // Detail Modal Filters
   const [detailSubjectId, setDetailSubjectId] = useState('');
@@ -84,6 +106,28 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
       .then((res) => setAssignments(res.data || []))
       .catch(() => setAssignments([]));
   }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(e.target as Node)) {
+        setIsExportMenuOpen(false);
+      }
+      if (studentExportDropdownRef.current && !studentExportDropdownRef.current.contains(e.target as Node)) {
+        setIsStudentExportMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Auto-dismiss export feedback after 4 seconds
+  useEffect(() => {
+    if (exportFeedback) {
+      const t = setTimeout(() => setExportFeedback(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [exportFeedback]);
 
   // Unique Classes and Subjects list
   const uniqueClasses = useMemo(() => {
@@ -209,6 +253,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
     setInspectingStudentId(null);
     setDetailData(null);
     setDetailError(null);
+    setIsStudentExportMenuOpen(false);
   };
 
   const handleClearFilters = () => {
@@ -234,6 +279,68 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
     setCurrentPage(1);
   };
 
+  // Master Attendance Export Handler
+  const handleExportMaster = async (format: AttendanceExportFormat) => {
+    setIsExportMenuOpen(false);
+    setIsExporting(true);
+    setExportingFormat(format);
+    setExportFeedback(null);
+
+    try {
+      await apiExportTeacherAttendance(format, {
+        q: debouncedQuery.trim() || undefined,
+        class_id: selectedClassId || undefined,
+        subject_id: selectedSubjectId || undefined,
+        status: selectedStatus || undefined,
+        from: fromDate || undefined,
+        to: toDate || undefined,
+      });
+      setExportFeedback({
+        type: 'success',
+        message: `Attendance report exported successfully as ${format.toUpperCase()}.`,
+      });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Unable to export attendance report. Please try again.';
+      setExportFeedback({
+        type: 'error',
+        message: errMsg,
+      });
+    } finally {
+      setIsExporting(false);
+      setExportingFormat(null);
+    }
+  };
+
+  // Student-Specific Detail Export Handler
+  const handleExportStudentDetail = async (format: AttendanceExportFormat) => {
+    if (!inspectingStudentId) return;
+    setIsStudentExportMenuOpen(false);
+    setIsStudentExporting(true);
+    setStudentExportingFormat(format);
+
+    try {
+      await apiExportTeacherStudentAttendance(inspectingStudentId, format, {
+        subject_id: detailSubjectId || undefined,
+        status: detailStatus || undefined,
+        from: detailFromDate || undefined,
+        to: detailToDate || undefined,
+      });
+      setExportFeedback({
+        type: 'success',
+        message: `Student attendance audit exported as ${format.toUpperCase()}.`,
+      });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Unable to export student attendance report.';
+      setExportFeedback({
+        type: 'error',
+        message: errMsg,
+      });
+    } finally {
+      setIsStudentExporting(false);
+      setStudentExportingFormat(null);
+    }
+  };
+
   const hasActiveFilters = Boolean(
     searchQuery.trim() ||
     selectedClassId ||
@@ -257,19 +364,73 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
       {/* 1. Page Header */}
       <PageHeader
         title="Student Attendance Search & Audit"
-        description="Search enrolled students across your assigned academic classes, inspect verified attendance rates, and audit lecture logs."
+        description="Search enrolled students across your assigned academic classes, inspect verified attendance rates, and export official reports in CSV, Excel, and PDF."
         badge={
           <Badge variant="info" withDot>
             Teacher Portal
           </Badge>
         }
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Link to="/teacher">
               <Button variant="outline" size="sm" leftIcon={<Layers className="w-3.5 h-3.5" />}>
                 Dashboard
               </Button>
             </Link>
+
+            {/* Export Reports Dropdown Menu */}
+            <div className="relative inline-block text-left" ref={exportDropdownRef}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setIsExportMenuOpen((prev) => !prev)}
+                isLoading={isExporting}
+                leftIcon={<Download className="w-3.5 h-3.5" />}
+                rightIcon={<ChevronDown className="w-3.5 h-3.5 opacity-80" />}
+                className="shadow-xs"
+              >
+                {isExporting ? `Exporting ${exportingFormat?.toUpperCase()}...` : 'Export Reports'}
+              </Button>
+
+              {isExportMenuOpen && (
+                <div className="absolute right-0 mt-1.5 w-52 rounded-2xl bg-white shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                    Export Current Data
+                  </div>
+                  <button
+                    onClick={() => handleExportMaster('csv')}
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                  >
+                    <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <div>
+                      <div>Export CSV</div>
+                      <span className="text-[10px] text-slate-400 font-normal">Raw attendance dataset</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleExportMaster('excel')}
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <div>
+                      <div>Export Excel (.xlsx)</div>
+                      <span className="text-[10px] text-slate-400 font-normal">Formatted multi-sheet workbook</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleExportMaster('pdf')}
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                  >
+                    <FileDown className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                    <div>
+                      <div>Export PDF Document</div>
+                      <span className="text-[10px] text-slate-400 font-normal">Official printable audit report</span>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
             <Button
               variant="outline"
               size="sm"
@@ -282,6 +443,32 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
           </div>
         }
       />
+
+      {/* Export Feedback Toast/Alert */}
+      {exportFeedback && (
+        <div
+          className={`p-3.5 rounded-2xl text-xs flex items-center justify-between shadow-xs animate-in fade-in slide-in-from-top-2 duration-150 ${
+            exportFeedback.type === 'success'
+              ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
+              : 'bg-rose-50 border border-rose-200 text-rose-900'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            {exportFeedback.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+            )}
+            <span className="font-medium">{exportFeedback.message}</span>
+          </div>
+          <button
+            onClick={() => setExportFeedback(null)}
+            className="text-slate-400 hover:text-slate-700 transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* 2. Summary KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
@@ -990,8 +1177,51 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
               ) : null}
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-100 flex items-center justify-end bg-slate-50/60">
+            {/* Modal Footer with Export & Close */}
+            <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/60">
+              <div className="relative inline-block text-left" ref={studentExportDropdownRef}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsStudentExportMenuOpen((prev) => !prev)}
+                  isLoading={isStudentExporting}
+                  leftIcon={<Download className="w-3.5 h-3.5 text-indigo-600" />}
+                  rightIcon={<ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
+                  className="bg-white"
+                >
+                  {isStudentExporting ? `Exporting ${studentExportingFormat?.toUpperCase()}...` : 'Export Student Report'}
+                </Button>
+
+                {isStudentExportMenuOpen && (
+                  <div className="absolute left-0 bottom-full mb-1.5 w-48 rounded-2xl bg-white shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                      Export Student Audit
+                    </div>
+                    <button
+                      onClick={() => handleExportStudentDetail('csv')}
+                      className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                    >
+                      <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      CSV (.csv)
+                    </button>
+                    <button
+                      onClick={() => handleExportStudentDetail('excel')}
+                      className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      Excel (.xlsx)
+                    </button>
+                    <button
+                      onClick={() => handleExportStudentDetail('pdf')}
+                      className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                    >
+                      <FileDown className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                      PDF Document (.pdf)
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <Button variant="outline" size="sm" onClick={handleCloseDetailModal}>
                 Close
               </Button>

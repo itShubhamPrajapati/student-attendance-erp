@@ -149,6 +149,14 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			// Student Attendance Search & Details (Feature #9)
 			teacherGroup.GET("/students/search", handlers.SearchTeacherStudentsHandler(database.DB))
 			teacherGroup.GET("/students/:student_id/attendance", handlers.GetTeacherStudentAttendanceDetailHandler(database.DB))
+
+			// Attendance Report Exports (Feature #10)
+			teacherGroup.GET("/attendance/export/csv", handlers.ExportTeacherAttendanceCSVHandler(database.DB))
+			teacherGroup.GET("/attendance/export/excel", handlers.ExportTeacherAttendanceExcelHandler(database.DB))
+			teacherGroup.GET("/attendance/export/pdf", handlers.ExportTeacherAttendancePDFHandler(database.DB))
+			teacherGroup.GET("/students/:student_id/attendance/export/csv", handlers.ExportTeacherStudentAttendanceCSVHandler(database.DB))
+			teacherGroup.GET("/students/:student_id/attendance/export/excel", handlers.ExportTeacherStudentAttendanceExcelHandler(database.DB))
+			teacherGroup.GET("/students/:student_id/attendance/export/pdf", handlers.ExportTeacherStudentAttendancePDFHandler(database.DB))
 		}
 
 		// ==============================================================================
