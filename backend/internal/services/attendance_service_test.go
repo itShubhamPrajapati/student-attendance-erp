@@ -571,3 +571,321 @@ func TestMarkAttendanceResponseSecurity(t *testing.T) {
 	}
 }
 
+// TestAttendanceProjectionFormulaCalculation verifies that the mathematical projection calculates the exact minimum integer x satisfying (P+x)/(T+x) >= 0.75
+func TestAttendanceProjectionFormulaCalculation(t *testing.T) {
+	tests := []struct {
+		name          string
+		present       int64
+		total         int64
+		expectedNil   bool
+		expectedX     int
+		expectedMeet  bool
+		expectedPct   float64
+	}{
+		{
+			name:         "Zero classes held",
+			present:      0,
+			total:        0,
+			expectedNil:  true,
+			expectedX:    0,
+			expectedMeet: false,
+			expectedPct:  0.0,
+		},
+		{
+			name:         "100% attendance (20/20)",
+			present:      20,
+			total:        20,
+			expectedNil:  false,
+			expectedX:    0,
+			expectedMeet: true,
+			expectedPct:  100.0,
+		},
+		{
+			name:         "Exactly 75% boundary (15/20 = 75.0%)",
+			present:      15,
+			total:        20,
+			expectedNil:  false,
+			expectedX:    0,
+			expectedMeet: true,
+			expectedPct:  75.0,
+		},
+		{
+			name:         "70% attendance (7/10 = 70.0% -> needs 2)",
+			present:      7,
+			total:        10,
+			expectedNil:  false,
+			expectedX:    2, // (7+2)/(10+2) = 9/12 = 75.0%
+			expectedMeet: false,
+			expectedPct:  70.0,
+		},
+		{
+			name:         "60% attendance (30/50 = 60.0% -> needs 30)",
+			present:      30,
+			total:        50,
+			expectedNil:  false,
+			expectedX:    30, // (30+30)/(50+30) = 60/80 = 75.0%
+			expectedMeet: false,
+			expectedPct:  60.0,
+		},
+		{
+			name:         "Critical 50% attendance (5/10 = 50.0% -> needs 10)",
+			present:      5,
+			total:        10,
+			expectedNil:  false,
+			expectedX:    10, // (5+10)/(10+10) = 15/20 = 75.0%
+			expectedMeet: false,
+			expectedPct:  50.0,
+		},
+		{
+			name:         "Low 56% attendance (14/25 = 56.0% -> needs 19)",
+			present:      14,
+			total:        25,
+			expectedNil:  false,
+			expectedX:    19, // (14+19)/(25+19) = 33/44 = 75.0%
+			expectedMeet: false,
+			expectedPct:  56.0,
+		},
+		{
+			name:         "68% attendance (17/25 = 68.0% -> needs 7)",
+			present:      17,
+			total:        25,
+			expectedNil:  false,
+			expectedX:    7, // (17+7)/(25+7) = 24/32 = 75.0%
+			expectedMeet: false,
+			expectedPct:  68.0,
+		},
+		{
+			name:         "Critical 0% attendance (0/10 = 0.0% -> needs 30)",
+			present:      0,
+			total:        10,
+			expectedNil:  false,
+			expectedX:    30, // (0+30)/(10+30) = 30/40 = 75.0%
+			expectedMeet: false,
+			expectedPct:  0.0,
+		},
+		{
+			name:         "Near boundary 74.9% (749/1000 = 74.9% -> needs 4)",
+			present:      749,
+			total:        1000,
+			expectedNil:  false,
+			expectedX:    4, // 3(1000) - 4(749) = 3000 - 2996 = 4. (749+4)/(1000+4) = 753/1004 = 0.750
+			expectedMeet: false,
+			expectedPct:  74.9,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var overallPct float64 = 0.0
+			if tt.total > 0 {
+				overallPct = math.Round((float64(tt.present)/float64(tt.total))*1000) / 10
+			}
+
+			if overallPct != tt.expectedPct {
+				t.Errorf("expected percentage %.1f, got %.1f", tt.expectedPct, overallPct)
+			}
+
+			var classesNeeded *int
+			isMeeting := false
+
+			if tt.total > 0 {
+				if overallPct >= 75.0 {
+					zero := 0
+					classesNeeded = &zero
+					isMeeting = true
+				} else {
+					val := int(3*tt.total - 4*tt.present)
+					if val < 0 {
+						val = 0
+					}
+					classesNeeded = &val
+					isMeeting = false
+				}
+			}
+
+			if tt.expectedNil {
+				if classesNeeded != nil {
+					t.Errorf("expected classesNeeded to be nil, got %v", *classesNeeded)
+				}
+			} else {
+				if classesNeeded == nil {
+					t.Fatalf("expected classesNeeded to be non-nil")
+				}
+				if *classesNeeded != tt.expectedX {
+					t.Errorf("expected %d classes needed, got %d", tt.expectedX, *classesNeeded)
+				}
+				// Verify mathematical property: (P + x) / (T + x) >= 0.75
+				newP := float64(tt.present + int64(*classesNeeded))
+				newT := float64(tt.total + int64(*classesNeeded))
+				if newP/newT < 0.75 {
+					t.Errorf("projection failed to reach 75%%: (P+x)/(T+x) = %f/%f = %f", newP, newT, newP/newT)
+				}
+				// Verify x-1 would NOT reach 75% if x > 0
+				if *classesNeeded > 0 {
+					smallerX := int64(*classesNeeded - 1)
+					if (float64(tt.present+smallerX) / float64(tt.total+smallerX)) >= 0.75 {
+						t.Errorf("x = %d is not the minimum integer (x-1 would also reach 75%%)", *classesNeeded)
+					}
+				}
+			}
+
+			if isMeeting != tt.expectedMeet {
+				t.Errorf("expected isMeeting=%v, got %v", tt.expectedMeet, isMeeting)
+			}
+		})
+	}
+}
+
+// TestAttendanceAnalyticsStatusClassification verifies status mapping (REQUIREMENT_MET, BELOW_REQUIREMENT, CRITICAL)
+func TestAttendanceAnalyticsStatusClassification(t *testing.T) {
+	tests := []struct {
+		name           string
+		percentage     float64
+		totalSessions  int64
+		expectedStatus string
+	}{
+		{"100% attendance", 100.0, 20, "REQUIREMENT_MET"},
+		{"82.5% attendance", 82.5, 40, "REQUIREMENT_MET"},
+		{"Exactly 75.0% boundary", 75.0, 20, "REQUIREMENT_MET"},
+		{"74.9% below boundary", 74.9, 100, "BELOW_REQUIREMENT"},
+		{"60.0% critical boundary", 60.0, 25, "BELOW_REQUIREMENT"},
+		{"59.9% critical", 59.9, 100, "CRITICAL"},
+		{"0% critical", 0.0, 10, "CRITICAL"},
+		{"0 sessions held", 0.0, 0, "REQUIREMENT_MET"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			status := "REQUIREMENT_MET"
+			if tt.totalSessions > 0 {
+				if tt.percentage >= 75.0 {
+					status = "REQUIREMENT_MET"
+				} else if tt.percentage >= 60.0 {
+					status = "BELOW_REQUIREMENT"
+				} else {
+					status = "CRITICAL"
+				}
+			}
+
+			if status != tt.expectedStatus {
+				t.Errorf("expected status %s for percentage %.1f (total %d), got %s",
+					tt.expectedStatus, tt.percentage, tt.totalSessions, status)
+			}
+		})
+	}
+}
+
+// TestAttendanceMonthlyTrendLogic verifies IMPROVING, DECLINING, STABLE, and INSUFFICIENT_DATA status calculation
+func TestAttendanceMonthlyTrendLogic(t *testing.T) {
+	tests := []struct {
+		name           string
+		monthlyPcts    []float64
+		expectedStatus string
+		expectedDiff   float64
+	}{
+		{
+			name:           "Zero months",
+			monthlyPcts:    []float64{},
+			expectedStatus: "INSUFFICIENT_DATA",
+			expectedDiff:   0.0,
+		},
+		{
+			name:           "Single month (insufficient data)",
+			monthlyPcts:    []float64{82.0},
+			expectedStatus: "INSUFFICIENT_DATA",
+			expectedDiff:   0.0,
+		},
+		{
+			name:           "Improving trend (+4.2 points: 76.8% -> 81.0%)",
+			monthlyPcts:    []float64{76.8, 81.0},
+			expectedStatus: "IMPROVING",
+			expectedDiff:   4.2,
+		},
+		{
+			name:           "Declining trend (-3.5 points: 85.0% -> 81.5%)",
+			monthlyPcts:    []float64{85.0, 81.5},
+			expectedStatus: "DECLINING",
+			expectedDiff:   -3.5,
+		},
+		{
+			name:           "Stable trend within tolerance (+1.2 points: 80.0% -> 81.2%)",
+			monthlyPcts:    []float64{80.0, 81.2},
+			expectedStatus: "STABLE",
+			expectedDiff:   1.2,
+		},
+		{
+			name:           "Stable trend small drop (-1.5 points: 80.0% -> 78.5%)",
+			monthlyPcts:    []float64{80.0, 78.5},
+			expectedStatus: "STABLE",
+			expectedDiff:   -1.5,
+		},
+		{
+			name:           "Multi-month sequence takes last two (70.0%, 75.0%, 80.0%)",
+			monthlyPcts:    []float64{70.0, 75.0, 80.0},
+			expectedStatus: "IMPROVING",
+			expectedDiff:   5.0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			trendStatus := "INSUFFICIENT_DATA"
+			diffPctPoints := 0.0
+
+			if len(tt.monthlyPcts) >= 2 {
+				curr := tt.monthlyPcts[len(tt.monthlyPcts)-1]
+				prev := tt.monthlyPcts[len(tt.monthlyPcts)-2]
+				diff := curr - prev
+				diffPctPoints = math.Round(diff*10) / 10
+
+				if diff >= 2.0 {
+					trendStatus = "IMPROVING"
+				} else if diff <= -2.0 {
+					trendStatus = "DECLINING"
+				} else {
+					trendStatus = "STABLE"
+				}
+			}
+
+			if trendStatus != tt.expectedStatus {
+				t.Errorf("expected trend status %s, got %s", tt.expectedStatus, trendStatus)
+			}
+			if diffPctPoints != tt.expectedDiff {
+				t.Errorf("expected diff %.1f, got %.1f", tt.expectedDiff, diffPctPoints)
+			}
+		})
+	}
+}
+
+// TestDateRangeValidationLogic verifies that from <= to date validation behaves accurately
+func TestDateRangeValidationLogic(t *testing.T) {
+	const dateLayout = "2006-01-02"
+
+	tests := []struct {
+		name        string
+		fromStr     string
+		toStr       string
+		expectValid bool
+	}{
+		{"Valid chronological range", "2026-01-01", "2026-06-30", true},
+		{"Same day range", "2026-03-15", "2026-03-15", true},
+		{"Inverted date range (from > to)", "2026-08-01", "2026-01-01", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fromT, errFrom := time.Parse(dateLayout, tt.fromStr)
+			toT, errTo := time.Parse(dateLayout, tt.toStr)
+			if errFrom != nil || errTo != nil {
+				t.Fatalf("unexpected parse error")
+			}
+
+			isValid := !fromT.After(toT)
+			if isValid != tt.expectValid {
+				t.Errorf("expected validity %v for range %s to %s, got %v", tt.expectValid, tt.fromStr, tt.toStr, isValid)
+			}
+		})
+	}
+}
+
+

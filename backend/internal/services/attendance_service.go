@@ -1263,3 +1263,421 @@ func GetAdminAttendanceSessions(db *gorm.DB, dateFilter, subjectFilter, classFil
 
 	return results, nil
 }
+
+// GetStudentAttendanceAnalytics computes comprehensive analytics, trends, projections, and breakdowns for a student
+func GetStudentAttendanceAnalytics(
+	db *gorm.DB,
+	studentUserID string,
+	subjectIDFilter *string,
+	fromDate *string,
+	toDate *string,
+) (*models.StudentAttendanceAnalyticsResponse, error) {
+	// 1. Resolve student profile and verify active state
+	var student models.Student
+	if err := db.Where("user_id = ?", studentUserID).First(&student).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("Student profile not found.")
+		}
+		return nil, err
+	}
+
+	if student.ClassID == nil || strings.TrimSpace(*student.ClassID) == "" {
+		return &models.StudentAttendanceAnalyticsResponse{
+			Summary: models.StudentAttendanceAnalyticsSummary{
+				OverallPercentage:        0.0,
+				TotalSessions:            0,
+				TotalPresent:             0,
+				TotalAbsent:              0,
+				TotalSubjects:            0,
+				SubjectsBelowRequirement: 0,
+				SubjectsCritical:         0,
+				MinThreshold:             75.0,
+				CriticalThreshold:        60.0,
+			},
+			Trend: models.StudentAttendanceTrend{
+				Status:                     "INSUFFICIENT_DATA",
+				DifferencePercentagePoints: 0.0,
+			},
+			Projection: models.StudentAttendanceProjection{
+				RequiredPercentage:   75.0,
+				ClassesNeeded:        nil,
+				IsMeetingRequirement: false,
+			},
+			Monthly:    []models.StudentAttendanceMonthlyStat{},
+			Subjects:   []models.StudentAttendanceAnalyticsSubject{},
+			Comparison: models.StudentAttendanceComparison{},
+			Absence: models.StudentAttendanceAbsenceAnalysis{
+				TotalAbsent:       0,
+				AbsencePercentage: 0.0,
+			},
+			Filters: models.StudentAttendanceAnalyticsFilterInfo{
+				SubjectID: subjectIDFilter,
+				From:      fromDate,
+				To:        toDate,
+			},
+		}, nil
+	}
+
+	classID := *student.ClassID
+
+	// 2. Fetch distinct subjects taught to this class (curriculum)
+	type subjectItem struct {
+		ID   string
+		Name string
+		Code string
+	}
+	var classSubjects []subjectItem
+	subQuery := `
+		SELECT DISTINCT s.id, s.name, s.code
+		FROM teacher_subject_classes tsc
+		JOIN subjects s ON tsc.subject_id = s.id
+		WHERE tsc.class_id = ?
+		ORDER BY s.name ASC
+	`
+	if err := db.Raw(subQuery, classID).Scan(&classSubjects).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch class subjects: %w", err)
+	}
+
+	// Validate subject filter if provided: must be in student's class curriculum
+	var activeSubjectFilter *string
+	if subjectIDFilter != nil && strings.TrimSpace(*subjectIDFilter) != "" {
+		cleanSubID := strings.TrimSpace(*subjectIDFilter)
+		found := false
+		for _, s := range classSubjects {
+			if s.ID == cleanSubID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, errors.New("Subject not found or access denied for your class.")
+		}
+		activeSubjectFilter = &cleanSubID
+	}
+
+	// 3. Query all attendance sessions for this class (with filters)
+	type sessionRow struct {
+		ID        string
+		SubjectID string
+		StartedAt time.Time
+	}
+	var sessions []sessionRow
+	sessQuery := db.Table("attendance_sessions").
+		Select("id, subject_id, started_at").
+		Where("class_id = ?", classID)
+
+	if activeSubjectFilter != nil {
+		sessQuery = sessQuery.Where("subject_id = ?", *activeSubjectFilter)
+	}
+	if fromDate != nil && strings.TrimSpace(*fromDate) != "" {
+		sessQuery = sessQuery.Where("DATE(started_at) >= ?", strings.TrimSpace(*fromDate))
+	}
+	if toDate != nil && strings.TrimSpace(*toDate) != "" {
+		sessQuery = sessQuery.Where("DATE(started_at) <= ?", strings.TrimSpace(*toDate))
+	}
+
+	if err := sessQuery.Order("started_at ASC").Scan(&sessions).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch attendance sessions: %w", err)
+	}
+
+	// 4. Fetch all attendance records for this student for these sessions
+	sessionIDs := make([]string, len(sessions))
+	for i, s := range sessions {
+		sessionIDs[i] = s.ID
+	}
+
+	attendedSessionSet := make(map[string]bool)
+	if len(sessionIDs) > 0 {
+		var attendedIDs []string
+		if err := db.Table("attendance").
+			Where("student_id = ? AND session_id IN ?", student.ID, sessionIDs).
+			Pluck("session_id", &attendedIDs).Error; err != nil {
+			return nil, fmt.Errorf("failed to fetch student attendance records: %w", err)
+		}
+		for _, id := range attendedIDs {
+			attendedSessionSet[id] = true
+		}
+	}
+
+	// 5. In-Memory Aggregations
+	var totalSessions int64 = int64(len(sessions))
+	var totalPresent int64 = 0
+
+	// Subject stats map: subjectID -> (total, present)
+	type subStat struct {
+		Total   int64
+		Present int64
+	}
+	subjectStatsMap := make(map[string]*subStat)
+	for _, s := range classSubjects {
+		subjectStatsMap[s.ID] = &subStat{Total: 0, Present: 0}
+	}
+
+	// Monthly stats map: "YYYY-MM" -> (total, present)
+	monthlyStatsMap := make(map[string]*subStat)
+
+	for _, s := range sessions {
+		monthKey := s.StartedAt.UTC().Format("2006-01")
+		if _, ok := monthlyStatsMap[monthKey]; !ok {
+			monthlyStatsMap[monthKey] = &subStat{Total: 0, Present: 0}
+		}
+		monthlyStatsMap[monthKey].Total++
+
+		if stat, ok := subjectStatsMap[s.SubjectID]; ok {
+			stat.Total++
+		}
+
+		if attendedSessionSet[s.ID] {
+			totalPresent++
+			monthlyStatsMap[monthKey].Present++
+			if stat, ok := subjectStatsMap[s.SubjectID]; ok {
+				stat.Present++
+			}
+		}
+	}
+
+	var totalAbsent int64 = 0
+	if totalSessions > totalPresent {
+		totalAbsent = totalSessions - totalPresent
+	}
+
+	overallPct := 0.0
+	if totalSessions > 0 {
+		overallPct = math.Round((float64(totalPresent)/float64(totalSessions))*1000) / 10
+	}
+
+	absencePct := 0.0
+	if totalSessions > 0 {
+		absencePct = math.Round((float64(totalAbsent)/float64(totalSessions))*1000) / 10
+	}
+
+	// 6. Build Subject Analytics list
+	var subjectsAnalytics []models.StudentAttendanceAnalyticsSubject
+	subjectsBelowReq := 0
+	subjectsCritical := 0
+	subjectsMeeting := 0
+
+	var bestSubjectID *string
+	var bestSubjectName string
+	var bestSubjectPct *float64
+	var lowestSubjectID *string
+	var lowestSubjectName string
+	var lowestSubjectPct *float64
+
+	var highestAbsenceSubID *string
+	var highestAbsenceSubName string
+	var highestAbsenceCount int64 = 0
+	subjectsAffectedByAbsence := 0
+
+	// Filter classSubjects if subject filter is active
+	var targetSubjects []subjectItem
+	if activeSubjectFilter != nil {
+		for _, s := range classSubjects {
+			if s.ID == *activeSubjectFilter {
+				targetSubjects = append(targetSubjects, s)
+				break
+			}
+		}
+	} else {
+		targetSubjects = classSubjects
+	}
+
+	for _, s := range targetSubjects {
+		st := subjectStatsMap[s.ID]
+		subTotal := int64(0)
+		subPresent := int64(0)
+		if st != nil {
+			subTotal = st.Total
+			subPresent = st.Present
+		}
+		subAbsent := int64(0)
+		if subTotal > subPresent {
+			subAbsent = subTotal - subPresent
+		}
+
+		subPct := 0.0
+		if subTotal > 0 {
+			subPct = math.Round((float64(subPresent)/float64(subTotal))*1000) / 10
+		}
+
+		status := "REQUIREMENT_MET"
+		if subTotal > 0 {
+			if subPct >= 75.0 {
+				status = "REQUIREMENT_MET"
+				subjectsMeeting++
+			} else if subPct >= 60.0 {
+				status = "BELOW_REQUIREMENT"
+				subjectsBelowReq++
+			} else {
+				status = "CRITICAL"
+				subjectsCritical++
+				subjectsBelowReq++ // also counted in below 75%
+			}
+		} else {
+			subjectsMeeting++
+		}
+
+		if subAbsent > 0 {
+			subjectsAffectedByAbsence++
+			if subAbsent > highestAbsenceCount {
+				highestAbsenceCount = subAbsent
+				highestAbsenceSubID = &s.ID
+				highestAbsenceSubName = s.Name
+			}
+		}
+
+		if subTotal > 0 {
+			if bestSubjectPct == nil || subPct > *bestSubjectPct {
+				subPctCopy := subPct
+				bestSubjectPct = &subPctCopy
+				bestSubjectID = &s.ID
+				bestSubjectName = s.Name
+			}
+			if lowestSubjectPct == nil || subPct < *lowestSubjectPct {
+				subPctCopy := subPct
+				lowestSubjectPct = &subPctCopy
+				lowestSubjectID = &s.ID
+				lowestSubjectName = s.Name
+			}
+		}
+
+		subjectsAnalytics = append(subjectsAnalytics, models.StudentAttendanceAnalyticsSubject{
+			SubjectID:       s.ID,
+			SubjectName:     s.Name,
+			SubjectCode:     s.Code,
+			TotalSessions:   subTotal,
+			PresentSessions: subPresent,
+			AbsentSessions:  subAbsent,
+			Percentage:      subPct,
+			Status:          status,
+		})
+	}
+
+	// 7. Build Monthly Analytics
+	var monthsList []string
+	for m := range monthlyStatsMap {
+		monthsList = append(monthsList, m)
+	}
+	sort.Strings(monthsList)
+
+	monthlyStats := make([]models.StudentAttendanceMonthlyStat, len(monthsList))
+	for i, m := range monthsList {
+		st := monthlyStatsMap[m]
+		mAbsent := int64(0)
+		if st.Total > st.Present {
+			mAbsent = st.Total - st.Present
+		}
+		mPct := 0.0
+		if st.Total > 0 {
+			mPct = math.Round((float64(st.Present)/float64(st.Total))*1000) / 10
+		}
+		monthlyStats[i] = models.StudentAttendanceMonthlyStat{
+			Month:      m,
+			Sessions:   st.Total,
+			Present:    st.Present,
+			Absent:     mAbsent,
+			Percentage: mPct,
+		}
+	}
+
+	// 8. Calculate Trend
+	trendStatus := "INSUFFICIENT_DATA"
+	var diffPctPoints float64 = 0.0
+	var prevMonthPct *float64
+	var currMonthPct *float64
+
+	if len(monthlyStats) >= 2 {
+		curr := monthlyStats[len(monthlyStats)-1].Percentage
+		prev := monthlyStats[len(monthlyStats)-2].Percentage
+		currMonthPct = &curr
+		prevMonthPct = &prev
+		diff := curr - prev
+		diffPctPoints = math.Round(diff*10) / 10
+
+		if diff >= 2.0 {
+			trendStatus = "IMPROVING"
+		} else if diff <= -2.0 {
+			trendStatus = "DECLINING"
+		} else {
+			trendStatus = "STABLE"
+		}
+	} else if len(monthlyStats) == 1 {
+		curr := monthlyStats[0].Percentage
+		currMonthPct = &curr
+		trendStatus = "INSUFFICIENT_DATA"
+	}
+
+	// 9. Calculate 75% Requirement Projection
+	// Smallest non-negative integer x such that:
+	// (P + x) / (T + x) >= 0.75 <=> 4(P + x) >= 3(T + x) <=> x >= 3T - 4P
+	var classesNeeded *int
+	isMeeting := false
+
+	if totalSessions > 0 {
+		if overallPct >= 75.0 {
+			zero := 0
+			classesNeeded = &zero
+			isMeeting = true
+		} else {
+			val := int(3*totalSessions - 4*totalPresent)
+			if val < 0 {
+				val = 0
+			}
+			classesNeeded = &val
+			isMeeting = false
+		}
+	}
+
+	totalSubjectsCount := int64(len(targetSubjects))
+
+	return &models.StudentAttendanceAnalyticsResponse{
+		Summary: models.StudentAttendanceAnalyticsSummary{
+			OverallPercentage:        overallPct,
+			TotalSessions:            totalSessions,
+			TotalPresent:             totalPresent,
+			TotalAbsent:              totalAbsent,
+			TotalSubjects:            totalSubjectsCount,
+			SubjectsBelowRequirement: subjectsBelowReq,
+			SubjectsCritical:         subjectsCritical,
+			MinThreshold:             75.0,
+			CriticalThreshold:        60.0,
+		},
+		Trend: models.StudentAttendanceTrend{
+			Status:                     trendStatus,
+			DifferencePercentagePoints: diffPctPoints,
+			PreviousPercentage:         prevMonthPct,
+			CurrentPercentage:          currMonthPct,
+		},
+		Projection: models.StudentAttendanceProjection{
+			RequiredPercentage:   75.0,
+			ClassesNeeded:        classesNeeded,
+			IsMeetingRequirement: isMeeting,
+		},
+		Monthly:  monthlyStats,
+		Subjects: subjectsAnalytics,
+		Comparison: models.StudentAttendanceComparison{
+			BestSubjectID:              bestSubjectID,
+			BestSubjectName:            bestSubjectName,
+			BestPercentage:             bestSubjectPct,
+			LowestSubjectID:            lowestSubjectID,
+			LowestSubjectName:          lowestSubjectName,
+			LowestPercentage:           lowestSubjectPct,
+			SubjectsMeetingRequirement: subjectsMeeting,
+			SubjectsBelowRequirement:   subjectsBelowReq,
+			SubjectsCritical:           subjectsCritical,
+		},
+		Absence: models.StudentAttendanceAbsenceAnalysis{
+			TotalAbsent:               totalAbsent,
+			AbsencePercentage:         absencePct,
+			HighestAbsenceSubjectID:   highestAbsenceSubID,
+			HighestAbsenceSubjectName: highestAbsenceSubName,
+			HighestAbsenceCount:       highestAbsenceCount,
+			SubjectsAffectedCount:     subjectsAffectedByAbsence,
+		},
+		Filters: models.StudentAttendanceAnalyticsFilterInfo{
+			SubjectID: activeSubjectFilter,
+			From:      fromDate,
+			To:        toDate,
+		},
+	}, nil
+}

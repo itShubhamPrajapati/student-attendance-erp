@@ -468,3 +468,94 @@ type StudentAttendanceHistoryResponse struct {
 	Pagination StudentAttendanceHistoryPagination `json:"pagination"`
 	Summary    StudentAttendanceHistorySummary    `json:"summary"`
 }
+
+// StudentAttendanceAnalyticsSummary represents high-level metrics for student analytics
+type StudentAttendanceAnalyticsSummary struct {
+	OverallPercentage        float64 `json:"overall_percentage"`
+	TotalSessions            int64   `json:"total_sessions"`
+	TotalPresent             int64   `json:"total_present"`
+	TotalAbsent              int64   `json:"total_absent"`
+	TotalSubjects            int64   `json:"total_subjects"`
+	SubjectsBelowRequirement int     `json:"subjects_below_requirement"`
+	SubjectsCritical         int     `json:"subjects_critical"`
+	MinThreshold             float64 `json:"min_threshold"`
+	CriticalThreshold        float64 `json:"critical_threshold"`
+}
+
+// StudentAttendanceMonthlyStat represents attendance in a single calendar month
+type StudentAttendanceMonthlyStat struct {
+	Month      string  `json:"month"` // "YYYY-MM"
+	Sessions   int64   `json:"sessions"`
+	Present    int64   `json:"present"`
+	Absent     int64   `json:"absent"`
+	Percentage float64 `json:"percentage"`
+}
+
+// StudentAttendanceAnalyticsSubject represents individual course module analytics
+type StudentAttendanceAnalyticsSubject struct {
+	SubjectID       string  `json:"subject_id"`
+	SubjectName     string  `json:"subject_name"`
+	SubjectCode     string  `json:"subject_code"`
+	TotalSessions   int64   `json:"total_sessions"`
+	PresentSessions int64   `json:"present_sessions"`
+	AbsentSessions  int64   `json:"absent_sessions"`
+	Percentage      float64 `json:"percentage"`
+	Status          string  `json:"status"` // "REQUIREMENT_MET", "BELOW_REQUIREMENT", "CRITICAL"
+}
+
+// StudentAttendanceTrend represents month-over-month trajectory
+type StudentAttendanceTrend struct {
+	Status                     string   `json:"status"` // "IMPROVING", "DECLINING", "STABLE", "INSUFFICIENT_DATA"
+	DifferencePercentagePoints float64  `json:"difference_percentage_points"`
+	PreviousPercentage         *float64 `json:"previous_percentage"`
+	CurrentPercentage          *float64 `json:"current_percentage"`
+}
+
+// StudentAttendanceProjection represents consecutive classes needed to reach 75%
+type StudentAttendanceProjection struct {
+	RequiredPercentage   float64 `json:"required_percentage"`
+	ClassesNeeded        *int    `json:"classes_needed"` // nil if total_sessions == 0
+	IsMeetingRequirement bool    `json:"is_meeting_requirement"`
+}
+
+// StudentAttendanceComparison represents best and lowest subjects comparison
+type StudentAttendanceComparison struct {
+	BestSubjectID              *string  `json:"best_subject_id"`
+	BestSubjectName            string   `json:"best_subject_name"`
+	BestPercentage             *float64 `json:"best_percentage"`
+	LowestSubjectID            *string  `json:"lowest_subject_id"`
+	LowestSubjectName          string   `json:"lowest_subject_name"`
+	LowestPercentage           *float64 `json:"lowest_percentage"`
+	SubjectsMeetingRequirement int      `json:"subjects_meeting_requirement"`
+	SubjectsBelowRequirement   int      `json:"subjects_below_requirement"`
+	SubjectsCritical           int      `json:"subjects_critical"`
+}
+
+// StudentAttendanceAbsenceAnalysis represents absence analytics
+type StudentAttendanceAbsenceAnalysis struct {
+	TotalAbsent               int64   `json:"total_absent"`
+	AbsencePercentage         float64 `json:"absence_percentage"`
+	HighestAbsenceSubjectID   *string `json:"highest_absence_subject_id"`
+	HighestAbsenceSubjectName string  `json:"highest_absence_subject_name"`
+	HighestAbsenceCount       int64   `json:"highest_absence_count"`
+	SubjectsAffectedCount     int     `json:"subjects_affected_count"`
+}
+
+// StudentAttendanceAnalyticsFilterInfo represents applied query filters
+type StudentAttendanceAnalyticsFilterInfo struct {
+	SubjectID *string `json:"subject_id,omitempty"`
+	From      *string `json:"from,omitempty"`
+	To        *string `json:"to,omitempty"`
+}
+
+// StudentAttendanceAnalyticsResponse represents the full payload for GET /api/student/attendance/analytics
+type StudentAttendanceAnalyticsResponse struct {
+	Summary    StudentAttendanceAnalyticsSummary   `json:"summary"`
+	Trend      StudentAttendanceTrend              `json:"trend"`
+	Projection StudentAttendanceProjection         `json:"projection"`
+	Monthly    []StudentAttendanceMonthlyStat      `json:"monthly"`
+	Subjects   []StudentAttendanceAnalyticsSubject `json:"subjects"`
+	Comparison StudentAttendanceComparison         `json:"comparison"`
+	Absence    StudentAttendanceAbsenceAnalysis    `json:"absence"`
+	Filters    StudentAttendanceAnalyticsFilterInfo `json:"filters"`
+}

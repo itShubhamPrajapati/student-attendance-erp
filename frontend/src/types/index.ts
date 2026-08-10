@@ -382,6 +382,88 @@ export interface StudentAttendanceHistoryResponse {
   summary: StudentAttendanceHistorySummary;
 }
 
+export interface StudentAttendanceAnalyticsSummary {
+  overall_percentage: number;
+  total_sessions: number;
+  total_present: number;
+  total_absent: number;
+  total_subjects: number;
+  subjects_below_requirement: number;
+  subjects_critical: number;
+  min_threshold: number;
+  critical_threshold: number;
+}
+
+export interface StudentAttendanceMonthlyStat {
+  month: string;
+  sessions: number;
+  present: number;
+  absent: number;
+  percentage: number;
+}
+
+export interface StudentAttendanceAnalyticsSubject {
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  total_sessions: number;
+  present_sessions: number;
+  absent_sessions: number;
+  percentage: number;
+  status: 'REQUIREMENT_MET' | 'BELOW_REQUIREMENT' | 'CRITICAL';
+}
+
+export interface StudentAttendanceTrend {
+  status: 'IMPROVING' | 'DECLINING' | 'STABLE' | 'INSUFFICIENT_DATA';
+  difference_percentage_points: number;
+  previous_percentage: number | null;
+  current_percentage: number | null;
+}
+
+export interface StudentAttendanceProjection {
+  required_percentage: number;
+  classes_needed: number | null;
+  is_meeting_requirement: boolean;
+}
+
+export interface StudentAttendanceComparison {
+  best_subject_id: string | null;
+  best_subject_name: string;
+  best_percentage: number | null;
+  lowest_subject_id: string | null;
+  lowest_subject_name: string;
+  lowest_percentage: number | null;
+  subjects_meeting_requirement: number;
+  subjects_below_requirement: number;
+  subjects_critical: number;
+}
+
+export interface StudentAttendanceAbsenceAnalysis {
+  total_absent: number;
+  absence_percentage: number;
+  highest_absence_subject_id: string | null;
+  highest_absence_subject_name: string;
+  highest_absence_count: number;
+  subjects_affected_count: number;
+}
+
+export interface StudentAttendanceAnalyticsFilterInfo {
+  subject_id?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface StudentAttendanceAnalyticsResponse {
+  summary: StudentAttendanceAnalyticsSummary;
+  trend: StudentAttendanceTrend;
+  projection: StudentAttendanceProjection;
+  monthly: StudentAttendanceMonthlyStat[];
+  subjects: StudentAttendanceAnalyticsSubject[];
+  comparison: StudentAttendanceComparison;
+  absence: StudentAttendanceAbsenceAnalysis;
+  filters: StudentAttendanceAnalyticsFilterInfo;
+}
+
 export interface CreateAttendanceSessionPayload {
   subject_id: string;
   class_id: string;

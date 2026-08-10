@@ -149,6 +149,11 @@ export const StudentDashboard: React.FC = () => {
         }
         actions={
           <div className="flex items-center gap-2 flex-wrap">
+            <Link to="/student/attendance/analytics">
+              <Button variant="outline" size="sm" leftIcon={<TrendingUp className="w-3.5 h-3.5" />}>
+                Analytics
+              </Button>
+            </Link>
             <Link to="/student/attendance/calendar">
               <Button variant="outline" size="sm" leftIcon={<Calendar className="w-3.5 h-3.5" />}>
                 Calendar

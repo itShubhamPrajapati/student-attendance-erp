@@ -27,6 +27,7 @@ import {
   StudentRecentAttendanceItem,
   StudentCalendarResponse,
   StudentAttendanceHistoryResponse,
+  StudentAttendanceAnalyticsResponse,
   CreateAttendanceSessionPayload,
 } from '../types';
 import { getToken } from '../auth/authService';
@@ -517,6 +518,31 @@ export async function apiGetStudentAttendanceHistory(params?: {
   const queryString = query.toString() ? `?${query.toString()}` : '';
   return request<{ success: boolean; data: StudentAttendanceHistoryResponse }>(
     `/api/student/attendance/history${queryString}`,
+    {
+      method: 'GET',
+    }
+  );
+}
+
+export async function apiGetStudentAttendanceAnalytics(params?: {
+  subject_id?: string;
+  from?: string;
+  to?: string;
+}): Promise<{ success: boolean; data: StudentAttendanceAnalyticsResponse }> {
+  const query = new URLSearchParams();
+  if (params?.subject_id && params.subject_id.trim() !== '') {
+    query.append('subject_id', params.subject_id.trim());
+  }
+  if (params?.from && params.from.trim() !== '') {
+    query.append('from', params.from.trim());
+  }
+  if (params?.to && params.to.trim() !== '') {
+    query.append('to', params.to.trim());
+  }
+
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  return request<{ success: boolean; data: StudentAttendanceAnalyticsResponse }>(
+    `/api/student/attendance/analytics${queryString}`,
     {
       method: 'GET',
     }

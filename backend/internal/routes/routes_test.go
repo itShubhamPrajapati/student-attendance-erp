@@ -60,6 +60,7 @@ func TestTeacherSessionRoutesRegistered(t *testing.T) {
 		{"Student Attendance Summary", "GET", "/api/student/attendance/summary", studentToken},
 		{"Student Attendance Calendar", "GET", "/api/student/attendance/calendar", studentToken},
 		{"Student Attendance History", "GET", "/api/student/attendance/history", studentToken},
+		{"Student Attendance Analytics", "GET", "/api/student/attendance/analytics", studentToken},
 		{"Student Recent Attendance", "GET", "/api/student/attendance/recent", studentToken},
 	}
 

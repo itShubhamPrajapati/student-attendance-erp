@@ -14,6 +14,7 @@ import {
   Calendar,
   Camera,
   History,
+  TrendingUp,
 } from 'lucide-react';
 import { UserRole } from '../types';
 import { Badge } from './Badge';
@@ -48,6 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = 'ADMIN' }) => {
       case 'STUDENT':
         return [
           { name: 'My Attendance Overview', path: '/student', icon: <Layers className="w-4 h-4" /> },
+          { name: 'Attendance Analytics', path: '/student/attendance/analytics', icon: <TrendingUp className="w-4 h-4" /> },
           { name: 'Attendance Calendar', path: '/student/attendance/calendar', icon: <Calendar className="w-4 h-4" /> },
           { name: 'Attendance History', path: '/student/attendance/history', icon: <History className="w-4 h-4" /> },
           { name: 'Scan Attendance QR', path: '/attendance/scan', icon: <Camera className="w-4 h-4" /> },

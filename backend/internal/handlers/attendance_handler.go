@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"qr-attendance-backend/internal/services"
 
@@ -403,6 +404,94 @@ func GetStudentAttendanceHistoryHandler(db *gorm.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"data":    historyData,
+		})
+	}
+}
+
+// GetStudentAttendanceAnalyticsHandler handles GET /api/student/attendance/analytics
+func GetStudentAttendanceAnalyticsHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Authentication required"})
+			return
+		}
+
+		subjectIDParam := strings.TrimSpace(c.Query("subject_id"))
+		fromParam := strings.TrimSpace(c.Query("from"))
+		toParam := strings.TrimSpace(c.Query("to"))
+
+		var subjectID *string
+		if subjectIDParam != "" {
+			subjectID = &subjectIDParam
+		}
+
+		var fromDate *string
+		var toDate *string
+
+		const dateLayout = "2006-01-02"
+
+		if fromParam != "" {
+			fromT, err := time.Parse(dateLayout, fromParam)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"message": "Invalid 'from' date format. Expected YYYY-MM-DD",
+				})
+				return
+			}
+			fromDate = &fromParam
+
+			if toParam != "" {
+				toT, err := time.Parse(dateLayout, toParam)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"success": false,
+						"message": "Invalid 'to' date format. Expected YYYY-MM-DD",
+					})
+					return
+				}
+				if fromT.After(toT) {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"success": false,
+						"message": "'from' date cannot be after 'to' date",
+					})
+					return
+				}
+				toDate = &toParam
+			}
+		} else if toParam != "" {
+			_, err := time.Parse(dateLayout, toParam)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"message": "Invalid 'to' date format. Expected YYYY-MM-DD",
+				})
+				return
+			}
+			toDate = &toParam
+		}
+
+		analytics, err := services.GetStudentAttendanceAnalytics(db, userID, subjectID, fromDate, toDate)
+		if err != nil {
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "access denied") {
+				c.JSON(http.StatusNotFound, gin.H{
+					"success": false,
+					"message": errMsg,
+				})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to compute attendance analytics",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    analytics,
 		})
 	}
 }
