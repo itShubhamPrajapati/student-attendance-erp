@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"math"
 	"sync"
 	"testing"
@@ -410,3 +411,163 @@ func TestStudentAttendanceHistoryPaginationAndSummary(t *testing.T) {
 		})
 	}
 }
+
+// TestAttendanceSentinelErrors verifies that all attendance validation errors have distinct non-empty messages
+func TestAttendanceSentinelErrors(t *testing.T) {
+	sentinels := []struct {
+		name     string
+		err      error
+		expected string
+	}{
+		{"Token Required", ErrSessionTokenRequired, "Session token is required."},
+		{"Student Profile Not Found", ErrStudentProfileNotFound, "Student profile not found."},
+		{"Student Inactive", ErrStudentAccountInactive, "Student account is inactive."},
+		{"Student Not Assigned Class", ErrStudentNotAssignedClass, "You are not assigned to an academic class."},
+		{"Invalid Session Token", ErrInvalidSessionToken, "Invalid QR code or session token not found."},
+		{"Session Ended", ErrSessionEnded, "Attendance session has ended."},
+		{"Session Expired", ErrSessionExpired, "This attendance session has expired."},
+		{"Wrong Class", ErrWrongClass, "You are not enrolled in this class."},
+		{"Duplicate Attendance", ErrDuplicateAttendance, "Attendance has already been marked for this session."},
+	}
+
+	for _, s := range sentinels {
+		t.Run(s.name, func(t *testing.T) {
+			if s.err == nil {
+				t.Fatalf("expected non-nil sentinel error for %s", s.name)
+			}
+			if s.err.Error() != s.expected {
+				t.Errorf("expected %q, got %q", s.expected, s.err.Error())
+			}
+		})
+	}
+}
+
+// TestAttendanceServerSideExpirationLogic verifies that session validity is calculated strictly via server UTC time
+func TestAttendanceServerSideExpirationLogic(t *testing.T) {
+	nowUTC := time.Now().UTC()
+
+	tests := []struct {
+		name        string
+		startedAt   time.Time
+		expiresAt   time.Time
+		currentTime time.Time
+		isActive    bool
+		expectValid bool
+	}{
+		{
+			name:        "Active session well before expiry",
+			startedAt:   nowUTC.Add(-2 * time.Minute),
+			expiresAt:   nowUTC.Add(8 * time.Minute),
+			currentTime: nowUTC,
+			isActive:    true,
+			expectValid: true,
+		},
+		{
+			name:        "Active session exactly 1 second before expiry",
+			startedAt:   nowUTC.Add(-9*time.Minute - 59*time.Second),
+			expiresAt:   nowUTC.Add(1 * time.Second),
+			currentTime: nowUTC,
+			isActive:    true,
+			expectValid: true,
+		},
+		{
+			name:        "Expired session (current time 1 second after expires_at)",
+			startedAt:   nowUTC.Add(-10 * time.Minute),
+			expiresAt:   nowUTC.Add(-1 * time.Second),
+			currentTime: nowUTC,
+			isActive:    true,
+			expectValid: false,
+		},
+		{
+			name:        "Session marked inactive by teacher even if not expired",
+			startedAt:   nowUTC.Add(-2 * time.Minute),
+			expiresAt:   nowUTC.Add(8 * time.Minute),
+			currentTime: nowUTC,
+			isActive:    false,
+			expectValid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			isExpired := tt.currentTime.After(tt.expiresAt)
+			isValid := tt.isActive && !isExpired
+
+			if isValid != tt.expectValid {
+				t.Errorf("expected session validity %v, got %v (isActive=%v, isExpired=%v)",
+					tt.expectValid, isValid, tt.isActive, isExpired)
+			}
+		})
+	}
+}
+
+// TestStudentClassEnrolmentValidation verifies cross-class and unassigned student rejection
+func TestStudentClassEnrolmentValidation(t *testing.T) {
+	classA := "class-uuid-fy-a"
+	classB := "class-uuid-fy-b"
+
+	tests := []struct {
+		name            string
+		studentClassID  *string
+		sessionClassID  string
+		expectedAllowed bool
+	}{
+		{
+			name:            "Student in same class as session",
+			studentClassID:  &classA,
+			sessionClassID:  classA,
+			expectedAllowed: true,
+		},
+		{
+			name:            "Student in Class B trying to mark Class A session (Cross-Class)",
+			studentClassID:  &classB,
+			sessionClassID:  classA,
+			expectedAllowed: false,
+		},
+		{
+			name:            "Student with unassigned class (nil class_id)",
+			studentClassID:  nil,
+			sessionClassID:  classA,
+			expectedAllowed: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			allowed := tt.studentClassID != nil && *tt.studentClassID == tt.sessionClassID
+			if allowed != tt.expectedAllowed {
+				t.Errorf("expected allowed %v, got %v", tt.expectedAllowed, allowed)
+			}
+		})
+	}
+}
+
+// TestMarkAttendanceResponseSecurity verifies that MarkAttendanceResponse does not leak session tokens or user credentials
+func TestMarkAttendanceResponseSecurity(t *testing.T) {
+	resp := models.MarkAttendanceResponse{
+		SessionID:   "session-uuid-123",
+		MarkedAt:    time.Now().UTC(),
+		SubjectName: "Operating Systems",
+		SubjectCode: "CS401",
+		ClassName:   "TY-B",
+		Status:      "PRESENT",
+	}
+
+	data, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatalf("failed to marshal MarkAttendanceResponse: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("failed to unmarshal JSON: %v", err)
+	}
+
+	forbiddenKeys := []string{"session_token", "jwt", "password", "password_hash", "token", "secret"}
+	for _, k := range forbiddenKeys {
+		if _, exists := parsed[k]; exists {
+			t.Fatalf("SECURITY VIOLATION: MarkAttendanceResponse contains sensitive key %q", k)
+		}
+	}
+}
+

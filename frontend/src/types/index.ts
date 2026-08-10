@@ -285,6 +285,7 @@ export interface LiveAttendanceSessionData {
 }
 
 export interface MarkAttendanceResponse {
+  session_id?: string;
   marked_at: string;
   subject_name: string;
   subject_code: string;

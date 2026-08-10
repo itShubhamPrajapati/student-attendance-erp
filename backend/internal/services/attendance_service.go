@@ -15,6 +15,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// Sentinel errors for attendance engine validation
+var (
+	ErrSessionTokenRequired    = errors.New("Session token is required.")
+	ErrStudentProfileNotFound  = errors.New("Student profile not found.")
+	ErrStudentAccountInactive  = errors.New("Student account is inactive.")
+	ErrStudentNotAssignedClass = errors.New("You are not assigned to an academic class.")
+	ErrInvalidSessionToken     = errors.New("Invalid QR code or session token not found.")
+	ErrSessionEnded            = errors.New("Attendance session has ended.")
+	ErrSessionExpired          = errors.New("This attendance session has expired.")
+	ErrWrongClass              = errors.New("You are not enrolled in this class.")
+	ErrDuplicateAttendance     = errors.New("Attendance has already been marked for this session.")
+)
+
 // CreateSessionInput defines the payload required by a teacher to launch a live attendance session
 type CreateSessionInput struct {
 	SubjectID       string `json:"subject_id" binding:"required"`
@@ -552,78 +565,104 @@ func GetSessionAttendanceRecords(db *gorm.DB, sessionID string, teacherUserID *s
 // STUDENT ATTENDANCE SERVICES
 // ==============================================================================
 
-// MarkStudentAttendance validates the QR token and logs student attendance
+// MarkStudentAttendance validates the QR token and logs student attendance atomically and safely
 func MarkStudentAttendance(db *gorm.DB, studentUserID string, sessionToken string) (*models.MarkAttendanceResponse, error) {
 	cleanToken := strings.TrimSpace(sessionToken)
 	if cleanToken == "" {
-		return nil, errors.New("Session token is required.")
+		return nil, ErrSessionTokenRequired
 	}
 
-	// 1. Find student profile and verify active state
-	var student models.Student
-	if err := db.Preload("User").Where("user_id = ?", studentUserID).First(&student).Error; err != nil {
-		return nil, errors.New("Student profile not found.")
-	}
-	if !student.User.IsActive {
-		return nil, errors.New("Student account is inactive.")
-	}
-	if student.ClassID == nil || strings.TrimSpace(*student.ClassID) == "" {
-		return nil, errors.New("You are not assigned to an academic class.")
-	}
+	var response *models.MarkAttendanceResponse
 
-	// 2. Find attendance session by token
-	var session models.AttendanceSession
-	if err := db.Preload("Subject").Preload("Class").Where("session_token = ?", cleanToken).First(&session).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("Invalid QR code or session token not found.")
+	err := db.Transaction(func(tx *gorm.DB) error {
+		// 1. Find student profile and verify active state
+		var student models.Student
+		if err := tx.Preload("User").Where("user_id = ?", studentUserID).First(&student).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrStudentProfileNotFound
+			}
+			return fmt.Errorf("failed to retrieve student profile: %w", err)
 		}
+		if !student.User.IsActive {
+			return ErrStudentAccountInactive
+		}
+		if student.ClassID == nil || strings.TrimSpace(*student.ClassID) == "" {
+			return ErrStudentNotAssignedClass
+		}
+
+		// 2. Find attendance session by token
+		var session models.AttendanceSession
+		if err := tx.Preload("Subject").Preload("Class").Where("session_token = ?", cleanToken).First(&session).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrInvalidSessionToken
+			}
+			return fmt.Errorf("failed to retrieve attendance session: %w", err)
+		}
+
+		// 3. Check if session was manually ended
+		if !session.IsActive {
+			return ErrSessionEnded
+		}
+
+		// 4. Check authoritative server time expiration (NOW < expires_at in UTC)
+		serverNow := time.Now().UTC()
+		if serverNow.After(session.ExpiresAt) {
+			return ErrSessionExpired
+		}
+
+		// 5. Verify student belongs to the exact class associated with the session
+		if *student.ClassID != session.ClassID {
+			return ErrWrongClass
+		}
+
+		// 6. Application-level check for duplicate attendance submission
+		var existingCount int64
+		if err := tx.Model(&models.Attendance{}).
+			Where("session_id = ? AND student_id = ?", session.ID, student.ID).
+			Count(&existingCount).Error; err != nil {
+			return fmt.Errorf("failed to verify existing attendance: %w", err)
+		}
+		if existingCount > 0 {
+			return ErrDuplicateAttendance
+		}
+
+		// 7. Insert attendance record atomically
+		attendance := models.Attendance{
+			SessionID: session.ID,
+			StudentID: student.ID,
+			MarkedAt:  serverNow,
+			Status:    "PRESENT",
+		}
+
+		if err := tx.Create(&attendance).Error; err != nil {
+			// Catch PostgreSQL unique constraint violation ("uq_session_student" / code 23505) under concurrency
+			errStr := strings.ToLower(err.Error())
+			if strings.Contains(errStr, "duplicate key") ||
+				strings.Contains(errStr, "unique constraint") ||
+				strings.Contains(errStr, "uq_session_student") ||
+				strings.Contains(errStr, "23505") {
+				return ErrDuplicateAttendance
+			}
+			return fmt.Errorf("failed to record attendance: %w", err)
+		}
+
+		response = &models.MarkAttendanceResponse{
+			SessionID:   session.ID,
+			MarkedAt:    attendance.MarkedAt,
+			SubjectName: session.Subject.Name,
+			SubjectCode: session.Subject.Code,
+			ClassName:   session.Class.Name,
+			Status:      attendance.Status,
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		return nil, err
 	}
 
-	// 3. Check if session was manually ended
-	if !session.IsActive {
-		return nil, errors.New("Attendance session has ended.")
-	}
-
-	// 4. Check authoritative server time expiration (NOW < expires_at)
-	serverNow := time.Now().UTC()
-	if serverNow.After(session.ExpiresAt) {
-		return nil, errors.New("This attendance session has expired")
-	}
-
-	// 5. Verify student belongs to the exact class associated with the session
-	if *student.ClassID != session.ClassID {
-		return nil, errors.New("You are not enrolled in this class.")
-	}
-
-	// 6. Check for duplicate attendance submission
-	var existingCount int64
-	db.Model(&models.Attendance{}).
-		Where("session_id = ? AND student_id = ?", session.ID, student.ID).
-		Count(&existingCount)
-	if existingCount > 0 {
-		return nil, errors.New("Attendance has already been marked for this session")
-	}
-
-	// 7. Insert attendance record
-	attendance := models.Attendance{
-		SessionID: session.ID,
-		StudentID: student.ID,
-		MarkedAt:  serverNow,
-		Status:    "PRESENT",
-	}
-
-	if err := db.Create(&attendance).Error; err != nil {
-		return nil, fmt.Errorf("failed to record attendance: %w", err)
-	}
-
-	return &models.MarkAttendanceResponse{
-		MarkedAt:    attendance.MarkedAt,
-		SubjectName: session.Subject.Name,
-		SubjectCode: session.Subject.Code,
-		ClassName:   session.Class.Name,
-		Status:      attendance.Status,
-	}, nil
+	return response, nil
 }
 
 // GetStudentAttendanceSummary calculates student overall and subject-wise metrics

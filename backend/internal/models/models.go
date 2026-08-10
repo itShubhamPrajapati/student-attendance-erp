@@ -361,6 +361,7 @@ type LiveAttendanceSessionResponse struct {
 
 // MarkAttendanceResponse represents student scan confirmation data
 type MarkAttendanceResponse struct {
+	SessionID   string    `json:"session_id,omitempty"`
 	MarkedAt    time.Time `json:"marked_at"`
 	SubjectName string    `json:"subject_name"`
 	SubjectCode string    `json:"subject_code"`

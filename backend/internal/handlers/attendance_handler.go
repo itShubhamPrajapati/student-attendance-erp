@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -234,25 +235,44 @@ func MarkAttendanceHandler(db *gorm.DB) gin.HandlerFunc {
 			errMsg := err.Error()
 
 			// 1. Duplicate attendance (409 Conflict)
-			if strings.Contains(errMsg, "already been marked") {
+			if errors.Is(err, services.ErrDuplicateAttendance) || strings.Contains(errMsg, "already been marked") || strings.Contains(errMsg, "duplicate") {
 				c.JSON(http.StatusConflict, gin.H{
 					"success": false,
-					"message": errMsg,
+					"message": "Attendance has already been marked for this session.",
 				})
 				return
 			}
 
 			// 2. Expired session (410 Gone)
-			if strings.Contains(errMsg, "expired") {
+			if errors.Is(err, services.ErrSessionExpired) || strings.Contains(errMsg, "expired") {
 				c.JSON(http.StatusGone, gin.H{
 					"success": false,
-					"message": errMsg,
+					"message": "This attendance session has expired.",
 				})
 				return
 			}
 
-			// 3. Wrong class (403 Forbidden)
-			if strings.Contains(errMsg, "not enrolled in this class") || strings.Contains(errMsg, "not assigned to an academic class") {
+			// 3. Inactive or ended session (400 Bad Request)
+			if errors.Is(err, services.ErrSessionEnded) || strings.Contains(errMsg, "ended") {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"message": "Attendance session has ended.",
+				})
+				return
+			}
+
+			// 4. Missing or empty token (400 Bad Request)
+			if errors.Is(err, services.ErrSessionTokenRequired) || strings.Contains(errMsg, "token is required") {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"message": "Session token is required.",
+				})
+				return
+			}
+
+			// 5. Wrong class or inactive student profile (403 Forbidden)
+			if errors.Is(err, services.ErrWrongClass) || errors.Is(err, services.ErrStudentAccountInactive) || errors.Is(err, services.ErrStudentNotAssignedClass) ||
+				strings.Contains(errMsg, "not enrolled in this class") || strings.Contains(errMsg, "not assigned to an academic class") || strings.Contains(errMsg, "account is inactive") {
 				c.JSON(http.StatusForbidden, gin.H{
 					"success": false,
 					"message": errMsg,
@@ -260,17 +280,9 @@ func MarkAttendanceHandler(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
-			// 4. Inactive or ended session (400 Bad Request)
-			if strings.Contains(errMsg, "ended") {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"success": false,
-					"message": errMsg,
-				})
-				return
-			}
-
-			// 5. Invalid token (404 Not Found)
-			if strings.Contains(errMsg, "Invalid QR code") || strings.Contains(errMsg, "not found") {
+			// 6. Invalid token or profile not found (404 Not Found)
+			if errors.Is(err, services.ErrInvalidSessionToken) || errors.Is(err, services.ErrStudentProfileNotFound) ||
+				strings.Contains(errMsg, "Invalid QR code") || strings.Contains(errMsg, "not found") {
 				c.JSON(http.StatusNotFound, gin.H{
 					"success": false,
 					"message": errMsg,
@@ -280,7 +292,7 @@ func MarkAttendanceHandler(db *gorm.DB) gin.HandlerFunc {
 
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
-				"message": "Unable to verify attendance: " + errMsg,
+				"message": "Unable to verify attendance. Please try again.",
 			})
 			return
 		}

@@ -10,6 +10,8 @@ import {
   RefreshCw,
   ShieldCheck,
   Zap,
+  Clock,
+  WifiOff,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -20,6 +22,12 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { MarkAttendanceResponse } from '../types';
 import { apiMarkAttendance } from '../services/api';
 
+interface ErrorStateDetails {
+  title: string;
+  message: string;
+  type: 'duplicate' | 'expired' | 'ended' | 'wrong_class' | 'invalid' | 'network' | 'generic';
+}
+
 export const StudentScanAttendancePage: React.FC = () => {
   const [searchParams] = useSearchParams();
 
@@ -28,7 +36,7 @@ export const StudentScanAttendancePage: React.FC = () => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [successData, setSuccessData] = useState<MarkAttendanceResponse | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<ErrorStateDetails | null>(null);
   const [manualToken, setManualToken] = useState('');
 
   const qrReaderRef = useRef<Html5Qrcode | null>(null);
@@ -66,7 +74,7 @@ export const StudentScanAttendancePage: React.FC = () => {
   // Start Camera
   const startCamera = async () => {
     setCameraError(null);
-    setErrorMessage(null);
+    setErrorDetails(null);
     setSuccessData(null);
     scannedProcessedRef.current = false;
 
@@ -119,17 +127,67 @@ export const StudentScanAttendancePage: React.FC = () => {
   // Submit session token to backend
   const submitToken = async (token: string) => {
     const clean = token.trim();
-    if (!clean) return;
+    if (!clean || verifying) return;
 
     setVerifying(true);
-    setErrorMessage(null);
+    setErrorDetails(null);
     setSuccessData(null);
 
     try {
       const res = await apiMarkAttendance(clean);
       setSuccessData(res.data);
     } catch (err: unknown) {
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to verify attendance');
+      const rawMsg = err instanceof Error ? err.message : 'Failed to verify attendance';
+      const lower = rawMsg.toLowerCase();
+
+      if (lower.includes('already been marked') || lower.includes('duplicate')) {
+        setErrorDetails({
+          type: 'duplicate',
+          title: 'Attendance Already Marked',
+          message: 'Your attendance for this lecture has already been recorded.',
+        });
+      } else if (lower.includes('expired')) {
+        setErrorDetails({
+          type: 'expired',
+          title: 'QR Code Expired',
+          message: 'This attendance session has expired and is no longer accepting scans.',
+        });
+      } else if (lower.includes('ended')) {
+        setErrorDetails({
+          type: 'ended',
+          title: 'Attendance Session Ended',
+          message: 'This attendance session has been ended by the faculty teacher.',
+        });
+      } else if (lower.includes('not enrolled') || lower.includes('not assigned') || lower.includes('wrong class')) {
+        setErrorDetails({
+          type: 'wrong_class',
+          title: 'Class Enrollment Mismatch',
+          message: 'You are not enrolled in the academic class for this session.',
+        });
+      } else if (lower.includes('invalid') || lower.includes('not found')) {
+        setErrorDetails({
+          type: 'invalid',
+          title: 'Invalid QR Code',
+          message: 'The scanned QR code or session token is invalid or unrecognized.',
+        });
+      } else if (
+        lower.includes('unable to connect') ||
+        lower.includes('network') ||
+        lower.includes('failed to fetch') ||
+        lower.includes('networkerror')
+      ) {
+        setErrorDetails({
+          type: 'network',
+          title: 'Connection Error',
+          message: 'Unable to connect to the server. Please check your internet connection and try again.',
+        });
+      } else {
+        setErrorDetails({
+          type: 'generic',
+          title: 'Attendance Not Recorded',
+          message: rawMsg || 'Unable to record attendance. Please try again.',
+        });
+      }
     } finally {
       setVerifying(false);
     }
@@ -215,22 +273,60 @@ export const StudentScanAttendancePage: React.FC = () => {
         </Card>
       )}
 
-      {/* Error Card */}
-      {errorMessage && !verifying && (
-        <Card className="p-6 bg-rose-50/60 border-rose-200 text-center space-y-3 shadow-sm animate-in fade-in">
-          <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 mx-auto flex items-center justify-center">
-            <AlertCircle className="w-6 h-6" />
+      {/* Categorized Error Card */}
+      {errorDetails && !verifying && (
+        <Card
+          className={`p-6 text-center space-y-3 shadow-sm animate-in fade-in ${
+            errorDetails.type === 'duplicate'
+              ? 'bg-amber-50/60 border-amber-200'
+              : errorDetails.type === 'expired'
+              ? 'bg-amber-50/60 border-amber-200'
+              : 'bg-rose-50/60 border-rose-200'
+          }`}
+        >
+          <div
+            className={`w-12 h-12 rounded-2xl mx-auto flex items-center justify-center ${
+              errorDetails.type === 'duplicate' || errorDetails.type === 'expired'
+                ? 'bg-amber-100 text-amber-700'
+                : errorDetails.type === 'network'
+                ? 'bg-rose-100 text-rose-700'
+                : 'bg-rose-100 text-rose-700'
+            }`}
+          >
+            {errorDetails.type === 'expired' ? (
+              <Clock className="w-6 h-6" />
+            ) : errorDetails.type === 'network' ? (
+              <WifiOff className="w-6 h-6" />
+            ) : (
+              <AlertCircle className="w-6 h-6" />
+            )}
           </div>
           <div>
-            <h3 className="text-sm font-bold text-rose-900 font-heading">Attendance Not Recorded</h3>
-            <p className="text-xs text-rose-700 mt-1">{errorMessage}</p>
+            <h3
+              className={`text-sm font-bold font-heading ${
+                errorDetails.type === 'duplicate' || errorDetails.type === 'expired'
+                  ? 'text-amber-900'
+                  : 'text-rose-900'
+              }`}
+            >
+              {errorDetails.title}
+            </h3>
+            <p
+              className={`text-xs mt-1 ${
+                errorDetails.type === 'duplicate' || errorDetails.type === 'expired'
+                  ? 'text-amber-700'
+                  : 'text-rose-700'
+              }`}
+            >
+              {errorDetails.message}
+            </p>
           </div>
           <div className="pt-2 flex items-center justify-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
-                setErrorMessage(null);
+                setErrorDetails(null);
                 startCamera();
               }}
               leftIcon={<RefreshCw className="w-3.5 h-3.5" />}

@@ -19,15 +19,29 @@ func TestAttendanceHandlerErrorMapping(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		setupBody      map[string]interface{}
+		userID         string
+		setupBody      interface{}
 		expectedStatus int
 		expectInBody   string
 	}{
 		{
-			name: "Missing session token returns 400 Bad Request",
-			setupBody: map[string]interface{}{
-				"session_token": "",
-			},
+			name:           "Unauthenticated request returns 401 Unauthorized",
+			userID:         "",
+			setupBody:      map[string]interface{}{"session_token": "tok-123"},
+			expectedStatus: http.StatusUnauthorized,
+			expectInBody:   "Authentication required",
+		},
+		{
+			name:           "Missing session token returns 400 Bad Request",
+			userID:         "test-student-id",
+			setupBody:      map[string]interface{}{"session_token": ""},
+			expectedStatus: http.StatusBadRequest,
+			expectInBody:   "Please provide a valid session token",
+		},
+		{
+			name:           "Malformed JSON payload returns 400 Bad Request",
+			userID:         "test-student-id",
+			setupBody:      "not-valid-json",
 			expectedStatus: http.StatusBadRequest,
 			expectInBody:   "Please provide a valid session token",
 		},
@@ -36,13 +50,20 @@ func TestAttendanceHandlerErrorMapping(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := gin.New()
-			// MarkAttendanceHandler expects user_id in context
 			r.POST("/api/attendance/mark", func(c *gin.Context) {
-				c.Set("user_id", "test-student-id")
+				if tt.userID != "" {
+					c.Set("user_id", tt.userID)
+				}
 				MarkAttendanceHandler(nil)(c)
 			})
 
-			bodyBytes, _ := json.Marshal(tt.setupBody)
+			var bodyBytes []byte
+			if strBody, ok := tt.setupBody.(string); ok {
+				bodyBytes = []byte(strBody)
+			} else {
+				bodyBytes, _ = json.Marshal(tt.setupBody)
+			}
+
 			req, _ := http.NewRequest(http.MethodPost, "/api/attendance/mark", bytes.NewBuffer(bodyBytes))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -51,6 +72,9 @@ func TestAttendanceHandlerErrorMapping(t *testing.T) {
 
 			if w.Code != tt.expectedStatus {
 				t.Errorf("expected status %d, got %d. Body: %s", tt.expectedStatus, w.Code, w.Body.String())
+			}
+			if tt.expectInBody != "" && !bytes.Contains(w.Body.Bytes(), []byte(tt.expectInBody)) {
+				t.Errorf("expected body to contain %q, got: %s", tt.expectInBody, w.Body.String())
 			}
 		})
 	}
