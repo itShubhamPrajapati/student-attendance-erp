@@ -464,6 +464,99 @@ export interface StudentAttendanceAnalyticsResponse {
   filters: StudentAttendanceAnalyticsFilterInfo;
 }
 
+export interface TeacherStudentSearchItem {
+  student_id: string;
+  user_id: string;
+  name: string;
+  roll_number: string;
+  email: string;
+  class_id: string;
+  class_name: string;
+  department: string;
+  semester: number;
+  section: string;
+  attendance_percentage: number;
+  present: number;
+  absent: number;
+  total_sessions: number;
+  status: 'REQUIREMENT_MET' | 'BELOW_REQUIREMENT' | 'CRITICAL';
+}
+
+export interface TeacherStudentSearchSummary {
+  total_students: number;
+  students_meeting_requirement: number;
+  students_below_requirement: number;
+  students_critical: number;
+}
+
+export interface TeacherStudentSearchPagination {
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface TeacherStudentSearchResponse {
+  items: TeacherStudentSearchItem[];
+  pagination: TeacherStudentSearchPagination;
+  summary: TeacherStudentSearchSummary;
+}
+
+export interface TeacherStudentBriefInfo {
+  id: string;
+  user_id: string;
+  name: string;
+  roll_number: string;
+  email: string;
+  class_id: string;
+  class_name: string;
+  department: string;
+  semester: number;
+  section: string;
+}
+
+export interface TeacherStudentAttendanceDetailSubject {
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  total: number;
+  present: number;
+  absent: number;
+  percentage: number;
+  status: 'REQUIREMENT_MET' | 'BELOW_REQUIREMENT' | 'CRITICAL';
+}
+
+export interface TeacherStudentAttendanceDetailSummary {
+  overall_percentage: number;
+  total_sessions: number;
+  total_present: number;
+  total_absent: number;
+  status: string;
+}
+
+export interface TeacherStudentAttendanceDetailHistoryRecord {
+  session_id: string;
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  started_at: string;
+  ended_at: string;
+  status: 'PRESENT' | 'ABSENT';
+  marked_at: string | null;
+}
+
+export interface TeacherStudentAttendanceDetailHistory {
+  records: TeacherStudentAttendanceDetailHistoryRecord[];
+  pagination: StudentAttendanceHistoryPagination;
+}
+
+export interface TeacherStudentAttendanceDetailResponse {
+  student: TeacherStudentBriefInfo;
+  summary: TeacherStudentAttendanceDetailSummary;
+  subjects: TeacherStudentAttendanceDetailSubject[];
+  history: TeacherStudentAttendanceDetailHistory;
+}
+
 export interface CreateAttendanceSessionPayload {
   subject_id: string;
   class_id: string;

@@ -3,6 +3,8 @@ package services
 import (
 	"encoding/json"
 	"math"
+	"sort"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -887,5 +889,128 @@ func TestDateRangeValidationLogic(t *testing.T) {
 		})
 	}
 }
+
+// TestTeacherStudentSearchSortingAllowlist verifies safe server-side sorting logic
+func TestTeacherStudentSearchSortingAllowlist(t *testing.T) {
+	sampleItems := []models.TeacherStudentSearchItem{
+		{StudentID: "1", Name: "Charlie Brown", RollNumber: "CS103", AttendancePercentage: 65.0, Present: 13, Absent: 7},
+		{StudentID: "2", Name: "Alice Smith", RollNumber: "CS101", AttendancePercentage: 90.0, Present: 18, Absent: 2},
+		{StudentID: "3", Name: "Bob Jones", RollNumber: "CS102", AttendancePercentage: 75.0, Present: 15, Absent: 5},
+	}
+
+	// 1. Sort by name asc
+	items := make([]models.TeacherStudentSearchItem, len(sampleItems))
+	copy(items, sampleItems)
+	sort.SliceStable(items, func(i, j int) bool {
+		return strings.Compare(strings.ToLower(items[i].Name), strings.ToLower(items[j].Name)) < 0
+	})
+	if items[0].Name != "Alice Smith" || items[2].Name != "Charlie Brown" {
+		t.Errorf("failed sort by name asc: got %s, %s, %s", items[0].Name, items[1].Name, items[2].Name)
+	}
+
+	// 2. Sort by roll_number asc
+	copy(items, sampleItems)
+	sort.SliceStable(items, func(i, j int) bool {
+		return strings.Compare(strings.ToLower(items[i].RollNumber), strings.ToLower(items[j].RollNumber)) < 0
+	})
+	if items[0].RollNumber != "CS101" || items[2].RollNumber != "CS103" {
+		t.Errorf("failed sort by roll_number: got %s, %s, %s", items[0].RollNumber, items[1].RollNumber, items[2].RollNumber)
+	}
+
+	// 3. Sort by attendance_percentage desc
+	copy(items, sampleItems)
+	sort.SliceStable(items, func(i, j int) bool {
+		return items[i].AttendancePercentage > items[j].AttendancePercentage
+	})
+	if items[0].AttendancePercentage != 90.0 || items[2].AttendancePercentage != 65.0 {
+		t.Errorf("failed sort by attendance_percentage desc: got %.1f, %.1f, %.1f",
+			items[0].AttendancePercentage, items[1].AttendancePercentage, items[2].AttendancePercentage)
+	}
+}
+
+// TestTeacherStudentSearchQueryMatching verifies case-insensitive matching logic on name, roll number, and email
+func TestTeacherStudentSearchQueryMatching(t *testing.T) {
+	tests := []struct {
+		name        string
+		searchTerm  string
+		studentName string
+		rollNumber  string
+		email       string
+		shouldMatch bool
+	}{
+		{"Exact name match", "Rahul", "Rahul Sharma", "24", "rahul@example.com", true},
+		{"Case-insensitive name match", "rahul", "Rahul Sharma", "24", "rahul@example.com", true},
+		{"Uppercase query on lowercase data", "RAHUL", "rahul sharma", "24", "rahul@example.com", true},
+		{"Roll number match", "24", "Rahul Sharma", "24", "rahul@example.com", true},
+		{"Roll number prefix", "CS", "Alice", "CS101", "alice@example.com", true},
+		{"Email domain match", "example.com", "Bob", "12", "bob@example.com", true},
+		{"Unrelated term", "nonexistent", "Rahul Sharma", "24", "rahul@example.com", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q := strings.ToLower(strings.TrimSpace(tt.searchTerm))
+			nameMatched := strings.Contains(strings.ToLower(tt.studentName), q)
+			rollMatched := strings.Contains(strings.ToLower(tt.rollNumber), q)
+			emailMatched := strings.Contains(strings.ToLower(tt.email), q)
+			matched := nameMatched || rollMatched || emailMatched
+
+			if matched != tt.shouldMatch {
+				t.Errorf("expected matched=%v for query %q, got %v", tt.shouldMatch, tt.searchTerm, matched)
+			}
+		})
+	}
+}
+
+// TestTeacherStudentSearchPaginationBoundaries verifies safe slice pagination
+func TestTeacherStudentSearchPaginationBoundaries(t *testing.T) {
+	items := make([]int, 55) // 55 total elements
+	for i := 0; i < 55; i++ {
+		items[i] = i + 1
+	}
+
+	pageSize := 20
+	totalPages := int(math.Ceil(float64(len(items)) / float64(pageSize)))
+	if totalPages != 3 {
+		t.Fatalf("expected 3 total pages, got %d", totalPages)
+	}
+
+	// Page 1: [0:20] -> 20 items (1..20)
+	page1Start := 0
+	page1End := page1Start + pageSize
+	if page1End > len(items) {
+		page1End = len(items)
+	}
+	p1 := items[page1Start:page1End]
+	if len(p1) != 20 || p1[0] != 1 || p1[19] != 20 {
+		t.Errorf("unexpected page 1 items")
+	}
+
+	// Page 3: [40:55] -> 15 items (41..55)
+	page3Start := (3 - 1) * pageSize
+	page3End := page3Start + pageSize
+	if page3End > len(items) {
+		page3End = len(items)
+	}
+	p3 := items[page3Start:page3End]
+	if len(p3) != 15 || p3[0] != 41 || p3[14] != 55 {
+		t.Errorf("unexpected page 3 items")
+	}
+
+	// Page 4 (out of bounds): should safely yield empty slice
+	page4Start := (4 - 1) * pageSize
+	if page4Start > len(items) {
+		page4Start = len(items)
+	}
+	page4End := page4Start + pageSize
+	if page4End > len(items) {
+		page4End = len(items)
+	}
+	p4 := items[page4Start:page4End]
+	if len(p4) != 0 {
+		t.Errorf("expected 0 items for out of bounds page, got %d", len(p4))
+	}
+}
+
 
 

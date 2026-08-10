@@ -56,6 +56,8 @@ func TestTeacherSessionRoutesRegistered(t *testing.T) {
 		{"Teacher Live Session Telemetry Polling", "GET", "/api/teacher/attendance/sessions/12345/live", teacherToken},
 		{"Teacher Session Records", "GET", "/api/teacher/attendance/sessions/12345/records", teacherToken},
 		{"Teacher End Session", "POST", "/api/teacher/attendance/sessions/12345/end", teacherToken},
+		{"Teacher Student Search", "GET", "/api/teacher/students/search", teacherToken},
+		{"Teacher Student Attendance Detail", "GET", "/api/teacher/students/12345/attendance", teacherToken},
 		{"Student Mark Attendance", "POST", "/api/attendance/mark", studentToken},
 		{"Student Attendance Summary", "GET", "/api/student/attendance/summary", studentToken},
 		{"Student Attendance Calendar", "GET", "/api/student/attendance/calendar", studentToken},

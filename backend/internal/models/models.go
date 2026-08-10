@@ -559,3 +559,110 @@ type StudentAttendanceAnalyticsResponse struct {
 	Absence    StudentAttendanceAbsenceAnalysis    `json:"absence"`
 	Filters    StudentAttendanceAnalyticsFilterInfo `json:"filters"`
 }
+
+// ==============================================================================
+// TEACHER STUDENT ATTENDANCE SEARCH & DETAIL MODELS (Feature #9)
+// ==============================================================================
+
+// TeacherStudentSearchItem represents a single student with attendance metrics in teacher search
+type TeacherStudentSearchItem struct {
+	StudentID            string  `json:"student_id"`
+	UserID               string  `json:"user_id"`
+	Name                 string  `json:"name"`
+	RollNumber           string  `json:"roll_number"`
+	Email                string  `json:"email"`
+	ClassID              string  `json:"class_id"`
+	ClassName            string  `json:"class_name"`
+	Department           string  `json:"department"`
+	Semester             int     `json:"semester"`
+	Section              string  `json:"section"`
+	AttendancePercentage float64 `json:"attendance_percentage"`
+	Present              int64   `json:"present"`
+	Absent               int64   `json:"absent"`
+	TotalSessions        int64   `json:"total_sessions"`
+	Status               string  `json:"status"` // "REQUIREMENT_MET", "BELOW_REQUIREMENT", "CRITICAL"
+}
+
+// TeacherStudentSearchSummary represents aggregate metrics for the search results
+type TeacherStudentSearchSummary struct {
+	TotalStudents              int64 `json:"total_students"`
+	StudentsMeetingRequirement int   `json:"students_meeting_requirement"`
+	StudentsBelowRequirement   int   `json:"students_below_requirement"`
+	StudentsCritical           int   `json:"students_critical"`
+}
+
+// TeacherStudentSearchPagination represents pagination metadata for student search
+type TeacherStudentSearchPagination struct {
+	Page       int   `json:"page"`
+	PageSize   int   `json:"page_size"`
+	Total      int64 `json:"total"`
+	TotalPages int   `json:"total_pages"`
+}
+
+// TeacherStudentSearchResponse represents the payload of GET /api/teacher/students/search
+type TeacherStudentSearchResponse struct {
+	Items      []TeacherStudentSearchItem     `json:"items"`
+	Pagination TeacherStudentSearchPagination `json:"pagination"`
+	Summary    TeacherStudentSearchSummary    `json:"summary"`
+}
+
+// TeacherStudentBriefInfo represents student identity in attendance detail view
+type TeacherStudentBriefInfo struct {
+	ID         string `json:"id"`
+	UserID     string `json:"user_id"`
+	Name       string `json:"name"`
+	RollNumber string `json:"roll_number"`
+	Email      string `json:"email"`
+	ClassID    string `json:"class_id"`
+	ClassName  string `json:"class_name"`
+	Department string `json:"department"`
+	Semester   int    `json:"semester"`
+	Section    string `json:"section"`
+}
+
+// TeacherStudentAttendanceDetailSubject represents subject-level attendance in student detail view
+type TeacherStudentAttendanceDetailSubject struct {
+	SubjectID   string  `json:"subject_id"`
+	SubjectName string  `json:"subject_name"`
+	SubjectCode string  `json:"subject_code"`
+	Total       int64   `json:"total"`
+	Present     int64   `json:"present"`
+	Absent      int64   `json:"absent"`
+	Percentage  float64 `json:"percentage"`
+	Status      string  `json:"status"` // "REQUIREMENT_MET", "BELOW_REQUIREMENT", "CRITICAL"
+}
+
+// TeacherStudentAttendanceDetailSummary represents overall metrics in student detail view
+type TeacherStudentAttendanceDetailSummary struct {
+	OverallPercentage float64 `json:"overall_percentage"`
+	TotalSessions     int64   `json:"total_sessions"`
+	TotalPresent      int64   `json:"total_present"`
+	TotalAbsent       int64   `json:"total_absent"`
+	Status            string  `json:"status"`
+}
+
+// TeacherStudentAttendanceDetailHistoryRecord represents a verified attendance session in history
+type TeacherStudentAttendanceDetailHistoryRecord struct {
+	SessionID   string     `json:"session_id"`
+	SubjectID   string     `json:"subject_id"`
+	SubjectName string     `json:"subject_name"`
+	SubjectCode string     `json:"subject_code"`
+	StartedAt   time.Time  `json:"started_at"`
+	EndedAt     time.Time  `json:"ended_at"`
+	Status      string     `json:"status"` // "PRESENT" or "ABSENT"
+	MarkedAt    *time.Time `json:"marked_at"`
+}
+
+// TeacherStudentAttendanceDetailHistory represents paginated history records
+type TeacherStudentAttendanceDetailHistory struct {
+	Records    []TeacherStudentAttendanceDetailHistoryRecord `json:"records"`
+	Pagination StudentAttendanceHistoryPagination            `json:"pagination"`
+}
+
+// TeacherStudentAttendanceDetailResponse represents payload of GET /api/teacher/students/:student_id/attendance
+type TeacherStudentAttendanceDetailResponse struct {
+	Student  TeacherStudentBriefInfo                 `json:"student"`
+	Summary  TeacherStudentAttendanceDetailSummary   `json:"summary"`
+	Subjects []TeacherStudentAttendanceDetailSubject `json:"subjects"`
+	History  TeacherStudentAttendanceDetailHistory   `json:"history"`
+}

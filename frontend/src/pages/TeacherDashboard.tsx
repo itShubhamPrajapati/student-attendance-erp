@@ -12,6 +12,7 @@ import {
   Clock,
   Eye,
   X,
+  Users,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -113,6 +114,15 @@ export const TeacherDashboard: React.FC = () => {
         }
         actions={
           <div className="flex items-center gap-2">
+            <Link to="/teacher/students/attendance">
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<Users className="w-3.5 h-3.5" />}
+              >
+                Student Search & Audit
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="sm"

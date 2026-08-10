@@ -28,6 +28,8 @@ import {
   StudentCalendarResponse,
   StudentAttendanceHistoryResponse,
   StudentAttendanceAnalyticsResponse,
+  TeacherStudentSearchResponse,
+  TeacherStudentAttendanceDetailResponse,
   CreateAttendanceSessionPayload,
 } from '../types';
 import { getToken } from '../auth/authService';
@@ -573,6 +575,100 @@ export async function apiGetAdminSessionRecords(
 ): Promise<{ success: boolean; data: SessionAttendanceDetails }> {
   return request<{ success: boolean; data: SessionAttendanceDetails }>(
     `/api/admin/attendance/sessions/${sessionId}/records`,
+    {
+      method: 'GET',
+    }
+  );
+}
+
+// Teacher Student Attendance Search & Detail APIs (Feature #9)
+export async function apiSearchTeacherStudents(params?: {
+  q?: string;
+  class_id?: string;
+  subject_id?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  page_size?: number;
+  sort?: string;
+  order?: string;
+}): Promise<{ success: boolean; data: TeacherStudentSearchResponse }> {
+  const query = new URLSearchParams();
+  if (params?.q && params.q.trim() !== '') {
+    query.append('q', params.q.trim());
+  }
+  if (params?.class_id && params.class_id.trim() !== '') {
+    query.append('class_id', params.class_id.trim());
+  }
+  if (params?.subject_id && params.subject_id.trim() !== '') {
+    query.append('subject_id', params.subject_id.trim());
+  }
+  if (params?.status && params.status.trim() !== '') {
+    query.append('status', params.status.trim());
+  }
+  if (params?.from && params.from.trim() !== '') {
+    query.append('from', params.from.trim());
+  }
+  if (params?.to && params.to.trim() !== '') {
+    query.append('to', params.to.trim());
+  }
+  if (params?.page && params.page > 0) {
+    query.append('page', String(params.page));
+  }
+  if (params?.page_size && params.page_size > 0) {
+    query.append('page_size', String(params.page_size));
+  }
+  if (params?.sort && params.sort.trim() !== '') {
+    query.append('sort', params.sort.trim());
+  }
+  if (params?.order && params.order.trim() !== '') {
+    query.append('order', params.order.trim());
+  }
+
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  return request<{ success: boolean; data: TeacherStudentSearchResponse }>(
+    `/api/teacher/students/search${qs}`,
+    {
+      method: 'GET',
+    }
+  );
+}
+
+export async function apiGetTeacherStudentAttendanceDetail(
+  studentId: string,
+  params?: {
+    subject_id?: string;
+    status?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+    limit?: number;
+  }
+): Promise<{ success: boolean; data: TeacherStudentAttendanceDetailResponse }> {
+  const query = new URLSearchParams();
+  if (params?.subject_id && params.subject_id.trim() !== '') {
+    query.append('subject_id', params.subject_id.trim());
+  }
+  if (params?.status && params.status.trim() !== '') {
+    query.append('status', params.status.trim());
+  }
+  if (params?.from && params.from.trim() !== '') {
+    query.append('from', params.from.trim());
+  }
+  if (params?.to && params.to.trim() !== '') {
+    query.append('to', params.to.trim());
+  }
+  if (params?.page && params.page > 0) {
+    query.append('page', String(params.page));
+  }
+  if (params?.limit && params.limit > 0) {
+    query.append('limit', String(params.limit));
+  }
+
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  return request<{ success: boolean; data: TeacherStudentAttendanceDetailResponse }>(
+    `/api/teacher/students/${studentId}/attendance${qs}`,
     {
       method: 'GET',
     }

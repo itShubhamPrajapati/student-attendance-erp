@@ -1681,3 +1681,696 @@ func GetStudentAttendanceAnalytics(
 		},
 	}, nil
 }
+
+// ==============================================================================
+// TEACHER STUDENT ATTENDANCE SEARCH & DETAIL SERVICES (Feature #9)
+// ==============================================================================
+
+// SearchTeacherStudents performs optimized, authorized student search and attendance aggregation for a teacher
+func SearchTeacherStudents(
+	db *gorm.DB,
+	teacherUserID string,
+	query string,
+	classIDFilter *string,
+	subjectIDFilter *string,
+	statusFilter *string,
+	fromDate *string,
+	toDate *string,
+	page int,
+	pageSize int,
+	sortBy string,
+	sortOrder string,
+) (*models.TeacherStudentSearchResponse, error) {
+	// 1. Resolve teacher record
+	var teacher models.Teacher
+	if err := db.Where("user_id = ?", teacherUserID).First(&teacher).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("Teacher profile not found.")
+		}
+		return nil, err
+	}
+
+	// 2. Fetch all teacher assignments (authorized class_ids and subject_ids)
+	type tscRow struct {
+		ClassID   string
+		SubjectID string
+	}
+	var assignments []tscRow
+	if err := db.Table("teacher_subject_classes").
+		Select("class_id, subject_id").
+		Where("teacher_id = ?", teacher.ID).
+		Scan(&assignments).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch teacher assignments: %w", err)
+	}
+
+	if len(assignments) == 0 {
+		return &models.TeacherStudentSearchResponse{
+			Items: []models.TeacherStudentSearchItem{},
+			Pagination: models.TeacherStudentSearchPagination{
+				Page:       page,
+				PageSize:   pageSize,
+				Total:      0,
+				TotalPages: 0,
+			},
+			Summary: models.TeacherStudentSearchSummary{},
+		}, nil
+	}
+
+	authorizedClassSet := make(map[string]bool)
+	authorizedSubjectSet := make(map[string]bool)
+	for _, a := range assignments {
+		authorizedClassSet[a.ClassID] = true
+		authorizedSubjectSet[a.SubjectID] = true
+	}
+
+	// Validate class_id filter if provided
+	var targetClassIDs []string
+	if classIDFilter != nil && strings.TrimSpace(*classIDFilter) != "" {
+		cID := strings.TrimSpace(*classIDFilter)
+		if !authorizedClassSet[cID] {
+			return nil, errors.New("Access denied to class or class not assigned to you.")
+		}
+		targetClassIDs = []string{cID}
+	} else {
+		for cID := range authorizedClassSet {
+			targetClassIDs = append(targetClassIDs, cID)
+		}
+	}
+
+	// Validate subject_id filter if provided
+	var targetSubjectFilter *string
+	if subjectIDFilter != nil && strings.TrimSpace(*subjectIDFilter) != "" {
+		sID := strings.TrimSpace(*subjectIDFilter)
+		if !authorizedSubjectSet[sID] {
+			return nil, errors.New("Access denied to subject or subject not assigned to you.")
+		}
+		targetSubjectFilter = &sID
+	}
+
+	// 3. Query all candidate students enrolled in these target classes matching search term
+	type studentRow struct {
+		ID         string
+		UserID     string
+		Name       string
+		RollNumber string
+		Email      string
+		ClassID    string
+		ClassName  string
+		Department string
+		Semester   int
+		Section    string
+		CreatedAt  time.Time
+	}
+
+	studQuery := db.Table("students s").
+		Select(`
+			s.id,
+			s.user_id,
+			u.name,
+			s.roll_number,
+			u.email,
+			s.class_id,
+			c.name AS class_name,
+			c.department,
+			c.semester,
+			c.section,
+			s.created_at
+		`).
+		Joins("JOIN users u ON s.user_id = u.id").
+		Joins("JOIN classes c ON s.class_id = c.id").
+		Where("s.class_id IN ?", targetClassIDs)
+
+	cleanQ := strings.TrimSpace(query)
+	if cleanQ != "" {
+		likePattern := "%" + strings.ToLower(cleanQ) + "%"
+		studQuery = studQuery.Where("(LOWER(u.name) LIKE ? OR LOWER(s.roll_number) LIKE ? OR LOWER(u.email) LIKE ?)", likePattern, likePattern, likePattern)
+	}
+
+	var students []studentRow
+	if err := studQuery.Scan(&students).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch students: %w", err)
+	}
+
+	if len(students) == 0 {
+		return &models.TeacherStudentSearchResponse{
+			Items: []models.TeacherStudentSearchItem{},
+			Pagination: models.TeacherStudentSearchPagination{
+				Page:       page,
+				PageSize:   pageSize,
+				Total:      0,
+				TotalPages: 0,
+			},
+			Summary: models.TeacherStudentSearchSummary{},
+		}, nil
+	}
+
+	studentIDs := make([]string, len(students))
+	for i, st := range students {
+		studentIDs[i] = st.ID
+	}
+
+	// 4. Batch query all attendance sessions for these classes (with subject/date filters)
+	type sessionItem struct {
+		ID        string
+		ClassID   string
+		SubjectID string
+	}
+	sessQuery := db.Table("attendance_sessions").
+		Select("id, class_id, subject_id").
+		Where("class_id IN ?", targetClassIDs)
+
+	if targetSubjectFilter != nil {
+		sessQuery = sessQuery.Where("subject_id = ?", *targetSubjectFilter)
+	}
+	if fromDate != nil && strings.TrimSpace(*fromDate) != "" {
+		sessQuery = sessQuery.Where("DATE(started_at) >= ?", strings.TrimSpace(*fromDate))
+	}
+	if toDate != nil && strings.TrimSpace(*toDate) != "" {
+		sessQuery = sessQuery.Where("DATE(started_at) <= ?", strings.TrimSpace(*toDate))
+	}
+
+	var sessions []sessionItem
+	if err := sessQuery.Scan(&sessions).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch attendance sessions: %w", err)
+	}
+
+	// Map sessions per class_id
+	classSessionsCountMap := make(map[string]int64)
+	sessionIDs := make([]string, len(sessions))
+	for i, s := range sessions {
+		classSessionsCountMap[s.ClassID]++
+		sessionIDs[i] = s.ID
+	}
+
+	// 5. Batch query attendance records for all matching students for these sessions
+	type attRow struct {
+		StudentID string
+		SessionID string
+	}
+	var attendanceRecords []attRow
+	if len(sessionIDs) > 0 && len(studentIDs) > 0 {
+		if err := db.Table("attendance").
+			Select("student_id, session_id").
+			Where("student_id IN ? AND session_id IN ?", studentIDs, sessionIDs).
+			Scan(&attendanceRecords).Error; err != nil {
+			return nil, fmt.Errorf("failed to fetch attendance records: %w", err)
+		}
+	}
+
+	// Map student_id -> count of present sessions
+	studentPresentCountMap := make(map[string]int64)
+	for _, a := range attendanceRecords {
+		studentPresentCountMap[a.StudentID]++
+	}
+
+	// 6. Build evaluated items and compute standing status
+	var allEvaluatedItems []models.TeacherStudentSearchItem
+	var meetingCount, belowCount, criticalCount int
+
+	for _, st := range students {
+		totalSess := classSessionsCountMap[st.ClassID]
+		presentSess := studentPresentCountMap[st.ID]
+		absentSess := int64(0)
+		if totalSess > presentSess {
+			absentSess = totalSess - presentSess
+		}
+
+		pct := 0.0
+		if totalSess > 0 {
+			pct = math.Round((float64(presentSess)/float64(totalSess))*1000) / 10
+		}
+
+		status := "REQUIREMENT_MET"
+		if totalSess > 0 {
+			if pct >= 75.0 {
+				status = "REQUIREMENT_MET"
+				meetingCount++
+			} else if pct >= 60.0 {
+				status = "BELOW_REQUIREMENT"
+				belowCount++
+			} else {
+				status = "CRITICAL"
+				criticalCount++
+				belowCount++ // also counted in below 75%
+			}
+		} else {
+			status = "REQUIREMENT_MET"
+			meetingCount++
+		}
+
+		item := models.TeacherStudentSearchItem{
+			StudentID:            st.ID,
+			UserID:               st.UserID,
+			Name:                 st.Name,
+			RollNumber:           st.RollNumber,
+			Email:                st.Email,
+			ClassID:              st.ClassID,
+			ClassName:            st.ClassName,
+			Department:           st.Department,
+			Semester:             st.Semester,
+			Section:              st.Section,
+			AttendancePercentage: pct,
+			Present:              presentSess,
+			Absent:               absentSess,
+			TotalSessions:        totalSess,
+			Status:               status,
+		}
+
+		// Apply status filter if provided
+		if statusFilter != nil && strings.TrimSpace(*statusFilter) != "" {
+			sf := strings.ToUpper(strings.TrimSpace(*statusFilter))
+			if sf != "ALL" {
+				if sf == "MET" || sf == "REQUIREMENT_MET" {
+					if status != "REQUIREMENT_MET" {
+						continue
+					}
+				} else if sf == "LOW" || sf == "BELOW_REQUIREMENT" {
+					if status != "BELOW_REQUIREMENT" && status != "CRITICAL" {
+						continue
+					}
+				} else if sf == "CRITICAL" {
+					if status != "CRITICAL" {
+						continue
+					}
+				}
+			}
+		}
+
+		allEvaluatedItems = append(allEvaluatedItems, item)
+	}
+
+	// 7. Stable Sort in-memory with allowlist
+	cleanSortBy := strings.ToLower(strings.TrimSpace(sortBy))
+	if cleanSortBy == "" {
+		cleanSortBy = "name"
+	}
+	isDesc := strings.ToLower(strings.TrimSpace(sortOrder)) == "desc"
+
+	sort.SliceStable(allEvaluatedItems, func(i, j int) bool {
+		a, b := allEvaluatedItems[i], allEvaluatedItems[j]
+		var cmp int
+		switch cleanSortBy {
+		case "roll_number":
+			cmp = strings.Compare(strings.ToLower(a.RollNumber), strings.ToLower(b.RollNumber))
+		case "attendance_percentage", "percentage":
+			if a.AttendancePercentage < b.AttendancePercentage {
+				cmp = -1
+			} else if a.AttendancePercentage > b.AttendancePercentage {
+				cmp = 1
+			} else {
+				cmp = strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+			}
+		case "present":
+			if a.Present < b.Present {
+				cmp = -1
+			} else if a.Present > b.Present {
+				cmp = 1
+			} else {
+				cmp = strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+			}
+		case "absent":
+			if a.Absent < b.Absent {
+				cmp = -1
+			} else if a.Absent > b.Absent {
+				cmp = 1
+			} else {
+				cmp = strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+			}
+		case "name":
+			fallthrough
+		default:
+			cmp = strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+		}
+
+		if isDesc {
+			return cmp > 0
+		}
+		return cmp < 0
+	})
+
+	// 8. Pagination calculation
+	totalRecords := int64(len(allEvaluatedItems))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	} else if pageSize > 100 {
+		pageSize = 100
+	}
+
+	totalPages := int(math.Ceil(float64(totalRecords) / float64(pageSize)))
+	if totalPages == 0 && totalRecords == 0 {
+		totalPages = 0
+	}
+
+	startIndex := (page - 1) * pageSize
+	if startIndex > len(allEvaluatedItems) {
+		startIndex = len(allEvaluatedItems)
+	}
+	endIndex := startIndex + pageSize
+	if endIndex > len(allEvaluatedItems) {
+		endIndex = len(allEvaluatedItems)
+	}
+
+	pagedItems := allEvaluatedItems[startIndex:endIndex]
+	if pagedItems == nil {
+		pagedItems = []models.TeacherStudentSearchItem{}
+	}
+
+	return &models.TeacherStudentSearchResponse{
+		Items: pagedItems,
+		Pagination: models.TeacherStudentSearchPagination{
+			Page:       page,
+			PageSize:   pageSize,
+			Total:      totalRecords,
+			TotalPages: totalPages,
+		},
+		Summary: models.TeacherStudentSearchSummary{
+			TotalStudents:              totalRecords,
+			StudentsMeetingRequirement: meetingCount,
+			StudentsBelowRequirement:   belowCount,
+			StudentsCritical:           criticalCount,
+		},
+	}, nil
+}
+
+// GetTeacherStudentAttendanceDetail returns student overall attendance, subject performance, and verified session logs
+func GetTeacherStudentAttendanceDetail(
+	db *gorm.DB,
+	teacherUserID string,
+	studentID string,
+	subjectIDFilter *string,
+	statusFilter *string,
+	fromDate *string,
+	toDate *string,
+	page int,
+	limit int,
+) (*models.TeacherStudentAttendanceDetailResponse, error) {
+	// 1. Resolve teacher record
+	var teacher models.Teacher
+	if err := db.Where("user_id = ?", teacherUserID).First(&teacher).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("Teacher profile not found.")
+		}
+		return nil, err
+	}
+
+	// 2. Fetch student profile
+	var student models.Student
+	if err := db.Preload("User").Preload("Class").Where("id = ?", studentID).First(&student).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("Student not found.")
+		}
+		return nil, err
+	}
+
+	if student.ClassID == nil || *student.ClassID == "" {
+		return nil, errors.New("Student is not assigned to any academic class.")
+	}
+	classID := *student.ClassID
+
+	// 3. Verify teacher authorization: Teacher must be assigned to teach this student's class
+	var authCount int64
+	if err := db.Model(&models.TeacherSubjectClass{}).
+		Where("teacher_id = ? AND class_id = ?", teacher.ID, classID).
+		Count(&authCount).Error; err != nil {
+		return nil, fmt.Errorf("failed to verify teacher authorization: %w", err)
+	}
+
+	if authCount == 0 {
+		return nil, errors.New("Access denied: You are not authorized to view this student's attendance records.")
+	}
+
+	// 4. Fetch distinct subjects taught to this class (curriculum)
+	type subjectItem struct {
+		ID   string
+		Name string
+		Code string
+	}
+	var classSubjects []subjectItem
+	subQuery := `
+		SELECT DISTINCT s.id, s.name, s.code
+		FROM teacher_subject_classes tsc
+		JOIN subjects s ON tsc.subject_id = s.id
+		WHERE tsc.class_id = ?
+		ORDER BY s.name ASC
+	`
+	if err := db.Raw(subQuery, classID).Scan(&classSubjects).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch class subjects: %w", err)
+	}
+
+	// 5. Query all attendance sessions for student's class
+	type sessionDetailRow struct {
+		ID          string
+		SubjectID   string
+		SubjectName string
+		SubjectCode string
+		StartedAt   time.Time
+		ExpiresAt   time.Time
+	}
+	var allSessions []sessionDetailRow
+	sQuery := db.Table("attendance_sessions s").
+		Select("s.id, s.subject_id, sub.name AS subject_name, sub.code AS subject_code, s.started_at, s.expires_at").
+		Joins("JOIN subjects sub ON s.subject_id = sub.id").
+		Where("s.class_id = ?", classID)
+
+	if err := sQuery.Order("s.started_at DESC").Scan(&allSessions).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch sessions: %w", err)
+	}
+
+	// 6. Fetch student attendance records for all sessions
+	allSessionIDs := make([]string, len(allSessions))
+	for i, s := range allSessions {
+		allSessionIDs[i] = s.ID
+	}
+
+	type attDetailRow struct {
+		SessionID string
+		MarkedAt  time.Time
+		Status    string
+	}
+	var attRecords []attDetailRow
+	if len(allSessionIDs) > 0 {
+		if err := db.Table("attendance").
+			Select("session_id, marked_at, status").
+			Where("student_id = ? AND session_id IN ?", student.ID, allSessionIDs).
+			Scan(&attRecords).Error; err != nil {
+			return nil, fmt.Errorf("failed to fetch student attendance: %w", err)
+		}
+	}
+
+	attendanceMap := make(map[string]*attDetailRow)
+	for i := range attRecords {
+		attendanceMap[attRecords[i].SessionID] = &attRecords[i]
+	}
+
+	// 7. Calculate Subject-Wise Breakdown
+	type subAcc struct {
+		Total   int64
+		Present int64
+	}
+	subjectStatsMap := make(map[string]*subAcc)
+	for _, cs := range classSubjects {
+		subjectStatsMap[cs.ID] = &subAcc{Total: 0, Present: 0}
+	}
+
+	var overallTotal int64 = int64(len(allSessions))
+	var overallPresent int64 = 0
+
+	for _, s := range allSessions {
+		if acc, ok := subjectStatsMap[s.SubjectID]; ok {
+			acc.Total++
+		}
+		if _, attended := attendanceMap[s.ID]; attended {
+			overallPresent++
+			if acc, ok := subjectStatsMap[s.SubjectID]; ok {
+				acc.Present++
+			}
+		}
+	}
+
+	var overallAbsent int64 = 0
+	if overallTotal > overallPresent {
+		overallAbsent = overallTotal - overallPresent
+	}
+
+	overallPct := 0.0
+	if overallTotal > 0 {
+		overallPct = math.Round((float64(overallPresent)/float64(overallTotal))*1000) / 10
+	}
+
+	overallStatus := "REQUIREMENT_MET"
+	if overallTotal > 0 {
+		if overallPct >= 75.0 {
+			overallStatus = "REQUIREMENT_MET"
+		} else if overallPct >= 60.0 {
+			overallStatus = "BELOW_REQUIREMENT"
+		} else {
+			overallStatus = "CRITICAL"
+		}
+	}
+
+	var subjectDetails []models.TeacherStudentAttendanceDetailSubject
+	for _, cs := range classSubjects {
+		acc := subjectStatsMap[cs.ID]
+		sTotal := int64(0)
+		sPresent := int64(0)
+		if acc != nil {
+			sTotal = acc.Total
+			sPresent = acc.Present
+		}
+		sAbsent := int64(0)
+		if sTotal > sPresent {
+			sAbsent = sTotal - sPresent
+		}
+		sPct := 0.0
+		if sTotal > 0 {
+			sPct = math.Round((float64(sPresent)/float64(sTotal))*1000) / 10
+		}
+		sStatus := "REQUIREMENT_MET"
+		if sTotal > 0 {
+			if sPct >= 75.0 {
+				sStatus = "REQUIREMENT_MET"
+			} else if sPct >= 60.0 {
+				sStatus = "BELOW_REQUIREMENT"
+			} else {
+				sStatus = "CRITICAL"
+			}
+		}
+		subjectDetails = append(subjectDetails, models.TeacherStudentAttendanceDetailSubject{
+			SubjectID:   cs.ID,
+			SubjectName: cs.Name,
+			SubjectCode: cs.Code,
+			Total:       sTotal,
+			Present:     sPresent,
+			Absent:      sAbsent,
+			Percentage:  sPct,
+			Status:      sStatus,
+		})
+	}
+
+	// 8. Build History Records with Filters
+	var filteredHistoryRecords []models.TeacherStudentAttendanceDetailHistoryRecord
+	for _, s := range allSessions {
+		// Apply subject filter
+		if subjectIDFilter != nil && strings.TrimSpace(*subjectIDFilter) != "" {
+			if s.SubjectID != strings.TrimSpace(*subjectIDFilter) {
+				continue
+			}
+		}
+
+		// Apply date range filters
+		if fromDate != nil && strings.TrimSpace(*fromDate) != "" {
+			if s.StartedAt.Format("2006-01-02") < strings.TrimSpace(*fromDate) {
+				continue
+			}
+		}
+		if toDate != nil && strings.TrimSpace(*toDate) != "" {
+			if s.StartedAt.Format("2006-01-02") > strings.TrimSpace(*toDate) {
+				continue
+			}
+		}
+
+		recStatus := "ABSENT"
+		var markedAt *time.Time
+		if att, attended := attendanceMap[s.ID]; attended {
+			recStatus = "PRESENT"
+			mTime := att.MarkedAt
+			markedAt = &mTime
+		}
+
+		// Apply status filter
+		if statusFilter != nil && strings.TrimSpace(*statusFilter) != "" {
+			sf := strings.ToUpper(strings.TrimSpace(*statusFilter))
+			if sf != "ALL" && sf != recStatus {
+				continue
+			}
+		}
+
+		filteredHistoryRecords = append(filteredHistoryRecords, models.TeacherStudentAttendanceDetailHistoryRecord{
+			SessionID:   s.ID,
+			SubjectID:   s.SubjectID,
+			SubjectName: s.SubjectName,
+			SubjectCode: s.SubjectCode,
+			StartedAt:   s.StartedAt,
+			EndedAt:     s.ExpiresAt,
+			Status:      recStatus,
+			MarkedAt:    markedAt,
+		})
+	}
+
+	// 9. Paginate History Records
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 20
+	} else if limit > 100 {
+		limit = 100
+	}
+
+	totalHistoryRecords := int64(len(filteredHistoryRecords))
+	totalHistoryPages := int(math.Ceil(float64(totalHistoryRecords) / float64(limit)))
+	if totalHistoryPages == 0 && totalHistoryRecords == 0 {
+		totalHistoryPages = 0
+	}
+
+	hStart := (page - 1) * limit
+	if hStart > len(filteredHistoryRecords) {
+		hStart = len(filteredHistoryRecords)
+	}
+	hEnd := hStart + limit
+	if hEnd > len(filteredHistoryRecords) {
+		hEnd = len(filteredHistoryRecords)
+	}
+
+	pagedHistory := filteredHistoryRecords[hStart:hEnd]
+	if pagedHistory == nil {
+		pagedHistory = []models.TeacherStudentAttendanceDetailHistoryRecord{}
+	}
+
+	className := ""
+	dept := student.Department
+	sem := student.Semester
+	sec := student.Section
+	if student.Class != nil {
+		className = student.Class.Name
+		dept = student.Class.Department
+		sem = student.Class.Semester
+		sec = student.Class.Section
+	}
+
+	return &models.TeacherStudentAttendanceDetailResponse{
+		Student: models.TeacherStudentBriefInfo{
+			ID:         student.ID,
+			UserID:     student.UserID,
+			Name:       student.User.Name,
+			RollNumber: student.RollNumber,
+			Email:      student.User.Email,
+			ClassID:    classID,
+			ClassName:  className,
+			Department: dept,
+			Semester:   sem,
+			Section:    sec,
+		},
+		Summary: models.TeacherStudentAttendanceDetailSummary{
+			OverallPercentage: overallPct,
+			TotalSessions:     overallTotal,
+			TotalPresent:      overallPresent,
+			TotalAbsent:       overallAbsent,
+			Status:            overallStatus,
+		},
+		Subjects: subjectDetails,
+		History: models.TeacherStudentAttendanceDetailHistory{
+			Records: pagedHistory,
+			Pagination: models.StudentAttendanceHistoryPagination{
+				Page:         page,
+				Limit:        limit,
+				TotalRecords: totalHistoryRecords,
+				TotalPages:   totalHistoryPages,
+			},
+		},
+	}, nil
+}
+

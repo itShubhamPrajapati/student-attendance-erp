@@ -145,6 +145,10 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			teacherGroup.GET("/attendance/sessions/:id/live", handlers.GetTeacherLiveSessionHandler(database.DB))
 			teacherGroup.POST("/attendance/sessions/:id/end", handlers.EndAttendanceSessionHandler(database.DB))
 			teacherGroup.GET("/attendance/sessions/:id/records", handlers.GetTeacherSessionRecordsHandler(database.DB))
+
+			// Student Attendance Search & Details (Feature #9)
+			teacherGroup.GET("/students/search", handlers.SearchTeacherStudentsHandler(database.DB))
+			teacherGroup.GET("/students/:student_id/attendance", handlers.GetTeacherStudentAttendanceDetailHandler(database.DB))
 		}
 
 		// ==============================================================================

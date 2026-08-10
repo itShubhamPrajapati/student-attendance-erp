@@ -553,3 +553,239 @@ func GetAdminSessionRecordsHandler(db *gorm.DB) gin.HandlerFunc {
 		})
 	}
 }
+
+// ==============================================================================
+// TEACHER STUDENT ATTENDANCE SEARCH HANDLERS (Feature #9)
+// ==============================================================================
+
+// SearchTeacherStudentsHandler handles GET /api/teacher/students/search
+func SearchTeacherStudentsHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Authentication required"})
+			return
+		}
+
+		query := strings.TrimSpace(c.Query("q"))
+		classIDParam := strings.TrimSpace(c.Query("class_id"))
+		subjectIDParam := strings.TrimSpace(c.Query("subject_id"))
+		statusParam := strings.TrimSpace(c.Query("status"))
+		fromParam := strings.TrimSpace(c.Query("from"))
+		toParam := strings.TrimSpace(c.Query("to"))
+		sortBy := strings.TrimSpace(c.DefaultQuery("sort", "name"))
+		sortOrder := strings.TrimSpace(c.DefaultQuery("order", "asc"))
+
+		page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+		pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", c.DefaultQuery("limit", "20")))
+
+		var classID *string
+		if classIDParam != "" {
+			classID = &classIDParam
+		}
+
+		var subjectID *string
+		if subjectIDParam != "" {
+			subjectID = &subjectIDParam
+		}
+
+		var statusFilter *string
+		if statusParam != "" {
+			statusFilter = &statusParam
+		}
+
+		var fromDate *string
+		var toDate *string
+		const dateLayout = "2006-01-02"
+
+		if fromParam != "" {
+			fromT, err := time.Parse(dateLayout, fromParam)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"message": "Invalid 'from' date format. Expected YYYY-MM-DD",
+				})
+				return
+			}
+			fromDate = &fromParam
+
+			if toParam != "" {
+				toT, err := time.Parse(dateLayout, toParam)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"success": false,
+						"message": "Invalid 'to' date format. Expected YYYY-MM-DD",
+					})
+					return
+				}
+				if fromT.After(toT) {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"success": false,
+						"message": "'from' date cannot be after 'to' date",
+					})
+					return
+				}
+				toDate = &toParam
+			}
+		} else if toParam != "" {
+			_, err := time.Parse(dateLayout, toParam)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"message": "Invalid 'to' date format. Expected YYYY-MM-DD",
+				})
+				return
+			}
+			toDate = &toParam
+		}
+
+		res, err := services.SearchTeacherStudents(
+			db,
+			userID,
+			query,
+			classID,
+			subjectID,
+			statusFilter,
+			fromDate,
+			toDate,
+			page,
+			pageSize,
+			sortBy,
+			sortOrder,
+		)
+		if err != nil {
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"success": false, "message": errMsg})
+				return
+			}
+			if strings.Contains(errMsg, "Access denied") || strings.Contains(errMsg, "not assigned") {
+				c.JSON(http.StatusForbidden, gin.H{"success": false, "message": errMsg})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to search students",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    res,
+		})
+	}
+}
+
+// GetTeacherStudentAttendanceDetailHandler handles GET /api/teacher/students/:student_id/attendance
+func GetTeacherStudentAttendanceDetailHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Authentication required"})
+			return
+		}
+
+		studentID := strings.TrimSpace(c.Param("student_id"))
+		if studentID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Student ID is required"})
+			return
+		}
+
+		subjectIDParam := strings.TrimSpace(c.Query("subject_id"))
+		statusParam := strings.TrimSpace(c.Query("status"))
+		fromParam := strings.TrimSpace(c.Query("from"))
+		toParam := strings.TrimSpace(c.Query("to"))
+
+		page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+		var subjectID *string
+		if subjectIDParam != "" {
+			subjectID = &subjectIDParam
+		}
+
+		var statusFilter *string
+		if statusParam != "" {
+			statusFilter = &statusParam
+		}
+
+		var fromDate *string
+		var toDate *string
+		const dateLayout = "2006-01-02"
+
+		if fromParam != "" {
+			fromT, err := time.Parse(dateLayout, fromParam)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"message": "Invalid 'from' date format. Expected YYYY-MM-DD",
+				})
+				return
+			}
+			fromDate = &fromParam
+
+			if toParam != "" {
+				toT, err := time.Parse(dateLayout, toParam)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"success": false,
+						"message": "Invalid 'to' date format. Expected YYYY-MM-DD",
+					})
+					return
+				}
+				if fromT.After(toT) {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"success": false,
+						"message": "'from' date cannot be after 'to' date",
+					})
+					return
+				}
+				toDate = &toParam
+			}
+		} else if toParam != "" {
+			_, err := time.Parse(dateLayout, toParam)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"message": "Invalid 'to' date format. Expected YYYY-MM-DD",
+				})
+				return
+			}
+			toDate = &toParam
+		}
+
+		detail, err := services.GetTeacherStudentAttendanceDetail(
+			db,
+			userID,
+			studentID,
+			subjectID,
+			statusFilter,
+			fromDate,
+			toDate,
+			page,
+			limit,
+		)
+		if err != nil {
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"success": false, "message": errMsg})
+				return
+			}
+			if strings.Contains(errMsg, "Access denied") || strings.Contains(errMsg, "not authorized") {
+				c.JSON(http.StatusForbidden, gin.H{"success": false, "message": errMsg})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to retrieve student attendance details",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    detail,
+		})
+	}
+}
