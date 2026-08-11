@@ -35,6 +35,8 @@ import {
   CorrectAttendancePayload,
   AttendanceAuditItem,
   ManualAttendanceResponse,
+  UpdateLateSettingsPayload,
+  UpdateLateSettingsResponse,
 } from '../types';
 import { getToken } from '../auth/authService';
 
@@ -819,6 +821,24 @@ export async function apiGetAttendanceAudit(
     }
   );
 }
+
+// ==============================================================================
+// Feature #12: Late Attendance Configuration APIs
+// ==============================================================================
+
+export async function apiUpdateLateAttendanceSettings(
+  sessionId: string,
+  payload: UpdateLateSettingsPayload
+): Promise<{ success: boolean; message: string; data: UpdateLateSettingsResponse }> {
+  return request<{ success: boolean; message: string; data: UpdateLateSettingsResponse }>(
+    `/api/teacher/attendance/sessions/${sessionId}/late-settings`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
 
 
 

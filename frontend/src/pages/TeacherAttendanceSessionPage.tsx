@@ -23,6 +23,7 @@ import {
   apiGetTeacherSessionDetails,
   apiGetTeacherLiveSessionData,
   apiEndAttendanceSession,
+  apiUpdateLateAttendanceSettings,
 } from '../services/api';
 
 export const TeacherAttendanceSessionPage: React.FC = () => {
@@ -40,6 +41,12 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showEndModal, setShowEndModal] = useState(false);
   const [ending, setEnding] = useState(false);
+
+  // Late Threshold Management State (Feature #12)
+  const [lateThresholdInput, setLateThresholdInput] = useState<number>(10);
+  const [savingLateThreshold, setSavingLateThreshold] = useState(false);
+  const [lateThresholdSuccess, setLateThresholdSuccess] = useState<string | null>(null);
+  const [lateThresholdError, setLateThresholdError] = useState<string | null>(null);
 
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -65,6 +72,11 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
           setLastUpdated(new Date());
           setPollError(null);
 
+          // Sync late threshold input if not actively focused/editing
+          if (res.data.late_threshold_minutes !== undefined) {
+            setLateThresholdInput(res.data.late_threshold_minutes);
+          }
+
           // Calculate remaining seconds against server expiry
           const expiryTime = new Date(res.data.qr_expires_at).getTime();
           const now = Date.now();
@@ -78,9 +90,6 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
           }
         }
       } catch (err: unknown) {
-        // Polling failure is strictly supplementary and non-blocking.
-        // It must NEVER cause a fatal "Session Unavailable" error, NEVER clear session,
-        // and NEVER disrupt the QR code or countdown.
         const msg = err instanceof Error ? err.message : 'Live attendance updates temporarily unavailable';
         setPollError(msg);
       } finally {
@@ -107,6 +116,9 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
 
         if (isMounted) {
           setSession(sessionRes.data);
+          if (sessionRes.data.late_threshold_minutes !== undefined) {
+            setLateThresholdInput(sessionRes.data.late_threshold_minutes);
+          }
           const expiryTime = new Date(sessionRes.data.expires_at).getTime();
           const now = Date.now();
           const diffSecs = Math.max(0, Math.floor((expiryTime - now) / 1000));
@@ -123,6 +135,9 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
           const liveRes = await apiGetTeacherLiveSessionData(sessionId);
           if (liveRes.data && isMounted) {
             setSessionData(liveRes.data);
+            if (liveRes.data.late_threshold_minutes !== undefined) {
+              setLateThresholdInput(liveRes.data.late_threshold_minutes);
+            }
             setLastUpdated(new Date());
           }
         } catch {
@@ -214,6 +229,48 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
     }
   };
 
+  // Handle Updating Late Threshold Setting (Feature #12)
+  const handleSaveLateThreshold = async (targetMinutes: number) => {
+    if (!sessionId) return;
+    if (targetMinutes < 0 || targetMinutes > 180) {
+      setLateThresholdError('Late threshold must be between 0 and 180 minutes.');
+      return;
+    }
+
+    setSavingLateThreshold(true);
+    setLateThresholdSuccess(null);
+    setLateThresholdError(null);
+
+    try {
+      const res = await apiUpdateLateAttendanceSettings(sessionId, {
+        late_threshold_minutes: targetMinutes,
+      });
+
+      setLateThresholdInput(targetMinutes);
+      if (session) {
+        setSession({
+          ...session,
+          late_threshold_minutes: targetMinutes,
+          late_after: res.data.late_after,
+        });
+      }
+
+      setLateThresholdSuccess(
+        `Late threshold updated to ${targetMinutes} minutes. Scans after ${new Date(
+          res.data.late_after
+        ).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} will be recorded as LATE.`
+      );
+
+      await fetchLiveData(true);
+    } catch (err: unknown) {
+      setLateThresholdError(
+        err instanceof Error ? err.message : 'Failed to update late threshold settings.'
+      );
+    } finally {
+      setSavingLateThreshold(false);
+    }
+  };
+
   // Format seconds into MM:SS
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -221,7 +278,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Filter present students list by search query
+  // Filter present/late students list by search query
   const filteredStudents = useMemo(() => {
     if (!sessionData?.students) return [];
     if (!searchQuery.trim()) return sessionData.students;
@@ -271,12 +328,32 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
   }
 
   const isLive = session.is_active && !isExpiredOrEnded;
-  const presentCount = sessionData?.present_count ?? session.present_count;
-  const totalStudents = sessionData?.total_students ?? session.total_students;
-  const attendancePercentage = sessionData?.attendance_percentage ?? session.percentage;
-  const absentCount = sessionData?.absent_count ?? session.absent_count ?? Math.max(0, totalStudents - presentCount);
-  const durationMinutes = sessionData?.duration_minutes ?? session.duration_minutes;
+  const presentCount = sessionData?.present_count ?? session.present_count ?? 0;
+  const lateCount = sessionData?.late_count ?? session.late_count ?? 0;
+  const totalStudents = sessionData?.total_students ?? session.total_students ?? 0;
+  const attendedCount = presentCount + lateCount;
+  const absentCount =
+    sessionData?.absent_count ?? session.absent_count ?? Math.max(0, totalStudents - attendedCount);
+  const attendancePercentage =
+    sessionData?.attendance_percentage ??
+    session.percentage ??
+    (totalStudents > 0 ? Math.round((attendedCount / totalStudents) * 1000) / 10 : 0);
+  const latePercentage =
+    sessionData?.late_percentage ??
+    session.late_percentage ??
+    (totalStudents > 0 ? Math.round((lateCount / totalStudents) * 1000) / 10 : 0);
+  const durationMinutes = sessionData?.duration_minutes ?? session.duration_minutes ?? 15;
   const studentsList = sessionData?.students ?? [];
+
+  // Calculate Late Threshold & Active Window
+  const currentLateThreshold =
+    sessionData?.late_threshold_minutes ?? session.late_threshold_minutes ?? 10;
+  const sessionStartedTime = new Date(session.started_at).getTime();
+  const lateCutoffTime = sessionStartedTime + currentLateThreshold * 60 * 1000;
+  const currentTime = Date.now();
+  const isLateWindowActive = currentTime > lateCutoffTime;
+  const onTimeRemainingSecs = Math.max(0, Math.floor((lateCutoffTime - currentTime) / 1000));
+  const lateCutoffDate = new Date(lateCutoffTime);
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -338,121 +415,235 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
       {/* Main Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT / MAIN COLUMN: QR Code & Expiration Box (7 Cols) */}
-        <Card className="lg:col-span-7 p-6 sm:p-7 flex flex-col items-center justify-center text-center space-y-5 bg-white border-slate-200/80 shadow-md">
-          {/* Metadata Banner */}
-          <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 text-left">
-            <div>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Course Subject</span>
-              <h3 className="text-base font-bold text-slate-900 font-heading">{session.subject_name}</h3>
-              <p className="text-xs font-mono font-semibold text-indigo-600">{session.subject_code}</p>
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Class Batch</span>
-              <p className="text-xs font-bold text-slate-800">{session.class_name}</p>
-              <p className="text-[11px] text-slate-500 font-medium">
-                Sem {session.semester} &bull; Section {session.section}
-              </p>
-            </div>
-          </div>
-
-          {/* Large QR Display Container */}
-          <div className="relative p-6 rounded-3xl bg-slate-50 border border-slate-200/80 shadow-inner flex flex-col items-center justify-center w-full max-w-[340px]">
-            <div
-              className={`p-4 rounded-2xl bg-white shadow-xs transition duration-300 ${
-                !isLive ? 'opacity-20 blur-[2px] grayscale' : ''
-              }`}
-            >
-              <QRCodeSVG
-                value={qrScanUrl}
-                size={250}
-                level="H"
-                includeMargin={false}
-                bgColor="#FFFFFF"
-                fgColor="#0F172A"
-              />
-            </div>
-
-            {/* Expired / Ended Overlay */}
-            {!isLive && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-5 bg-slate-900/70 backdrop-blur-xs rounded-3xl text-white space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-400 flex items-center justify-center">
-                  <Lock className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold font-heading">
-                    {!session.is_active ? 'Attendance Session Concluded' : 'QR Code Expired'}
-                  </h4>
-                  <p className="text-xs text-slate-300 max-w-xs text-center mt-1">
-                    Student attendance recording is closed for this session token.
-                  </p>
-                </div>
-                <div className="pt-2 flex flex-col sm:flex-row items-center gap-2 w-full px-4">
-                  <Link to={`/teacher/attendance/${session.id}/records`} className="w-full">
-                    <Button size="sm" variant="primary" className="w-full text-xs">
-                      View Attendance Records
-                    </Button>
-                  </Link>
-                  <Link to="/teacher" className="w-full">
-                    <Button size="sm" variant="outline" className="w-full text-xs bg-white/10 hover:bg-white/20 border-white/20 text-white">
-                      Start New Session
-                    </Button>
-                  </Link>
-                </div>
+        <div className="lg:col-span-7 space-y-5">
+          <Card className="p-6 sm:p-7 flex flex-col items-center justify-center text-center space-y-5 bg-white border-slate-200/80 shadow-md">
+            {/* Metadata Banner */}
+            <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 text-left">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Course Subject</span>
+                <h3 className="text-base font-bold text-slate-900 font-heading">{session.subject_name}</h3>
+                <p className="text-xs font-mono font-semibold text-indigo-600">{session.subject_code}</p>
               </div>
-            )}
-          </div>
-
-          {/* QR Countdown & Live Status Box */}
-          <div className="w-full p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5 text-center">
-            <div className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span>QR Status:</span>
-              <span className={isLive ? 'text-emerald-700 font-bold' : 'text-slate-500 font-semibold'}>
-                {isLive ? '● ACTIVE' : !session.is_active ? 'COMPLETED' : 'EXPIRED'}
-              </span>
+              <div className="text-right">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Class Batch</span>
+                <p className="text-xs font-bold text-slate-800">{session.class_name}</p>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  Sem {session.semester} &bull; Section {session.section}
+                </p>
+              </div>
             </div>
 
-            <div className="text-xs text-slate-600 font-medium">
-              {isLive ? (
-                <span>
-                  QR expires in:{' '}
-                  <strong
-                    className={`font-mono text-sm ${
-                      secondsRemaining < 60
-                        ? 'text-rose-600 font-bold animate-pulse'
-                        : secondsRemaining < 120
-                        ? 'text-amber-600 font-bold'
-                        : 'text-indigo-900 font-bold'
-                    }`}
-                  >
-                    {formatTime(secondsRemaining)}
-                  </strong>
-                </span>
-              ) : (
-                <span className="text-slate-400 font-mono text-xs">00:00 (Check-ins Closed)</span>
+            {/* Large QR Display Container */}
+            <div className="relative p-6 rounded-3xl bg-slate-50 border border-slate-200/80 shadow-inner flex flex-col items-center justify-center w-full max-w-[340px]">
+              <div
+                className={`p-4 rounded-2xl bg-white shadow-xs transition duration-300 ${
+                  !isLive ? 'opacity-20 blur-[2px] grayscale' : ''
+                }`}
+              >
+                <QRCodeSVG
+                  value={qrScanUrl}
+                  size={250}
+                  level="H"
+                  includeMargin={false}
+                  bgColor="#FFFFFF"
+                  fgColor="#0F172A"
+                />
+              </div>
+
+              {/* Expired / Ended Overlay */}
+              {!isLive && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-5 bg-slate-900/70 backdrop-blur-xs rounded-3xl text-white space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-400 flex items-center justify-center">
+                    <Lock className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold font-heading">
+                      {!session.is_active ? 'Attendance Session Concluded' : 'QR Code Expired'}
+                    </h4>
+                    <p className="text-xs text-slate-300 max-w-xs text-center mt-1">
+                      Student attendance recording is closed for this session token.
+                    </p>
+                  </div>
+                  <div className="pt-2 flex flex-col sm:flex-row items-center gap-2 w-full px-4">
+                    <Link to={`/teacher/attendance/${session.id}/records`} className="w-full">
+                      <Button size="sm" variant="primary" className="w-full text-xs">
+                        View Attendance Records
+                      </Button>
+                    </Link>
+                    <Link to="/teacher" className="w-full">
+                      <Button size="sm" variant="outline" className="w-full text-xs bg-white/10 hover:bg-white/20 border-white/20 text-white">
+                        Start New Session
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
 
-          <p className="text-xs text-slate-500 max-w-md">
-            Students must scan this QR code with their mobile device logged into the student portal.
-          </p>
+            {/* QR Countdown & Live Status Box */}
+            <div className="w-full p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5 text-center">
+              <div className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <span>QR Status:</span>
+                <span className={isLive ? 'text-emerald-700 font-bold' : 'text-slate-500 font-semibold'}>
+                  {isLive ? '● ACTIVE' : !session.is_active ? 'COMPLETED' : 'EXPIRED'}
+                </span>
+              </div>
 
-          {/* Bottom Session Action Controls */}
-          {isLive && (
-            <div className="w-full pt-2 border-t border-slate-100 flex justify-center">
+              <div className="text-xs text-slate-600 font-medium">
+                {isLive ? (
+                  <span>
+                    QR expires in:{' '}
+                    <strong
+                      className={`font-mono text-sm ${
+                        secondsRemaining < 60
+                          ? 'text-rose-600 font-bold animate-pulse'
+                          : secondsRemaining < 120
+                          ? 'text-amber-600 font-bold'
+                          : 'text-indigo-900 font-bold'
+                      }`}
+                    >
+                      {formatTime(secondsRemaining)}
+                    </strong>
+                  </span>
+                ) : (
+                  <span className="text-slate-400 font-mono text-xs">00:00 (Check-ins Closed)</span>
+                )}
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 max-w-md">
+              Students must scan this QR code with their mobile device logged into the student portal.
+            </p>
+
+            {/* Bottom Session Action Controls */}
+            {isLive && (
+              <div className="w-full pt-2 border-t border-slate-100 flex justify-center">
+                <Button
+                  variant="danger"
+                  size="md"
+                  onClick={() => setShowEndModal(true)}
+                  leftIcon={<XCircle className="w-4 h-4" />}
+                  className="w-full sm:w-auto"
+                >
+                  End Attendance Session Now
+                </Button>
+              </div>
+            )}
+          </Card>
+
+          {/* Late Attendance Threshold Configuration Card (Feature #12) */}
+          <Card className="p-5 bg-white border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 font-heading">
+                    Late Attendance Configuration
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Threshold: <strong className="text-slate-800 font-semibold">{currentLateThreshold} minutes</strong> &bull; Cutoff:{' '}
+                    <span className="font-mono font-medium text-slate-700">
+                      {lateCutoffDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Dynamic Live Window Status Badge */}
+              {isLive && (
+                <div>
+                  {isLateWindowActive ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300/80 shadow-xs animate-pulse">
+                      <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                      LATE WINDOW ACTIVE
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300/80 shadow-xs">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      ON-TIME WINDOW ({formatTime(onTimeRemainingSecs)})
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Threshold Preset Selectors */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-semibold text-slate-600 block">
+                Quick Adjust Late Window:
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { label: '0m (Strict/Immediate)', value: 0 },
+                  { label: '5 min', value: 5 },
+                  { label: '10 min (Default)', value: 10 },
+                  { label: '15 min', value: 15 },
+                  { label: '30 min', value: 30 },
+                ].map((preset) => (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => handleSaveLateThreshold(preset.value)}
+                    disabled={savingLateThreshold}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold border transition ${
+                      currentLateThreshold === preset.value
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Input */}
+            <div className="flex items-center gap-2 pt-1">
+              <div className="relative flex-1 max-w-[160px]">
+                <input
+                  type="number"
+                  min="0"
+                  max="180"
+                  value={lateThresholdInput}
+                  onChange={(e) => setLateThresholdInput(Math.max(0, Math.min(180, parseInt(e.target.value) || 0)))}
+                  className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-mono text-slate-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  placeholder="Minutes (0-180)"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-medium">
+                  min
+                </span>
+              </div>
               <Button
-                variant="danger"
-                size="md"
-                onClick={() => setShowEndModal(true)}
-                leftIcon={<XCircle className="w-4 h-4" />}
-                className="w-full sm:w-auto"
+                size="sm"
+                variant="outline"
+                onClick={() => handleSaveLateThreshold(lateThresholdInput)}
+                isLoading={savingLateThreshold}
+                className="text-xs"
               >
-                End Attendance Session Now
+                Set Threshold
               </Button>
             </div>
-          )}
-        </Card>
+
+            {/* Alerts */}
+            {lateThresholdSuccess && (
+              <p className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 p-2 rounded-xl">
+                {lateThresholdSuccess}
+              </p>
+            )}
+            {lateThresholdError && (
+              <p className="text-[11px] text-rose-700 bg-rose-50 border border-rose-200/80 p-2 rounded-xl">
+                {lateThresholdError}
+              </p>
+            )}
+
+            <div className="text-[11px] text-slate-500 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100">
+              💡 <strong>Academic Rule:</strong> Students who scan after the threshold are automatically recorded as <strong className="text-amber-700">LATE</strong>. Per policy, late attendance counts as <strong>ATTENDED</strong> towards required attendance.
+            </div>
+          </Card>
+        </div>
 
         {/* RIGHT / SUMMARY COLUMN: Counters, Progress & Live Student Feed (5 Cols) */}
         <div className="lg:col-span-5 space-y-4">
@@ -461,16 +652,16 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-800 font-heading">
                 <Users className="w-4 h-4 text-indigo-600" />
-                <span>Attendance Progress</span>
+                <span>Attendance Telemetry</span>
               </div>
               <div className="flex items-center gap-1.5">
                 {isLive ? (
                   <Badge variant="success" withDot className="text-[10px]">
-                    Live Polling
+                    Live Feed
                   </Badge>
                 ) : (
                   <Badge variant="neutral" className="text-[10px]">
-                    Final Count
+                    Concluded
                   </Badge>
                 )}
               </div>
@@ -480,11 +671,11 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3 items-end">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-                  Students Present
+                  Total Attended
                 </span>
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-extrabold text-slate-900 font-heading">
-                    {presentCount}
+                    {attendedCount}
                   </span>
                   <span className="text-sm font-semibold text-slate-400">
                     / {totalStudents}
@@ -502,17 +693,39 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Visual Progress Bar */}
+            {/* Three Breakdown Chips (Present, Late, Absent) */}
+            <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono">
+              <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200/60">
+                <span className="text-[10px] font-bold text-emerald-800 block uppercase">On-Time</span>
+                <span className="text-base font-extrabold text-emerald-700">{presentCount}</span>
+              </div>
+              <div className="p-2 rounded-xl bg-amber-50 border border-amber-200/60">
+                <span className="text-[10px] font-bold text-amber-800 block uppercase">Late ({latePercentage}%)</span>
+                <span className="text-base font-extrabold text-amber-700">{lateCount}</span>
+              </div>
+              <div className="p-2 rounded-xl bg-rose-50 border border-rose-200/60">
+                <span className="text-[10px] font-bold text-rose-800 block uppercase">Absent</span>
+                <span className="text-base font-extrabold text-rose-700">{absentCount}</span>
+              </div>
+            </div>
+
+            {/* Dual-Tone Visual Progress Bar */}
             <div className="space-y-1">
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+              <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden flex">
                 <div
-                  className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${Math.min(100, attendancePercentage)}%` }}
+                  className="bg-emerald-500 h-3 transition-all duration-500 ease-out"
+                  style={{ width: `${totalStudents > 0 ? (presentCount / totalStudents) * 100 : 0}%` }}
+                  title={`Present On-Time: ${presentCount}`}
+                />
+                <div
+                  className="bg-amber-400 h-3 transition-all duration-500 ease-out"
+                  style={{ width: `${totalStudents > 0 ? (lateCount / totalStudents) * 100 : 0}%` }}
+                  title={`Late: ${lateCount}`}
                 />
               </div>
               <div className="flex justify-between text-[10px] text-slate-400 font-medium">
-                <span>{presentCount} Marked Present</span>
-                <span>{absentCount} Pending / Absent</span>
+                <span>{attendedCount} Total Attended ({presentCount} on-time, {lateCount} late)</span>
+                <span>{absentCount} Absent</span>
               </div>
             </div>
 
@@ -535,7 +748,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-heading">
-                    Live Attendance ({presentCount})
+                    Live Check-Ins ({attendedCount})
                   </h4>
                   {isLive && (
                     <span className="flex h-2 w-2 relative">
@@ -596,44 +809,59 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                 </div>
               ) : filteredStudents.length === 0 ? (
                 <div className="py-6 text-center text-xs text-slate-400">
-                  No present students match "{searchQuery}".
+                  No present or late students match "{searchQuery}".
                 </div>
               ) : (
-                filteredStudents.map((st) => (
-                  <div
-                    key={st.student_id}
-                    className="p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60 hover:bg-slate-50 transition flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 font-bold text-[11px]">
-                        ✓
+                filteredStudents.map((st) => {
+                  const isStudentLate = st.status === 'LATE';
+                  return (
+                    <div
+                      key={st.student_id}
+                      className="p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60 hover:bg-slate-50 transition flex items-center justify-between text-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-[11px] ${
+                            isStudentLate
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-emerald-100 text-emerald-700'
+                          }`}
+                        >
+                          {isStudentLate ? <Clock className="w-3.5 h-3.5" /> : '✓'}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900 font-heading truncate max-w-[140px] sm:max-w-[180px]">
+                            {st.name}
+                          </p>
+                          <span className="font-mono text-[10px] text-indigo-600 font-medium">
+                            {st.roll_number}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-slate-900 font-heading truncate max-w-[140px] sm:max-w-[180px]">
-                          {st.name}
-                        </p>
-                        <span className="font-mono text-[10px] text-indigo-600 font-medium">
-                          {st.roll_number}
+
+                      <div className="text-right">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                            isStudentLate
+                              ? 'bg-amber-50 text-amber-800 border-amber-200/80'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
+                          }`}
+                        >
+                          {isStudentLate ? 'LATE' : 'PRESENT'}
+                        </span>
+                        <span className="block font-mono text-[10px] text-slate-400 mt-0.5">
+                          {st.marked_at
+                            ? new Date(st.marked_at).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              })
+                            : '—'}
                         </span>
                       </div>
                     </div>
-
-                    <div className="text-right">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/50">
-                        PRESENT
-                      </span>
-                      <span className="block font-mono text-[10px] text-slate-400 mt-0.5">
-                        {st.marked_at
-                          ? new Date(st.marked_at).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit',
-                            })
-                          : '—'}
-                      </span>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </Card>

@@ -138,13 +138,15 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			teacherGroup.GET("/profile", handlers.GetTeacherProfileHandler(database.DB))
 			teacherGroup.GET("/assignments", handlers.GetTeacherAssignmentsHandler(database.DB))
 
-			// Live Attendance Session Management (Phase 4)
+			// Live Attendance Session Management (Phase 4 & Feature #12 Late Attendance)
 			teacherGroup.POST("/attendance/sessions", handlers.CreateAttendanceSessionHandler(database.DB))
 			teacherGroup.GET("/attendance/sessions", handlers.GetTeacherSessionsHandler(database.DB))
 			teacherGroup.GET("/attendance/sessions/:id", handlers.GetTeacherSessionByIDHandler(database.DB))
 			teacherGroup.GET("/attendance/sessions/:id/live", handlers.GetTeacherLiveSessionHandler(database.DB))
 			teacherGroup.POST("/attendance/sessions/:id/end", handlers.EndAttendanceSessionHandler(database.DB))
 			teacherGroup.GET("/attendance/sessions/:id/records", handlers.GetTeacherSessionRecordsHandler(database.DB))
+			teacherGroup.PATCH("/attendance/sessions/:id/late-settings", handlers.UpdateSessionLateSettingsHandler(database.DB))
+			teacherGroup.PATCH("/sessions/:id/late-settings", handlers.UpdateSessionLateSettingsHandler(database.DB))
 
 			// Student Attendance Search & Details (Feature #9)
 			teacherGroup.GET("/students/search", handlers.SearchTeacherStudentsHandler(database.DB))

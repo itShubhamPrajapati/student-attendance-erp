@@ -67,6 +67,7 @@ func TestTeacherSessionRoutesRegistered(t *testing.T) {
 		{"Teacher Manual Attendance Mark", "POST", "/api/teacher/attendance/manual", teacherToken},
 		{"Teacher Attendance Correction", "PATCH", "/api/teacher/attendance/12345/correct", teacherToken},
 		{"Teacher Attendance Audit History", "GET", "/api/teacher/attendance/12345/audit", teacherToken},
+		{"Teacher Update Late Settings", "PATCH", "/api/teacher/attendance/sessions/12345/late-settings", teacherToken},
 		{"Student Mark Attendance", "POST", "/api/attendance/mark", studentToken},
 		{"Student Attendance Summary", "GET", "/api/student/attendance/summary", studentToken},
 		{"Student Attendance Calendar", "GET", "/api/student/attendance/calendar", studentToken},

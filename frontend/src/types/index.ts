@@ -219,6 +219,8 @@ export interface CreateAssignmentPayload {
   class_id: string;
 }
 
+export type AttendanceStatus = 'PRESENT' | 'LATE' | 'ABSENT';
+
 export interface AttendanceSession {
   id: string;
   teacher_id: string;
@@ -236,13 +238,17 @@ export interface AttendanceSession {
   session_token: string;
   started_at: string;
   expires_at: string;
+  late_threshold_minutes: number;
+  late_after?: string;
   duration_minutes?: number;
   is_active: boolean;
   is_expired: boolean;
   present_count: number;
+  late_count: number;
   absent_count?: number;
   total_students: number;
   percentage: number;
+  late_percentage: number;
   status?: string;
   created_at: string;
 }
@@ -253,7 +259,7 @@ export interface AttendanceStudentRecord {
   roll_number: string;
   name: string;
   email: string;
-  status: 'PRESENT' | 'ABSENT';
+  status: AttendanceStatus;
   marked_at?: string | null;
 }
 
@@ -261,8 +267,10 @@ export interface SessionAttendanceDetails {
   session: AttendanceSession;
   records: AttendanceStudentRecord[];
   present_count: number;
+  late_count: number;
   total_students: number;
   percentage: number;
+  late_percentage: number;
 }
 
 export interface LiveAttendanceSessionData {
@@ -270,8 +278,12 @@ export interface LiveAttendanceSessionData {
   status: 'ACTIVE' | 'COMPLETED' | 'EXPIRED' | string;
   total_students: number;
   present_count: number;
+  late_count: number;
   absent_count: number;
   attendance_percentage: number;
+  late_percentage: number;
+  late_threshold_minutes: number;
+  late_after?: string;
   qr_expires_at: string;
   started_at: string;
   duration_minutes: number;
@@ -291,7 +303,10 @@ export interface MarkAttendanceResponse {
   subject_name: string;
   subject_code: string;
   class_name: string;
-  status: string;
+  status: AttendanceStatus | string;
+  late_threshold_minutes?: number;
+  is_late?: boolean;
+  late_cutoff?: string;
 }
 
 export interface SubjectAttendanceStat {
@@ -299,16 +314,20 @@ export interface SubjectAttendanceStat {
   subject_name: string;
   subject_code: string;
   present_sessions: number;
+  late_sessions: number;
   absent_sessions: number;
   total_sessions: number;
   percentage: number;
+  late_percentage: number;
 }
 
 export interface StudentAttendanceSummary {
   overall_percentage: number;
   total_sessions: number;
   total_present: number;
+  total_late: number;
   total_absent: number;
+  late_percentage: number;
   subjects: SubjectAttendanceStat[];
 }
 
@@ -318,7 +337,7 @@ export interface StudentRecentAttendanceItem {
   subject_code: string;
   class_name: string;
   marked_at: string;
-  status: string;
+  status: AttendanceStatus | string;
 }
 
 export interface StudentCalendarSessionItem {
@@ -326,22 +345,24 @@ export interface StudentCalendarSessionItem {
   subject_id: string;
   subject_name: string;
   subject_code: string;
-  status: 'PRESENT' | 'ABSENT';
+  status: AttendanceStatus;
   marked_at: string | null;
   started_at: string;
 }
 
 export interface StudentCalendarDay {
   date: string; // "YYYY-MM-DD"
-  status: 'PRESENT' | 'ABSENT' | 'PARTIAL';
+  status: 'PRESENT' | 'LATE' | 'ABSENT' | 'PARTIAL';
   sessions: StudentCalendarSessionItem[];
 }
 
 export interface StudentCalendarSummary {
   sessions_held: number;
   present: number;
+  late: number;
   absent: number;
   percentage: number;
+  late_percentage: number;
 }
 
 export interface StudentCalendarResponse {
@@ -359,7 +380,7 @@ export interface StudentAttendanceHistoryRecord {
   class_name: string;
   started_at: string;
   ended_at: string;
-  status: 'PRESENT' | 'ABSENT';
+  status: AttendanceStatus;
   marked_at: string | null;
 }
 
@@ -373,8 +394,10 @@ export interface StudentAttendanceHistoryPagination {
 export interface StudentAttendanceHistorySummary {
   total: number;
   present: number;
+  late: number;
   absent: number;
   percentage: number;
+  late_percentage: number;
 }
 
 export interface StudentAttendanceHistoryResponse {
@@ -387,7 +410,9 @@ export interface StudentAttendanceAnalyticsSummary {
   overall_percentage: number;
   total_sessions: number;
   total_present: number;
+  total_late: number;
   total_absent: number;
+  late_percentage: number;
   total_subjects: number;
   subjects_below_requirement: number;
   subjects_critical: number;
@@ -399,8 +424,10 @@ export interface StudentAttendanceMonthlyStat {
   month: string;
   sessions: number;
   present: number;
+  late: number;
   absent: number;
   percentage: number;
+  late_percentage: number;
 }
 
 export interface StudentAttendanceAnalyticsSubject {
@@ -409,8 +436,10 @@ export interface StudentAttendanceAnalyticsSubject {
   subject_code: string;
   total_sessions: number;
   present_sessions: number;
+  late_sessions: number;
   absent_sessions: number;
   percentage: number;
+  late_percentage: number;
   status: 'REQUIREMENT_MET' | 'BELOW_REQUIREMENT' | 'CRITICAL';
 }
 
@@ -477,7 +506,9 @@ export interface TeacherStudentSearchItem {
   semester: number;
   section: string;
   attendance_percentage: number;
+  late_percentage: number;
   present: number;
+  late: number;
   absent: number;
   total_sessions: number;
   status: 'REQUIREMENT_MET' | 'BELOW_REQUIREMENT' | 'CRITICAL';
@@ -522,8 +553,10 @@ export interface TeacherStudentAttendanceDetailSubject {
   subject_code: string;
   total: number;
   present: number;
+  late: number;
   absent: number;
   percentage: number;
+  late_percentage: number;
   status: 'REQUIREMENT_MET' | 'BELOW_REQUIREMENT' | 'CRITICAL';
 }
 
@@ -531,7 +564,9 @@ export interface TeacherStudentAttendanceDetailSummary {
   overall_percentage: number;
   total_sessions: number;
   total_present: number;
+  total_late: number;
   total_absent: number;
+  late_percentage: number;
   status: string;
 }
 
@@ -543,7 +578,7 @@ export interface TeacherStudentAttendanceDetailHistoryRecord {
   subject_code: string;
   started_at: string;
   ended_at: string;
-  status: 'PRESENT' | 'ABSENT';
+  status: AttendanceStatus;
   marked_at: string | null;
 }
 
@@ -563,6 +598,17 @@ export interface CreateAttendanceSessionPayload {
   subject_id: string;
   class_id: string;
   duration_minutes: number;
+  late_threshold_minutes?: number;
+}
+
+export interface UpdateLateSettingsPayload {
+  late_threshold_minutes: number;
+}
+
+export interface UpdateLateSettingsResponse {
+  session_id: string;
+  late_threshold_minutes: number;
+  late_after: string;
 }
 
 export interface ApiResponse<T = unknown> {
@@ -580,12 +626,12 @@ export type AttendanceExportFormat = 'csv' | 'excel' | 'pdf';
 export interface ManualAttendancePayload {
   session_id: string;
   student_id: string;
-  status: 'PRESENT' | 'ABSENT';
+  status: AttendanceStatus;
   reason: string;
 }
 
 export interface CorrectAttendancePayload {
-  status: 'PRESENT' | 'ABSENT';
+  status: AttendanceStatus;
   reason: string;
 }
 
@@ -609,11 +655,12 @@ export interface ManualAttendanceResponse {
   attendance_id: string;
   session_id: string;
   student_id: string;
-  status: 'PRESENT' | 'ABSENT';
+  status: AttendanceStatus;
   marked_at: string;
   action: string;
   reason: string;
 }
+
 
 
 

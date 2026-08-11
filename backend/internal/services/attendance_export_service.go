@@ -48,7 +48,7 @@ type AttendanceExportRow struct {
 	SessionDate          string
 	SessionStartTime     string
 	SessionEndTime       string
-	AttendanceStatus     string // "PRESENT" or "ABSENT"
+	AttendanceStatus     string // "PRESENT", "LATE", or "ABSENT"
 	MarkedAt             string // "HH:MM:SS" or "—"
 	AttendancePercentage float64
 }
@@ -62,8 +62,10 @@ type AttendanceStudentSummaryRow struct {
 	ClassName            string
 	TotalSessions        int64
 	Present              int64
+	Late                 int64
 	Absent               int64
 	AttendancePercentage float64
+	LatePercentage       float64
 	Status               string // "REQUIREMENT_MET", "BELOW_REQUIREMENT", "CRITICAL"
 }
 
@@ -72,8 +74,10 @@ type AttendanceExportSummary struct {
 	TotalStudents              int
 	TotalSessions              int64
 	TotalPresent               int64
+	TotalLate                  int64
 	TotalAbsent                int64
 	OverallAttendancePct       float64
+	LatePercentage             float64
 	StudentsMeetingRequirement int
 	StudentsBelowRequirement   int
 	StudentsCritical           int
@@ -309,6 +313,7 @@ func GetTeacherAttendanceExportData(
 	// 6. Aggregate student overall stats
 	var studentSummaryRows []AttendanceStudentSummaryRow
 	var totalOverallPresent int64
+	var totalOverallLate int64
 	var totalOverallSessions int64
 	var meetingCount, belowCount, criticalCount int
 
@@ -316,19 +321,27 @@ func GetTeacherAttendanceExportData(
 		classSessList := classSessionsMap[st.ClassID]
 		totalSess := int64(len(classSessList))
 		presentCount := int64(0)
+		lateCount := int64(0)
 		for _, att := range studentAttendanceMap[st.ID] {
 			if att.Status == "PRESENT" {
 				presentCount++
+			} else if att.Status == "LATE" {
+				lateCount++
 			}
 		}
+		attendedCount := presentCount + lateCount
 		absentCount := int64(0)
-		if totalSess > presentCount {
-			absentCount = totalSess - presentCount
+		if totalSess > attendedCount {
+			absentCount = totalSess - attendedCount
 		}
 
 		pct := 0.0
 		if totalSess > 0 {
-			pct = math.Round((float64(presentCount)/float64(totalSess))*1000) / 10
+			pct = math.Round((float64(attendedCount)/float64(totalSess))*1000) / 10
+		}
+		latePct := 0.0
+		if totalSess > 0 {
+			latePct = math.Round((float64(lateCount)/float64(totalSess))*1000) / 10
 		}
 
 		standing := "REQUIREMENT_MET"
@@ -353,7 +366,19 @@ func GetTeacherAttendanceExportData(
 		if params.Status != nil && strings.TrimSpace(*params.Status) != "" {
 			sf := strings.ToUpper(strings.TrimSpace(*params.Status))
 			if sf != "ALL" {
-				if sf == "MET" || sf == "REQUIREMENT_MET" {
+				if sf == "LATE" {
+					if lateCount == 0 {
+						continue
+					}
+				} else if sf == "PRESENT" {
+					if presentCount == 0 {
+						continue
+					}
+				} else if sf == "ABSENT" {
+					if absentCount == 0 {
+						continue
+					}
+				} else if sf == "MET" || sf == "REQUIREMENT_MET" {
 					if standing != "REQUIREMENT_MET" {
 						continue
 					}
@@ -370,6 +395,7 @@ func GetTeacherAttendanceExportData(
 		}
 
 		totalOverallPresent += presentCount
+		totalOverallLate += lateCount
 		totalOverallSessions += totalSess
 
 		studentSummaryRows = append(studentSummaryRows, AttendanceStudentSummaryRow{
@@ -380,8 +406,10 @@ func GetTeacherAttendanceExportData(
 			ClassName:            st.ClassName,
 			TotalSessions:        totalSess,
 			Present:              presentCount,
+			Late:                 lateCount,
 			Absent:               absentCount,
 			AttendancePercentage: pct,
+			LatePercentage:       latePct,
 			Status:               standing,
 		})
 	}
@@ -408,10 +436,17 @@ func GetTeacherAttendanceExportData(
 			statusStr := "ABSENT"
 			markedAtStr := "—"
 
-			if att, attended := studentAttendanceMap[st.ID][s.ID]; attended && att.Status == "PRESENT" {
-				statusStr = "PRESENT"
-				if !att.MarkedAt.IsZero() {
-					markedAtStr = att.MarkedAt.Format("15:04:05")
+			if att, attended := studentAttendanceMap[st.ID][s.ID]; attended {
+				if att.Status == "PRESENT" {
+					statusStr = "PRESENT"
+					if !att.MarkedAt.IsZero() {
+						markedAtStr = att.MarkedAt.Format("15:04:05")
+					}
+				} else if att.Status == "LATE" {
+					statusStr = "LATE"
+					if !att.MarkedAt.IsZero() {
+						markedAtStr = att.MarkedAt.Format("15:04:05")
+					}
 				}
 			}
 
@@ -435,14 +470,19 @@ func GetTeacherAttendanceExportData(
 		}
 	}
 
+	totalOverallAttended := totalOverallPresent + totalOverallLate
 	overallPct := 0.0
 	if totalOverallSessions > 0 {
-		overallPct = math.Round((float64(totalOverallPresent)/float64(totalOverallSessions))*1000) / 10
+		overallPct = math.Round((float64(totalOverallAttended)/float64(totalOverallSessions))*1000) / 10
+	}
+	overallLatePct := 0.0
+	if totalOverallSessions > 0 {
+		overallLatePct = math.Round((float64(totalOverallLate)/float64(totalOverallSessions))*1000) / 10
 	}
 
 	var totalAbsent int64 = 0
-	if totalOverallSessions > totalOverallPresent {
-		totalAbsent = totalOverallSessions - totalOverallPresent
+	if totalOverallSessions > totalOverallAttended {
+		totalAbsent = totalOverallSessions - totalOverallAttended
 	}
 
 	return &AttendanceExportData{
@@ -454,8 +494,10 @@ func GetTeacherAttendanceExportData(
 			TotalStudents:              len(studentSummaryRows),
 			TotalSessions:              totalOverallSessions,
 			TotalPresent:               totalOverallPresent,
+			TotalLate:                  totalOverallLate,
 			TotalAbsent:                totalAbsent,
 			OverallAttendancePct:       overallPct,
+			LatePercentage:             overallLatePct,
 			StudentsMeetingRequirement: meetingCount,
 			StudentsBelowRequirement:   belowCount,
 			StudentsCritical:           criticalCount,
@@ -670,8 +712,10 @@ func GenerateAttendanceExcel(data *AttendanceExportData) ([]byte, error) {
 		{"Total Students Evaluated", data.Summary.TotalStudents},
 		{"Total Lecture Sessions", data.Summary.TotalSessions},
 		{"Total Present Records", data.Summary.TotalPresent},
+		{"Total Late Records", data.Summary.TotalLate},
 		{"Total Absent Records", data.Summary.TotalAbsent},
-		{"Overall Attendance Percentage", fmt.Sprintf("%.1f%%", data.Summary.OverallAttendancePct)},
+		{"Overall Attendance Percentage (Present + Late)", fmt.Sprintf("%.1f%%", data.Summary.OverallAttendancePct)},
+		{"Late Percentage", fmt.Sprintf("%.1f%%", data.Summary.LatePercentage)},
 		{"Students Meeting Requirement (>= 75%)", data.Summary.StudentsMeetingRequirement},
 		{"Students Below Requirement (60% - 74.9%)", data.Summary.StudentsBelowRequirement},
 		{"Students at Critical Level (< 60%)", data.Summary.StudentsCritical},
@@ -762,10 +806,10 @@ func GenerateAttendancePDF(data *AttendanceExportData) ([]byte, error) {
 	pdf.SetTextColor(100, 116, 139)
 	pdf.SetXY(80, cardY)
 	pdf.CellFormat(60, 4, "SESSIONS & ATTENDANCE", "", 0, "L", false, 0, "")
-	pdf.SetFont("Arial", "B", 12)
+	pdf.SetFont("Arial", "B", 11)
 	pdf.SetTextColor(15, 23, 42)
 	pdf.SetXY(80, cardY+5)
-	pdf.CellFormat(60, 6, fmt.Sprintf("%d Present / %d Missed", data.Summary.TotalPresent, data.Summary.TotalAbsent), "", 0, "L", false, 0, "")
+	pdf.CellFormat(60, 6, fmt.Sprintf("%d Pres | %d Late | %d Missed", data.Summary.TotalPresent, data.Summary.TotalLate, data.Summary.TotalAbsent), "", 0, "L", false, 0, "")
 
 	// Column 3: Overall Attendance Rate
 	pdf.SetFont("Arial", "B", 8)
@@ -798,7 +842,6 @@ func GenerateAttendancePDF(data *AttendanceExportData) ([]byte, error) {
 
 	// --- 3. ATTENDANCE LOG TABLE ---
 	// Table Column Widths (Total: 277mm)
-	// Student (50), Roll (22), Class (28), Subject (42), Code (20), Date (24), Start (16), Status (22), Marked At (23), Rate (30)
 	type colDef struct {
 		title string
 		width float64
@@ -875,6 +918,10 @@ func GenerateAttendancePDF(data *AttendanceExportData) ([]byte, error) {
 			pdf.SetTextColor(16, 185, 129) // emerald
 			pdf.SetFont("Arial", "B", 8)
 			pdf.CellFormat(cols[7].width, 6, "PRESENT", "1", 0, "C", true, 0, "")
+		} else if r.AttendanceStatus == "LATE" {
+			pdf.SetTextColor(245, 158, 11) // amber
+			pdf.SetFont("Arial", "B", 8)
+			pdf.CellFormat(cols[7].width, 6, "LATE", "1", 0, "C", true, 0, "")
 		} else {
 			pdf.SetTextColor(239, 68, 68) // rose
 			pdf.SetFont("Arial", "B", 8)
@@ -915,22 +962,26 @@ func GenerateStudentDetailCSV(w io.Writer, data *models.TeacherStudentAttendance
 	_ = writer.Write([]string{"Email", sanitizeCSVField(data.Student.Email)})
 	_ = writer.Write([]string{"Class", sanitizeCSVField(data.Student.ClassName)})
 	_ = writer.Write([]string{"Overall Attendance %", fmt.Sprintf("%.1f%%", data.Summary.OverallPercentage)})
+	_ = writer.Write([]string{"Late %", fmt.Sprintf("%.1f%%", data.Summary.LatePercentage)})
 	_ = writer.Write([]string{"Total Sessions", fmt.Sprintf("%d", data.Summary.TotalSessions)})
 	_ = writer.Write([]string{"Present", fmt.Sprintf("%d", data.Summary.TotalPresent)})
+	_ = writer.Write([]string{"Late", fmt.Sprintf("%d", data.Summary.TotalLate)})
 	_ = writer.Write([]string{"Absent", fmt.Sprintf("%d", data.Summary.TotalAbsent)})
 	_ = writer.Write([]string{}) // blank separator
 
 	// Subject Performance Table
 	_ = writer.Write([]string{"SUBJECT BREAKDOWN"})
-	_ = writer.Write([]string{"Subject Name", "Subject Code", "Present", "Absent", "Total", "Percentage", "Standing"})
+	_ = writer.Write([]string{"Subject Name", "Subject Code", "Present", "Late", "Absent", "Total", "Percentage", "Late %", "Standing"})
 	for _, s := range data.Subjects {
 		_ = writer.Write([]string{
 			sanitizeCSVField(s.SubjectName),
 			sanitizeCSVField(s.SubjectCode),
 			fmt.Sprintf("%d", s.Present),
+			fmt.Sprintf("%d", s.Late),
 			fmt.Sprintf("%d", s.Absent),
 			fmt.Sprintf("%d", s.Total),
 			fmt.Sprintf("%.1f%%", s.Percentage),
+			fmt.Sprintf("%.1f%%", s.LatePercentage),
 			s.Status,
 		})
 	}
@@ -996,21 +1047,21 @@ func GenerateStudentDetailExcel(data *models.TeacherStudentAttendanceDetailRespo
 	f.SetCellValue(sheetName, "C4", "Roll Number:")
 	f.SetCellValue(sheetName, "D4", data.Student.RollNumber)
 	f.SetCellValue(sheetName, "E4", "Overall Rate:")
-	f.SetCellValue(sheetName, "F4", fmt.Sprintf("%.1f%%", data.Summary.OverallPercentage))
+	f.SetCellValue(sheetName, "F4", fmt.Sprintf("%.1f%% (Late: %.1f%%)", data.Summary.OverallPercentage, data.Summary.LatePercentage))
 
 	f.SetCellValue(sheetName, "A5", "Email:")
 	f.SetCellValue(sheetName, "B5", data.Student.Email)
 	f.SetCellValue(sheetName, "C5", "Class:")
 	f.SetCellValue(sheetName, "D5", data.Student.ClassName)
 	f.SetCellValue(sheetName, "E5", "Sessions:")
-	f.SetCellValue(sheetName, "F5", fmt.Sprintf("%d Present / %d Missed", data.Summary.TotalPresent, data.Summary.TotalAbsent))
+	f.SetCellValue(sheetName, "F5", fmt.Sprintf("%d Pres | %d Late | %d Missed", data.Summary.TotalPresent, data.Summary.TotalLate, data.Summary.TotalAbsent))
 
 	// Subjects Table
 	f.SetCellValue(sheetName, "A7", "SUBJECT PERFORMANCE BREAKDOWN")
-	f.MergeCell(sheetName, "A7", "F7")
-	f.SetCellStyle(sheetName, "A7", "F7", secHeaderStyle)
+	f.MergeCell(sheetName, "A7", "G7")
+	f.SetCellStyle(sheetName, "A7", "G7", secHeaderStyle)
 
-	subHeaders := []string{"Subject Name", "Code", "Present", "Absent", "Total", "Percentage"}
+	subHeaders := []string{"Subject Name", "Code", "Present", "Late", "Absent", "Total", "Percentage"}
 	for idx, h := range subHeaders {
 		cell, _ := excelize.CoordinatesToCellName(idx+1, 8)
 		f.SetCellValue(sheetName, cell, h)
@@ -1022,10 +1073,11 @@ func GenerateStudentDetailExcel(data *models.TeacherStudentAttendanceDetailRespo
 		f.SetCellValue(sheetName, fmt.Sprintf("A%d", rNum), sub.SubjectName)
 		f.SetCellValue(sheetName, fmt.Sprintf("B%d", rNum), sub.SubjectCode)
 		f.SetCellValue(sheetName, fmt.Sprintf("C%d", rNum), sub.Present)
-		f.SetCellValue(sheetName, fmt.Sprintf("D%d", rNum), sub.Absent)
-		f.SetCellValue(sheetName, fmt.Sprintf("E%d", rNum), sub.Total)
-		f.SetCellValue(sheetName, fmt.Sprintf("F%d", rNum), fmt.Sprintf("%.1f%%", sub.Percentage))
-		f.SetCellStyle(sheetName, fmt.Sprintf("B%d", rNum), fmt.Sprintf("F%d", rNum), centerStyle)
+		f.SetCellValue(sheetName, fmt.Sprintf("D%d", rNum), sub.Late)
+		f.SetCellValue(sheetName, fmt.Sprintf("E%d", rNum), sub.Absent)
+		f.SetCellValue(sheetName, fmt.Sprintf("F%d", rNum), sub.Total)
+		f.SetCellValue(sheetName, fmt.Sprintf("G%d", rNum), fmt.Sprintf("%.1f%%", sub.Percentage))
+		f.SetCellStyle(sheetName, fmt.Sprintf("B%d", rNum), fmt.Sprintf("G%d", rNum), centerStyle)
 	}
 
 	// Session History Table
@@ -1063,6 +1115,7 @@ func GenerateStudentDetailExcel(data *models.TeacherStudentAttendanceDetailRespo
 	f.SetColWidth(sheetName, "D", "D", 20)
 	f.SetColWidth(sheetName, "E", "E", 16)
 	f.SetColWidth(sheetName, "F", "F", 16)
+	f.SetColWidth(sheetName, "G", "G", 16)
 
 	buf, err := f.WriteToBuffer()
 	if err != nil {
@@ -1132,7 +1185,7 @@ func GenerateStudentDetailPDF(data *models.TeacherStudentAttendanceDetailRespons
 
 	pdf.SetFont("Arial", "B", 8.5)
 	pdf.SetTextColor(71, 85, 105)
-	pdf.CellFormat(90, 4, fmt.Sprintf("%d Present / %d Missed (%d Total)", data.Summary.TotalPresent, data.Summary.TotalAbsent, data.Summary.TotalSessions), "", 1, "R", false, 0, "")
+	pdf.CellFormat(90, 4, fmt.Sprintf("%d Pres | %d Late | %d Missed (%d Total)", data.Summary.TotalPresent, data.Summary.TotalLate, data.Summary.TotalAbsent, data.Summary.TotalSessions), "", 1, "R", false, 0, "")
 
 	pdf.SetXY(16, boxY+11)
 	pdf.SetFont("Arial", "", 8.5)
@@ -1150,12 +1203,13 @@ func GenerateStudentDetailPDF(data *models.TeacherStudentAttendanceDetailRespons
 	pdf.SetFillColor(30, 41, 59)
 	pdf.SetTextColor(255, 255, 255)
 	pdf.SetFont("Arial", "B", 8)
-	pdf.CellFormat(60, 6, "Subject Name", "1", 0, "L", true, 0, "")
-	pdf.CellFormat(24, 6, "Code", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(24, 6, "Present", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(24, 6, "Absent", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(24, 6, "Total", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(30, 6, "Percentage", "1", 1, "C", true, 0, "")
+	pdf.CellFormat(50, 6, "Subject Name", "1", 0, "L", true, 0, "")
+	pdf.CellFormat(20, 6, "Code", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(20, 6, "Present", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(18, 6, "Late", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(20, 6, "Absent", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(20, 6, "Total", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(38, 6, "Percentage", "1", 1, "C", true, 0, "")
 
 	pdf.SetFont("Arial", "", 8)
 	for i, sub := range data.Subjects {
@@ -1165,11 +1219,12 @@ func GenerateStudentDetailPDF(data *models.TeacherStudentAttendanceDetailRespons
 			pdf.SetFillColor(248, 250, 252)
 		}
 		pdf.SetTextColor(15, 23, 42)
-		pdf.CellFormat(60, 5.5, truncateStr(sub.SubjectName, 32), "1", 0, "L", true, 0, "")
-		pdf.CellFormat(24, 5.5, sub.SubjectCode, "1", 0, "C", true, 0, "")
-		pdf.CellFormat(24, 5.5, fmt.Sprintf("%d", sub.Present), "1", 0, "C", true, 0, "")
-		pdf.CellFormat(24, 5.5, fmt.Sprintf("%d", sub.Absent), "1", 0, "C", true, 0, "")
-		pdf.CellFormat(24, 5.5, fmt.Sprintf("%d", sub.Total), "1", 0, "C", true, 0, "")
+		pdf.CellFormat(50, 5.5, truncateStr(sub.SubjectName, 26), "1", 0, "L", true, 0, "")
+		pdf.CellFormat(20, 5.5, sub.SubjectCode, "1", 0, "C", true, 0, "")
+		pdf.CellFormat(20, 5.5, fmt.Sprintf("%d", sub.Present), "1", 0, "C", true, 0, "")
+		pdf.CellFormat(18, 5.5, fmt.Sprintf("%d", sub.Late), "1", 0, "C", true, 0, "")
+		pdf.CellFormat(20, 5.5, fmt.Sprintf("%d", sub.Absent), "1", 0, "C", true, 0, "")
+		pdf.CellFormat(20, 5.5, fmt.Sprintf("%d", sub.Total), "1", 0, "C", true, 0, "")
 
 		if sub.Percentage >= 75.0 {
 			pdf.SetTextColor(16, 185, 129)
@@ -1179,7 +1234,7 @@ func GenerateStudentDetailPDF(data *models.TeacherStudentAttendanceDetailRespons
 			pdf.SetTextColor(239, 68, 68)
 		}
 		pdf.SetFont("Arial", "B", 8)
-		pdf.CellFormat(30, 5.5, fmt.Sprintf("%.1f%%", sub.Percentage), "1", 1, "C", true, 0, "")
+		pdf.CellFormat(38, 5.5, fmt.Sprintf("%.1f%% (Late: %.1f%%)", sub.Percentage, sub.LatePercentage), "1", 1, "C", true, 0, "")
 		pdf.SetFont("Arial", "", 8)
 	}
 
@@ -1233,6 +1288,10 @@ func GenerateStudentDetailPDF(data *models.TeacherStudentAttendanceDetailRespons
 			pdf.SetTextColor(16, 185, 129)
 			pdf.SetFont("Arial", "B", 8)
 			pdf.CellFormat(26, 5.5, "PRESENT", "1", 0, "C", true, 0, "")
+		} else if h.Status == "LATE" {
+			pdf.SetTextColor(245, 158, 11)
+			pdf.SetFont("Arial", "B", 8)
+			pdf.CellFormat(26, 5.5, "LATE", "1", 0, "C", true, 0, "")
 		} else {
 			pdf.SetTextColor(239, 68, 68)
 			pdf.SetFont("Arial", "B", 8)

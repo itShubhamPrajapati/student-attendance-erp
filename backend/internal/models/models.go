@@ -255,18 +255,19 @@ type DashboardStatsResponse struct {
 
 // AttendanceSession represents a live or past QR attendance session initiated by a teacher
 type AttendanceSession struct {
-	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TeacherID    string    `gorm:"type:uuid;not null" json:"teacher_id"`
-	Teacher      Teacher   `gorm:"foreignKey:TeacherID" json:"teacher,omitempty"`
-	SubjectID    string    `gorm:"type:uuid;not null" json:"subject_id"`
-	Subject      Subject   `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
-	ClassID      string    `gorm:"type:uuid;not null" json:"class_id"`
-	Class        Class     `gorm:"foreignKey:ClassID" json:"class,omitempty"`
-	SessionToken string    `gorm:"type:text;unique;not null" json:"session_token"`
-	StartedAt    time.Time `gorm:"not null" json:"started_at"`
-	ExpiresAt    time.Time `gorm:"not null" json:"expires_at"`
-	IsActive     bool      `gorm:"default:true;not null" json:"is_active"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID                   string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TeacherID            string    `gorm:"type:uuid;not null" json:"teacher_id"`
+	Teacher              Teacher   `gorm:"foreignKey:TeacherID" json:"teacher,omitempty"`
+	SubjectID            string    `gorm:"type:uuid;not null" json:"subject_id"`
+	Subject              Subject   `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
+	ClassID              string    `gorm:"type:uuid;not null" json:"class_id"`
+	Class                Class     `gorm:"foreignKey:ClassID" json:"class,omitempty"`
+	SessionToken         string    `gorm:"type:text;unique;not null" json:"session_token"`
+	StartedAt            time.Time `gorm:"not null" json:"started_at"`
+	ExpiresAt            time.Time `gorm:"not null" json:"expires_at"`
+	LateThresholdMinutes int       `gorm:"default:10;not null" json:"late_threshold_minutes"`
+	IsActive             bool      `gorm:"default:true;not null" json:"is_active"`
+	CreatedAt            time.Time `json:"created_at"`
 }
 
 func (AttendanceSession) TableName() string {
@@ -292,40 +293,57 @@ func (Attendance) TableName() string {
 
 // AttendanceSessionResponse represents formatted attendance session for UI
 type AttendanceSessionResponse struct {
-	ID                string    `json:"id"`
-	TeacherID         string    `json:"teacher_id"`
-	TeacherName       string    `json:"teacher_name"`
-	TeacherEmployeeID string    `json:"teacher_employee_id"`
-	SubjectID         string    `json:"subject_id"`
-	SubjectName       string    `json:"subject_name"`
-	SubjectCode       string    `json:"subject_code"`
-	ClassID           string    `json:"class_id"`
-	ClassName         string    `json:"class_name"`
-	Department        string    `json:"department"`
-	Semester          int       `json:"semester"`
-	Section           string    `json:"section"`
-	AcademicYear      string    `json:"academic_year"`
-	SessionToken      string    `json:"session_token"`
-	StartedAt         time.Time `json:"started_at"`
-	ExpiresAt         time.Time `json:"expires_at"`
-	DurationMinutes   int       `json:"duration_minutes"`
-	IsActive          bool      `json:"is_active"`
-	IsExpired         bool      `json:"is_expired"`
-	PresentCount      int64     `json:"present_count"`
-	AbsentCount       int64     `json:"absent_count"`
-	TotalStudents     int64     `json:"total_students"`
-	Percentage        float64   `json:"percentage"`
-	Status            string    `json:"status"` // "ACTIVE", "COMPLETED", "EXPIRED"
-	CreatedAt         time.Time `json:"created_at"`
+	ID                   string    `json:"id"`
+	TeacherID            string    `json:"teacher_id"`
+	TeacherName          string    `json:"teacher_name"`
+	TeacherEmployeeID    string    `json:"teacher_employee_id"`
+	SubjectID            string    `json:"subject_id"`
+	SubjectName          string    `json:"subject_name"`
+	SubjectCode          string    `json:"subject_code"`
+	ClassID              string    `json:"class_id"`
+	ClassName            string    `json:"class_name"`
+	Department           string    `json:"department"`
+	Semester             int       `json:"semester"`
+	Section              string    `json:"section"`
+	AcademicYear         string    `json:"academic_year"`
+	SessionToken         string    `json:"session_token"`
+	StartedAt            time.Time `json:"started_at"`
+	ExpiresAt            time.Time `json:"expires_at"`
+	DurationMinutes      int       `json:"duration_minutes"`
+	LateThresholdMinutes int       `json:"late_threshold_minutes"`
+	LateAfter            time.Time `json:"late_after"`
+	IsActive             bool      `json:"is_active"`
+	IsExpired            bool      `json:"is_expired"`
+	PresentCount         int64     `json:"present_count"`
+	LateCount            int64     `json:"late_count"`
+	AbsentCount          int64     `json:"absent_count"`
+	TotalStudents        int64     `json:"total_students"`
+	Percentage           float64   `json:"percentage"`
+	LatePercentage       float64   `json:"late_percentage"`
+	Status               string    `json:"status"` // "ACTIVE", "COMPLETED", "EXPIRED"
+	CreatedAt            time.Time `json:"created_at"`
 }
 
-// AttendanceAudit Action Constants (Feature #11)
+// Attendance Status & Action Constants (Features #11 & #12)
 const (
 	AuditActionManualMark = "MANUAL_MARK"
 	AuditActionCorrection = "CORRECTION"
 	StatusPresent         = "PRESENT"
+	StatusLate            = "LATE"
 	StatusAbsent          = "ABSENT"
 )
+
+// UpdateLateSettingsRequest represents input to modify session late threshold
+type UpdateLateSettingsRequest struct {
+	LateThresholdMinutes *int `json:"late_threshold_minutes" binding:"required"`
+}
+
+// UpdateLateSettingsResponse represents safe output after updating late threshold
+type UpdateLateSettingsResponse struct {
+	SessionID            string    `json:"session_id"`
+	LateThresholdMinutes int       `json:"late_threshold_minutes"`
+	LateAfter            time.Time `json:"late_after"`
+}
 
 // AttendanceAudit represents an immutable change record in the attendance audit trail
 type AttendanceAudit struct {
@@ -406,11 +424,13 @@ type AttendanceStudentRecord struct {
 
 // SessionAttendanceDetailsResponse represents complete session summary and full roster
 type SessionAttendanceDetailsResponse struct {
-	Session       AttendanceSessionResponse `json:"session"`
-	Records       []AttendanceStudentRecord `json:"records"`
-	PresentCount  int64                     `json:"present_count"`
-	TotalStudents int64                     `json:"total_students"`
-	Percentage    float64                   `json:"percentage"`
+	Session        AttendanceSessionResponse `json:"session"`
+	Records        []AttendanceStudentRecord `json:"records"`
+	PresentCount   int64                     `json:"present_count"`
+	LateCount      int64                     `json:"late_count"`
+	TotalStudents  int64                     `json:"total_students"`
+	Percentage     float64                   `json:"percentage"`
+	LatePercentage float64                   `json:"late_percentage"`
 }
 
 // LiveAttendanceSessionResponse represents live polling telemetry for an active attendance session
@@ -419,8 +439,12 @@ type LiveAttendanceSessionResponse struct {
 	Status               string                    `json:"status"` // "ACTIVE", "COMPLETED", "EXPIRED"
 	TotalStudents        int64                     `json:"total_students"`
 	PresentCount         int64                     `json:"present_count"`
+	LateCount            int64                     `json:"late_count"`
 	AbsentCount          int64                     `json:"absent_count"`
 	AttendancePercentage float64                   `json:"attendance_percentage"`
+	LatePercentage       float64                   `json:"late_percentage"`
+	LateThresholdMinutes int                       `json:"late_threshold_minutes"`
+	LateAfter            time.Time                 `json:"late_after"`
 	QRExpiresAt          time.Time                 `json:"qr_expires_at"`
 	StartedAt            time.Time                 `json:"started_at"`
 	DurationMinutes      int                       `json:"duration_minutes"`
@@ -436,12 +460,15 @@ type LiveAttendanceSessionResponse struct {
 
 // MarkAttendanceResponse represents student scan confirmation data
 type MarkAttendanceResponse struct {
-	SessionID   string    `json:"session_id,omitempty"`
-	MarkedAt    time.Time `json:"marked_at"`
-	SubjectName string    `json:"subject_name"`
-	SubjectCode string    `json:"subject_code"`
-	ClassName   string    `json:"class_name"`
-	Status      string    `json:"status"`
+	AttendanceID         string    `json:"attendance_id,omitempty"`
+	SessionID            string    `json:"session_id,omitempty"`
+	MarkedAt             time.Time `json:"marked_at"`
+	SubjectName          string    `json:"subject_name"`
+	SubjectCode          string    `json:"subject_code"`
+	ClassName            string    `json:"class_name"`
+	Status               string    `json:"status"` // "PRESENT" or "LATE"
+	LateThresholdMinutes int       `json:"late_threshold_minutes"`
+	LateAfter            time.Time `json:"late_after,omitempty"`
 }
 
 // SubjectAttendanceStat represents student attendance in a single course module
@@ -450,9 +477,11 @@ type SubjectAttendanceStat struct {
 	SubjectName     string  `json:"subject_name"`
 	SubjectCode     string  `json:"subject_code"`
 	PresentSessions int64   `json:"present_sessions"`
+	LateSessions    int64   `json:"late_sessions"`
 	AbsentSessions  int64   `json:"absent_sessions"`
 	TotalSessions   int64   `json:"total_sessions"`
 	Percentage      float64 `json:"percentage"`
+	LatePercentage  float64 `json:"late_percentage"`
 }
 
 // StudentAttendanceSummary represents overall and subject-wise metrics for student portal
@@ -460,7 +489,9 @@ type StudentAttendanceSummary struct {
 	OverallPercentage float64                 `json:"overall_percentage"`
 	TotalSessions     int64                   `json:"total_sessions"`
 	TotalPresent      int64                   `json:"total_present"`
+	TotalLate         int64                   `json:"total_late"`
 	TotalAbsent       int64                   `json:"total_absent"`
+	LatePercentage    float64                 `json:"late_percentage"`
 	Subjects          []SubjectAttendanceStat `json:"subjects"`
 }
 
@@ -480,7 +511,7 @@ type StudentCalendarSessionItem struct {
 	SubjectID   string     `json:"subject_id"`
 	SubjectName string     `json:"subject_name"`
 	SubjectCode string     `json:"subject_code"`
-	Status      string     `json:"status"` // "PRESENT" or "ABSENT"
+	Status      string     `json:"status"` // "PRESENT", "LATE", or "ABSENT"
 	MarkedAt    *time.Time `json:"marked_at"`
 	StartedAt   time.Time  `json:"started_at"`
 }
@@ -488,16 +519,18 @@ type StudentCalendarSessionItem struct {
 // StudentCalendarDay represents attendance metrics and session items for a calendar date
 type StudentCalendarDay struct {
 	Date     string                       `json:"date"`   // "YYYY-MM-DD"
-	Status   string                       `json:"status"` // "PRESENT", "ABSENT", "PARTIAL"
+	Status   string                       `json:"status"` // "PRESENT", "LATE", "ABSENT", "PARTIAL"
 	Sessions []StudentCalendarSessionItem `json:"sessions"`
 }
 
 // StudentCalendarSummary represents month summary metrics
 type StudentCalendarSummary struct {
-	SessionsHeld int64   `json:"sessions_held"`
-	Present      int64   `json:"present"`
-	Absent       int64   `json:"absent"`
-	Percentage   float64 `json:"percentage"`
+	SessionsHeld   int64   `json:"sessions_held"`
+	Present        int64   `json:"present"`
+	Late           int64   `json:"late"`
+	Absent         int64   `json:"absent"`
+	Percentage     float64 `json:"percentage"`
+	LatePercentage float64 `json:"late_percentage"`
 }
 
 // StudentCalendarResponse represents the full payload returned by GET /api/student/attendance/calendar
@@ -517,7 +550,7 @@ type StudentAttendanceHistoryRecord struct {
 	ClassName   string     `json:"class_name"`
 	StartedAt   time.Time  `json:"started_at"`
 	EndedAt     time.Time  `json:"ended_at"`
-	Status      string     `json:"status"` // "PRESENT" or "ABSENT"
+	Status      string     `json:"status"` // "PRESENT", "LATE", or "ABSENT"
 	MarkedAt    *time.Time `json:"marked_at"`
 }
 
@@ -531,10 +564,12 @@ type StudentAttendanceHistoryPagination struct {
 
 // StudentAttendanceHistorySummary represents overall metrics for the filtered history
 type StudentAttendanceHistorySummary struct {
-	Total      int64   `json:"total"`
-	Present    int64   `json:"present"`
-	Absent     int64   `json:"absent"`
-	Percentage float64 `json:"percentage"`
+	Total          int64   `json:"total"`
+	Present        int64   `json:"present"`
+	Late           int64   `json:"late"`
+	Absent         int64   `json:"absent"`
+	Percentage     float64 `json:"percentage"`
+	LatePercentage float64 `json:"late_percentage"`
 }
 
 // StudentAttendanceHistoryResponse represents the full payload of GET /api/student/attendance/history
@@ -549,7 +584,9 @@ type StudentAttendanceAnalyticsSummary struct {
 	OverallPercentage        float64 `json:"overall_percentage"`
 	TotalSessions            int64   `json:"total_sessions"`
 	TotalPresent             int64   `json:"total_present"`
+	TotalLate                int64   `json:"total_late"`
 	TotalAbsent              int64   `json:"total_absent"`
+	LatePercentage           float64 `json:"late_percentage"`
 	TotalSubjects            int64   `json:"total_subjects"`
 	SubjectsBelowRequirement int     `json:"subjects_below_requirement"`
 	SubjectsCritical         int     `json:"subjects_critical"`
@@ -559,11 +596,13 @@ type StudentAttendanceAnalyticsSummary struct {
 
 // StudentAttendanceMonthlyStat represents attendance in a single calendar month
 type StudentAttendanceMonthlyStat struct {
-	Month      string  `json:"month"` // "YYYY-MM"
-	Sessions   int64   `json:"sessions"`
-	Present    int64   `json:"present"`
-	Absent     int64   `json:"absent"`
-	Percentage float64 `json:"percentage"`
+	Month          string  `json:"month"` // "YYYY-MM"
+	Sessions       int64   `json:"sessions"`
+	Present        int64   `json:"present"`
+	Late           int64   `json:"late"`
+	Absent         int64   `json:"absent"`
+	Percentage     float64 `json:"percentage"`
+	LatePercentage float64 `json:"late_percentage"`
 }
 
 // StudentAttendanceAnalyticsSubject represents individual course module analytics
@@ -573,8 +612,10 @@ type StudentAttendanceAnalyticsSubject struct {
 	SubjectCode     string  `json:"subject_code"`
 	TotalSessions   int64   `json:"total_sessions"`
 	PresentSessions int64   `json:"present_sessions"`
+	LateSessions    int64   `json:"late_sessions"`
 	AbsentSessions  int64   `json:"absent_sessions"`
 	Percentage      float64 `json:"percentage"`
+	LatePercentage  float64 `json:"late_percentage"`
 	Status          string  `json:"status"` // "REQUIREMENT_MET", "BELOW_REQUIREMENT", "CRITICAL"
 }
 
@@ -625,13 +666,13 @@ type StudentAttendanceAnalyticsFilterInfo struct {
 
 // StudentAttendanceAnalyticsResponse represents the full payload for GET /api/student/attendance/analytics
 type StudentAttendanceAnalyticsResponse struct {
-	Summary    StudentAttendanceAnalyticsSummary   `json:"summary"`
-	Trend      StudentAttendanceTrend              `json:"trend"`
-	Projection StudentAttendanceProjection         `json:"projection"`
-	Monthly    []StudentAttendanceMonthlyStat      `json:"monthly"`
-	Subjects   []StudentAttendanceAnalyticsSubject `json:"subjects"`
-	Comparison StudentAttendanceComparison         `json:"comparison"`
-	Absence    StudentAttendanceAbsenceAnalysis    `json:"absence"`
+	Summary    StudentAttendanceAnalyticsSummary    `json:"summary"`
+	Trend      StudentAttendanceTrend               `json:"trend"`
+	Projection StudentAttendanceProjection          `json:"projection"`
+	Monthly    []StudentAttendanceMonthlyStat       `json:"monthly"`
+	Subjects   []StudentAttendanceAnalyticsSubject  `json:"subjects"`
+	Comparison StudentAttendanceComparison          `json:"comparison"`
+	Absence    StudentAttendanceAbsenceAnalysis     `json:"absence"`
 	Filters    StudentAttendanceAnalyticsFilterInfo `json:"filters"`
 }
 
@@ -653,8 +694,10 @@ type TeacherStudentSearchItem struct {
 	Section              string  `json:"section"`
 	AttendancePercentage float64 `json:"attendance_percentage"`
 	Present              int64   `json:"present"`
+	Late                 int64   `json:"late"`
 	Absent               int64   `json:"absent"`
 	TotalSessions        int64   `json:"total_sessions"`
+	LatePercentage       float64 `json:"late_percentage"`
 	Status               string  `json:"status"` // "REQUIREMENT_MET", "BELOW_REQUIREMENT", "CRITICAL"
 }
 
@@ -697,14 +740,16 @@ type TeacherStudentBriefInfo struct {
 
 // TeacherStudentAttendanceDetailSubject represents subject-level attendance in student detail view
 type TeacherStudentAttendanceDetailSubject struct {
-	SubjectID   string  `json:"subject_id"`
-	SubjectName string  `json:"subject_name"`
-	SubjectCode string  `json:"subject_code"`
-	Total       int64   `json:"total"`
-	Present     int64   `json:"present"`
-	Absent      int64   `json:"absent"`
-	Percentage  float64 `json:"percentage"`
-	Status      string  `json:"status"` // "REQUIREMENT_MET", "BELOW_REQUIREMENT", "CRITICAL"
+	SubjectID      string  `json:"subject_id"`
+	SubjectName    string  `json:"subject_name"`
+	SubjectCode    string  `json:"subject_code"`
+	Total          int64   `json:"total"`
+	Present        int64   `json:"present"`
+	Late           int64   `json:"late"`
+	Absent         int64   `json:"absent"`
+	Percentage     float64 `json:"percentage"`
+	LatePercentage float64 `json:"late_percentage"`
+	Status         string  `json:"status"` // "REQUIREMENT_MET", "BELOW_REQUIREMENT", "CRITICAL"
 }
 
 // TeacherStudentAttendanceDetailSummary represents overall metrics in student detail view
@@ -712,7 +757,9 @@ type TeacherStudentAttendanceDetailSummary struct {
 	OverallPercentage float64 `json:"overall_percentage"`
 	TotalSessions     int64   `json:"total_sessions"`
 	TotalPresent      int64   `json:"total_present"`
+	TotalLate         int64   `json:"total_late"`
 	TotalAbsent       int64   `json:"total_absent"`
+	LatePercentage    float64 `json:"late_percentage"`
 	Status            string  `json:"status"`
 }
 
@@ -725,7 +772,7 @@ type TeacherStudentAttendanceDetailHistoryRecord struct {
 	SubjectCode  string     `json:"subject_code"`
 	StartedAt    time.Time  `json:"started_at"`
 	EndedAt      time.Time  `json:"ended_at"`
-	Status       string     `json:"status"` // "PRESENT" or "ABSENT"
+	Status       string     `json:"status"` // "PRESENT", "LATE", or "ABSENT"
 	MarkedAt     *time.Time `json:"marked_at"`
 }
 

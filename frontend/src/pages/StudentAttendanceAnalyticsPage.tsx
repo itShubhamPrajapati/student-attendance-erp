@@ -260,13 +260,13 @@ export const StudentAttendanceAnalyticsPage: React.FC = () => {
           {/* ========================================================================= */}
           {/* SECTION 1: OVERALL ATTENDANCE SUMMARY KPIS                                */}
           {/* ========================================================================= */}
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3.5 sm:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 sm:gap-3.5">
             {/* 1. Overall Percentage */}
             <Card className="col-span-2 p-5 bg-gradient-to-br from-indigo-50/60 via-white to-white border-indigo-100/80 shadow-xs flex flex-col justify-between">
               <div className="flex items-start justify-between">
                 <div>
                   <span className="text-[11px] font-bold text-indigo-900 uppercase tracking-wider block">
-                    Overall Attendance
+                    Attended Rate
                   </span>
                   <div className="flex items-baseline gap-2 mt-1">
                     <span
@@ -307,7 +307,7 @@ export const StudentAttendanceAnalyticsPage: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
                   <span>Min Requirement: 75%</span>
-                  <span>{summary?.total_present} / {summary?.total_sessions} Attended</span>
+                  <span>{((summary?.total_present ?? 0) + (summary?.total_late ?? 0))} / {summary?.total_sessions} Attended</span>
                 </div>
               </div>
             </Card>
@@ -323,18 +323,29 @@ export const StudentAttendanceAnalyticsPage: React.FC = () => {
               <span className="text-[11px] text-slate-500 mt-2">Scheduled classes</span>
             </Card>
 
-            {/* 3. Present Sessions */}
+            {/* 3. On-Time Sessions */}
             <Card className="p-4 bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
               <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">
-                Attended
+                On-Time
               </span>
               <p className="text-2xl font-extrabold text-emerald-600 font-heading mt-1">
                 {summary?.total_present}
               </p>
-              <span className="text-[11px] text-slate-500 mt-2">Verified present</span>
+              <span className="text-[11px] text-slate-500 mt-2">Before threshold</span>
             </Card>
 
-            {/* 4. Absent Sessions */}
+            {/* 4. Late Sessions (Feature #12) */}
+            <Card className="p-4 bg-amber-50/40 border-amber-200/80 shadow-xs flex flex-col justify-between">
+              <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">
+                Late ({summary?.late_percentage ?? 0}%)
+              </span>
+              <p className="text-2xl font-extrabold text-amber-800 font-heading mt-1">
+                {summary?.total_late ?? 0}
+              </p>
+              <span className="text-[11px] text-amber-900/80 mt-2 font-medium">Counts as attended</span>
+            </Card>
+
+            {/* 5. Absent Sessions */}
             <Card className="p-4 bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
               <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">
                 Missed
@@ -345,8 +356,8 @@ export const StudentAttendanceAnalyticsPage: React.FC = () => {
               <span className="text-[11px] text-slate-500 mt-2">Absent lectures</span>
             </Card>
 
-            {/* 5. Subjects Status Counts */}
-            <Card className="p-4 bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
+            {/* 6. Subjects Status Counts */}
+            <Card className="p-4 bg-white border-slate-200/80 shadow-xs flex flex-col justify-between col-span-2 lg:col-span-1">
               <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">
                 Below 75%
               </span>

@@ -9,9 +9,11 @@ import {
   HelpCircle,
   FileText,
   User,
+  Clock,
 } from 'lucide-react';
 import { Button } from './Button';
 import { Badge } from './Badge';
+import { AttendanceStatus } from '../types';
 import { apiCorrectAttendance } from '../services/api';
 
 interface CorrectAttendanceModalProps {
@@ -29,7 +31,7 @@ interface CorrectAttendanceModalProps {
     subject_code: string;
     class_name?: string;
   };
-  currentStatus: 'PRESENT' | 'ABSENT';
+  currentStatus: AttendanceStatus;
 }
 
 export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
@@ -41,15 +43,21 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
   sessionInfo,
   currentStatus,
 }) => {
-  const [targetStatus, setTargetStatus] = useState<'PRESENT' | 'ABSENT'>('PRESENT');
+  const [targetStatus, setTargetStatus] = useState<AttendanceStatus>('PRESENT');
   const [reason, setReason] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      // Initialize to opposite status
-      setTargetStatus(currentStatus === 'PRESENT' ? 'ABSENT' : 'PRESENT');
+      // Default to an alternate status
+      if (currentStatus === 'PRESENT') {
+        setTargetStatus('LATE');
+      } else if (currentStatus === 'LATE') {
+        setTargetStatus('PRESENT');
+      } else {
+        setTargetStatus('PRESENT');
+      }
       setReason('');
       setErrorMessage(null);
     }
@@ -157,7 +165,7 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
                 </div>
               </div>
               <Badge
-                variant={currentStatus === 'PRESENT' ? 'success' : 'neutral'}
+                variant={currentStatus === 'PRESENT' ? 'success' : currentStatus === 'LATE' ? 'warning' : 'neutral'}
                 className="text-[10px] font-bold"
               >
                 Recorded: {currentStatus}
@@ -170,31 +178,44 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
             <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">
               Status Change Transition
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setTargetStatus('PRESENT')}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-bold transition text-xs ${
+                className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border font-bold transition text-xs ${
                   targetStatus === 'PRESENT'
                     ? 'bg-emerald-50 border-emerald-500 text-emerald-700 ring-2 ring-emerald-500/20'
                     : 'bg-slate-50/70 border-slate-200 text-slate-500 hover:bg-slate-100'
                 }`}
               >
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Change to PRESENT</span>
+                <span>PRESENT</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTargetStatus('LATE')}
+                className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border font-bold transition text-xs ${
+                  targetStatus === 'LATE'
+                    ? 'bg-amber-50 border-amber-500 text-amber-800 ring-2 ring-amber-500/20'
+                    : 'bg-slate-50/70 border-slate-200 text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                <Clock className="w-4 h-4 text-amber-600" />
+                <span>LATE</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setTargetStatus('ABSENT')}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-bold transition text-xs ${
+                className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border font-bold transition text-xs ${
                   targetStatus === 'ABSENT'
                     ? 'bg-rose-50 border-rose-500 text-rose-700 ring-2 ring-rose-500/20'
                     : 'bg-slate-50/70 border-slate-200 text-slate-500 hover:bg-slate-100'
                 }`}
               >
                 <XCircle className="w-4 h-4 text-rose-600" />
-                <span>Change to ABSENT</span>
+                <span>ABSENT</span>
               </button>
             </div>
 
@@ -202,9 +223,11 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
             <div className="mt-2.5 p-2 rounded-xl bg-amber-50/60 border border-amber-200/60 flex items-center justify-center gap-2 text-xs font-semibold">
               <span className="text-slate-600">Transition:</span>
               <span
-                className={`px-2 py-0.5 rounded font-mono text-[11px] ${
+                className={`px-2 py-0.5 rounded font-mono text-[11px] font-bold ${
                   currentStatus === 'PRESENT'
                     ? 'bg-emerald-100 text-emerald-800'
+                    : currentStatus === 'LATE'
+                    ? 'bg-amber-100 text-amber-800'
                     : 'bg-slate-200 text-slate-700'
                 }`}
               >
@@ -215,12 +238,20 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
                 className={`px-2 py-0.5 rounded font-mono text-[11px] font-bold ${
                   targetStatus === 'PRESENT'
                     ? 'bg-emerald-600 text-white'
+                    : targetStatus === 'LATE'
+                    ? 'bg-amber-500 text-white'
                     : 'bg-rose-600 text-white'
                 }`}
               >
                 {targetStatus}
               </span>
             </div>
+
+            {!isStatusChanged && (
+              <p className="mt-1 text-[11px] text-amber-700 font-medium">
+                * Please select a new status different from the recorded status ({currentStatus}).
+              </p>
+            )}
           </div>
 
           {/* Mandatory Reason Input */}

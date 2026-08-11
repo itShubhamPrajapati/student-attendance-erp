@@ -212,27 +212,64 @@ export const StudentScanAttendancePage: React.FC = () => {
         }
       />
 
-      {/* Success Celebration Card */}
+      {/* Success Celebration Card (Supports On-Time PRESENT and LATE Attendance) */}
       {successData && (
-        <Card className="p-6 sm:p-8 bg-emerald-50/60 border-emerald-200 text-center space-y-4 shadow-sm animate-in zoom-in-95">
-          <div className="w-16 h-16 rounded-3xl bg-emerald-600 text-white mx-auto flex items-center justify-center shadow-md">
-            <CheckCircle2 className="w-9 h-9" />
+        <Card
+          className={`p-6 sm:p-8 text-center space-y-4 shadow-sm animate-in zoom-in-95 ${
+            successData.status === 'LATE'
+              ? 'bg-amber-50/70 border-amber-300/80'
+              : 'bg-emerald-50/60 border-emerald-200'
+          }`}
+        >
+          <div
+            className={`w-16 h-16 rounded-3xl mx-auto flex items-center justify-center shadow-md ${
+              successData.status === 'LATE'
+                ? 'bg-amber-500 text-white'
+                : 'bg-emerald-600 text-white'
+            }`}
+          >
+            {successData.status === 'LATE' ? (
+              <Clock className="w-9 h-9" />
+            ) : (
+              <CheckCircle2 className="w-9 h-9" />
+            )}
           </div>
 
           <div>
-            <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-3 py-1 rounded-full mb-2">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Verified Present
-            </span>
-            <h3 className="text-xl font-extrabold text-slate-900 font-heading">
-              Attendance Marked Successfully!
-            </h3>
-            <p className="text-xs text-slate-600 mt-1">
-              Your attendance has been recorded in the database for today's lecture session.
-            </p>
+            {successData.status === 'LATE' ? (
+              <>
+                <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-800 bg-amber-100/90 px-3 py-1 rounded-full mb-2 border border-amber-200">
+                  <Clock className="w-3.5 h-3.5" />
+                  Recorded (Late Attendance)
+                </span>
+                <h3 className="text-xl font-extrabold text-slate-900 font-heading">
+                  Attendance Recorded (Late)
+                </h3>
+                <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto">
+                  Your scan was received after the session's on-time cutoff. Per academic guidelines, <strong className="text-slate-800">late attendance still counts as ATTENDED</strong> toward your attendance requirement.
+                </p>
+              </>
+            ) : (
+              <>
+                <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-3 py-1 rounded-full mb-2 border border-emerald-200">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Verified On-Time
+                </span>
+                <h3 className="text-xl font-extrabold text-slate-900 font-heading">
+                  Attendance Marked Successfully!
+                </h3>
+                <p className="text-xs text-slate-600 mt-1">
+                  Your on-time attendance has been verified and recorded for today's lecture session.
+                </p>
+              </>
+            )}
           </div>
 
-          <div className="p-4 rounded-2xl bg-white border border-emerald-200/80 text-left space-y-2 text-xs">
+          <div
+            className={`p-4 rounded-2xl bg-white text-left space-y-2 text-xs border ${
+              successData.status === 'LATE' ? 'border-amber-200' : 'border-emerald-200/80'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <span className="text-slate-500 font-semibold">Course Subject:</span>
               <span className="font-bold text-slate-900 font-heading">{successData.subject_name}</span>
@@ -241,9 +278,25 @@ export const StudentScanAttendancePage: React.FC = () => {
               <span className="text-slate-500 font-semibold">Classroom Batch:</span>
               <span className="font-medium text-slate-800">{successData.class_name}</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500 font-semibold">Recorded Status:</span>
+              <span
+                className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                  successData.status === 'LATE'
+                    ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                    : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                }`}
+              >
+                {successData.status === 'LATE' ? 'LATE (Attended)' : 'PRESENT (On-Time)'}
+              </span>
+            </div>
             <div className="flex items-center justify-between pt-1 border-t border-slate-100 font-mono text-[11px]">
               <span className="text-slate-500">Recorded At:</span>
-              <span className="font-semibold text-emerald-700">
+              <span
+                className={`font-semibold ${
+                  successData.status === 'LATE' ? 'text-amber-700' : 'text-emerald-700'
+                }`}
+              >
                 {new Date(successData.marked_at).toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',

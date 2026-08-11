@@ -992,3 +992,74 @@ func GetAttendanceAuditHandler(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+// ==============================================================================
+// LATE ATTENDANCE SETTINGS HANDLER (Feature #12)
+// ==============================================================================
+
+// UpdateSessionLateSettingsHandler handles PATCH /api/teacher/attendance/sessions/:id/late-settings
+func UpdateSessionLateSettingsHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Authentication required"})
+			return
+		}
+
+		sessionID := strings.TrimSpace(c.Param("id"))
+		if sessionID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Session ID is required"})
+			return
+		}
+
+		var req models.UpdateLateSettingsRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"message": "Invalid request payload. Late threshold minutes (0-180) is required.",
+			})
+			return
+		}
+
+		if req.LateThresholdMinutes == nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"message": "Late threshold minutes (0-180) is required.",
+			})
+			return
+		}
+
+		resp, err := services.UpdateSessionLateSettings(db, userID, sessionID, *req.LateThresholdMinutes)
+		if err != nil {
+			errMsg := err.Error()
+
+			if strings.Contains(errMsg, "between 0 and 180") || strings.Contains(errMsg, "invalid") {
+				c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			if strings.Contains(errMsg, "not authorized") || strings.Contains(errMsg, "Access denied") {
+				c.JSON(http.StatusForbidden, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			if strings.Contains(errMsg, "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to update session late threshold: " + errMsg,
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "Late attendance threshold updated successfully",
+			"data":    resp,
+		})
+	}
+}
+
+

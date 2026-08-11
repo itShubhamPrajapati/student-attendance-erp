@@ -28,11 +28,11 @@ var (
 	ErrWrongClass              = errors.New("You are not enrolled in this class.")
 	ErrDuplicateAttendance     = errors.New("Attendance has already been marked for this session.")
 
-	// Feature #11 Sentinel Errors
+	// Feature #11 & #12 Sentinel Errors
 	ErrReasonRequired          = errors.New("A reason is mandatory for manual attendance and corrections.")
 	ErrReasonTooShort          = errors.New("Reason must be at least 5 characters long.")
 	ErrReasonTooLong           = errors.New("Reason cannot exceed 500 characters.")
-	ErrInvalidAttendanceStatus = errors.New("Invalid attendance status. Allowed values are PRESENT or ABSENT.")
+	ErrInvalidAttendanceStatus = errors.New("Invalid attendance status. Allowed values are PRESENT, LATE, or ABSENT.")
 	ErrSameStatusCorrection    = errors.New("New status must be different from current status.")
 	ErrAttendanceNotFound      = errors.New("Attendance record not found.")
 	ErrUnauthorizedTeacher     = errors.New("You are not authorized to mark or correct attendance for this student or session.")
@@ -56,10 +56,10 @@ func ValidateAttendanceReason(reason string) (string, error) {
 	return clean, nil
 }
 
-// ValidateAttendanceStatus validates that the status is either PRESENT or ABSENT
+// ValidateAttendanceStatus validates that the status is PRESENT, LATE, or ABSENT
 func ValidateAttendanceStatus(status string) (string, error) {
 	clean := strings.ToUpper(strings.TrimSpace(status))
-	if clean != models.StatusPresent && clean != models.StatusAbsent {
+	if clean != models.StatusPresent && clean != models.StatusLate && clean != models.StatusAbsent {
 		return "", ErrInvalidAttendanceStatus
 	}
 	return clean, nil
@@ -67,9 +67,10 @@ func ValidateAttendanceStatus(status string) (string, error) {
 
 // CreateSessionInput defines the payload required by a teacher to launch a live attendance session
 type CreateSessionInput struct {
-	SubjectID       string `json:"subject_id" binding:"required"`
-	ClassID         string `json:"class_id" binding:"required"`
-	DurationMinutes int    `json:"duration_minutes" binding:"required,min=1,max=60"`
+	SubjectID            string `json:"subject_id" binding:"required"`
+	ClassID              string `json:"class_id" binding:"required"`
+	DurationMinutes      int    `json:"duration_minutes" binding:"required,min=1,max=60"`
+	LateThresholdMinutes *int   `json:"late_threshold_minutes,omitempty"`
 }
 
 // MarkAttendanceInput defines the student token submission payload
@@ -110,6 +111,14 @@ func CreateAttendanceSession(db *gorm.DB, teacherUserID string, input *CreateSes
 		duration = 5
 	}
 
+	lateThreshold := 10
+	if input.LateThresholdMinutes != nil {
+		if *input.LateThresholdMinutes < 0 || *input.LateThresholdMinutes > 180 {
+			return nil, errors.New("Late threshold must be between 0 and 180 minutes.")
+		}
+		lateThreshold = *input.LateThresholdMinutes
+	}
+
 	// 3. Verify teacher is allocated to teach this subject and class
 	var assignmentCount int64
 	db.Model(&models.TeacherSubjectClass{}).
@@ -140,13 +149,14 @@ func CreateAttendanceSession(db *gorm.DB, teacherUserID string, input *CreateSes
 	expiresAt := now.Add(time.Duration(duration) * time.Minute)
 
 	session := models.AttendanceSession{
-		TeacherID:    teacher.ID,
-		SubjectID:    subject.ID,
-		ClassID:      class.ID,
-		SessionToken: token,
-		StartedAt:    now,
-		ExpiresAt:    expiresAt,
-		IsActive:     true,
+		TeacherID:            teacher.ID,
+		SubjectID:            subject.ID,
+		ClassID:              class.ID,
+		SessionToken:         token,
+		StartedAt:            now,
+		ExpiresAt:            expiresAt,
+		LateThresholdMinutes: lateThreshold,
+		IsActive:             true,
 	}
 
 	if err := db.Create(&session).Error; err != nil {
@@ -158,33 +168,70 @@ func CreateAttendanceSession(db *gorm.DB, teacherUserID string, input *CreateSes
 	db.Model(&models.Student{}).Where("class_id = ?", class.ID).Count(&totalStudents)
 
 	durationMins := computeDurationMinutes(session.StartedAt, session.ExpiresAt)
+	lateAfter := session.StartedAt.Add(time.Duration(lateThreshold) * time.Minute)
 
 	return &models.AttendanceSessionResponse{
-		ID:                session.ID,
-		TeacherID:         teacher.ID,
-		TeacherName:       teacher.User.Name,
-		TeacherEmployeeID: teacher.EmployeeID,
-		SubjectID:         subject.ID,
-		SubjectName:       subject.Name,
-		SubjectCode:       subject.Code,
-		ClassID:           class.ID,
-		ClassName:         class.Name,
-		Department:        class.Department,
-		Semester:          class.Semester,
-		Section:           class.Section,
-		AcademicYear:      class.AcademicYear,
-		SessionToken:      session.SessionToken,
-		StartedAt:         session.StartedAt,
-		ExpiresAt:         session.ExpiresAt,
-		DurationMinutes:   durationMins,
-		IsActive:          session.IsActive,
-		IsExpired:         false,
-		PresentCount:      0,
-		AbsentCount:       totalStudents,
-		TotalStudents:     totalStudents,
-		Percentage:        0.0,
-		Status:            "ACTIVE",
-		CreatedAt:         session.CreatedAt,
+		ID:                   session.ID,
+		TeacherID:            teacher.ID,
+		TeacherName:          teacher.User.Name,
+		TeacherEmployeeID:    teacher.EmployeeID,
+		SubjectID:            subject.ID,
+		SubjectName:          subject.Name,
+		SubjectCode:          subject.Code,
+		ClassID:              class.ID,
+		ClassName:            class.Name,
+		Department:           class.Department,
+		Semester:             class.Semester,
+		Section:              class.Section,
+		AcademicYear:         class.AcademicYear,
+		SessionToken:         session.SessionToken,
+		StartedAt:            session.StartedAt,
+		ExpiresAt:            session.ExpiresAt,
+		DurationMinutes:      durationMins,
+		LateThresholdMinutes: lateThreshold,
+		LateAfter:            lateAfter,
+		IsActive:             session.IsActive,
+		IsExpired:            false,
+		PresentCount:         0,
+		LateCount:            0,
+		AbsentCount:          totalStudents,
+		TotalStudents:        totalStudents,
+		Percentage:           0.0,
+		LatePercentage:       0.0,
+		Status:               "ACTIVE",
+		CreatedAt:            session.CreatedAt,
+	}, nil
+}
+
+// UpdateSessionLateSettings modifies the late threshold for an attendance session after verifying teacher ownership
+func UpdateSessionLateSettings(db *gorm.DB, teacherUserID string, sessionID string, lateThresholdMinutes int) (*models.UpdateLateSettingsResponse, error) {
+	if lateThresholdMinutes < 0 || lateThresholdMinutes > 180 {
+		return nil, errors.New("Late threshold must be between 0 and 180 minutes.")
+	}
+
+	var teacher models.Teacher
+	if err := db.Where("user_id = ?", teacherUserID).First(&teacher).Error; err != nil {
+		return nil, errors.New("Teacher profile not found.")
+	}
+
+	var session models.AttendanceSession
+	if err := db.Where("id = ? AND teacher_id = ?", sessionID, teacher.ID).First(&session).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("Attendance session not found or access denied.")
+		}
+		return nil, err
+	}
+
+	if err := db.Model(&session).Update("late_threshold_minutes", lateThresholdMinutes).Error; err != nil {
+		return nil, fmt.Errorf("failed to update late threshold: %w", err)
+	}
+
+	lateAfter := session.StartedAt.Add(time.Duration(lateThresholdMinutes) * time.Minute)
+
+	return &models.UpdateLateSettingsResponse{
+		SessionID:            session.ID,
+		LateThresholdMinutes: lateThresholdMinutes,
+		LateAfter:            lateAfter,
 	}, nil
 }
 
@@ -258,45 +305,63 @@ func GetTeacherSessions(db *gorm.DB, teacherUserID string, subjectFilter, classF
 		var presentCount int64
 		db.Model(&models.Attendance{}).Where("session_id = ? AND status = 'PRESENT'", s.ID).Count(&presentCount)
 
+		var lateCount int64
+		db.Model(&models.Attendance{}).Where("session_id = ? AND status = 'LATE'", s.ID).Count(&lateCount)
+
 		var totalStudents int64
 		db.Model(&models.Student{}).Where("class_id = ?", s.ClassID).Count(&totalStudents)
 
+		attendedCount := presentCount + lateCount
 		pct := 0.0
 		if totalStudents > 0 {
-			pct = math.Round((float64(presentCount)/float64(totalStudents))*1000) / 10
+			pct = math.Round((float64(attendedCount)/float64(totalStudents))*1000) / 10
+		}
+		latePct := 0.0
+		if totalStudents > 0 {
+			latePct = math.Round((float64(lateCount)/float64(totalStudents))*1000) / 10
 		}
 
 		isExpired := now.After(s.ExpiresAt)
 		duration := computeDurationMinutes(s.StartedAt, s.ExpiresAt)
-		absentCount := computeAbsentCount(totalStudents, presentCount)
+		absentCount := computeAbsentCount(totalStudents, attendedCount)
 		sessionStatus := computeSessionStatus(s.IsActive, isExpired)
 
+		lateThresh := s.LateThresholdMinutes
+		if lateThresh < 0 {
+			lateThresh = 10
+		}
+		lateAfter := s.StartedAt.Add(time.Duration(lateThresh) * time.Minute)
+
 		results[i] = models.AttendanceSessionResponse{
-			ID:                s.ID,
-			TeacherID:         teacher.ID,
-			TeacherName:       teacher.User.Name,
-			TeacherEmployeeID: teacher.EmployeeID,
-			SubjectID:         s.SubjectID,
-			SubjectName:       s.Subject.Name,
-			SubjectCode:       s.Subject.Code,
-			ClassID:           s.ClassID,
-			ClassName:         s.Class.Name,
-			Department:        s.Class.Department,
-			Semester:          s.Class.Semester,
-			Section:           s.Class.Section,
-			AcademicYear:      s.Class.AcademicYear,
-			SessionToken:      s.SessionToken,
-			StartedAt:         s.StartedAt,
-			ExpiresAt:         s.ExpiresAt,
-			DurationMinutes:   duration,
-			IsActive:          s.IsActive,
-			IsExpired:         isExpired,
-			PresentCount:      presentCount,
-			AbsentCount:       absentCount,
-			TotalStudents:     totalStudents,
-			Percentage:        pct,
-			Status:            sessionStatus,
-			CreatedAt:         s.CreatedAt,
+			ID:                   s.ID,
+			TeacherID:            teacher.ID,
+			TeacherName:          teacher.User.Name,
+			TeacherEmployeeID:    teacher.EmployeeID,
+			SubjectID:            s.SubjectID,
+			SubjectName:          s.Subject.Name,
+			SubjectCode:          s.Subject.Code,
+			ClassID:              s.ClassID,
+			ClassName:            s.Class.Name,
+			Department:           s.Class.Department,
+			Semester:             s.Class.Semester,
+			Section:              s.Class.Section,
+			AcademicYear:         s.Class.AcademicYear,
+			SessionToken:         s.SessionToken,
+			StartedAt:            s.StartedAt,
+			ExpiresAt:            s.ExpiresAt,
+			DurationMinutes:      duration,
+			LateThresholdMinutes: lateThresh,
+			LateAfter:            lateAfter,
+			IsActive:             s.IsActive,
+			IsExpired:            isExpired,
+			PresentCount:         presentCount,
+			LateCount:            lateCount,
+			AbsentCount:          absentCount,
+			TotalStudents:        totalStudents,
+			Percentage:           pct,
+			LatePercentage:       latePct,
+			Status:               sessionStatus,
+			CreatedAt:            s.CreatedAt,
 		}
 	}
 
@@ -323,46 +388,64 @@ func GetTeacherSessionByID(db *gorm.DB, teacherUserID string, sessionID string) 
 	var presentCount int64
 	db.Model(&models.Attendance{}).Where("session_id = ? AND status = 'PRESENT'", session.ID).Count(&presentCount)
 
+	var lateCount int64
+	db.Model(&models.Attendance{}).Where("session_id = ? AND status = 'LATE'", session.ID).Count(&lateCount)
+
 	var totalStudents int64
 	db.Model(&models.Student{}).Where("class_id = ?", session.ClassID).Count(&totalStudents)
 
+	attendedCount := presentCount + lateCount
 	pct := 0.0
 	if totalStudents > 0 {
-		pct = math.Round((float64(presentCount)/float64(totalStudents))*1000) / 10
+		pct = math.Round((float64(attendedCount)/float64(totalStudents))*1000) / 10
+	}
+	latePct := 0.0
+	if totalStudents > 0 {
+		latePct = math.Round((float64(lateCount)/float64(totalStudents))*1000) / 10
 	}
 
 	now := time.Now().UTC()
 	isExpired := now.After(session.ExpiresAt)
 	duration := computeDurationMinutes(session.StartedAt, session.ExpiresAt)
-	absentCount := computeAbsentCount(totalStudents, presentCount)
+	absentCount := computeAbsentCount(totalStudents, attendedCount)
 	sessionStatus := computeSessionStatus(session.IsActive, isExpired)
 
+	lateThresh := session.LateThresholdMinutes
+	if lateThresh < 0 {
+		lateThresh = 10
+	}
+	lateAfter := session.StartedAt.Add(time.Duration(lateThresh) * time.Minute)
+
 	return &models.AttendanceSessionResponse{
-		ID:                session.ID,
-		TeacherID:         teacher.ID,
-		TeacherName:       teacher.User.Name,
-		TeacherEmployeeID: teacher.EmployeeID,
-		SubjectID:         session.SubjectID,
-		SubjectName:       session.Subject.Name,
-		SubjectCode:       session.Subject.Code,
-		ClassID:           session.ClassID,
-		ClassName:         session.Class.Name,
-		Department:        session.Class.Department,
-		Semester:          session.Class.Semester,
-		Section:           session.Class.Section,
-		AcademicYear:      session.Class.AcademicYear,
-		SessionToken:      session.SessionToken,
-		StartedAt:         session.StartedAt,
-		ExpiresAt:         session.ExpiresAt,
-		DurationMinutes:   duration,
-		IsActive:          session.IsActive,
-		IsExpired:         isExpired,
-		PresentCount:      presentCount,
-		AbsentCount:       absentCount,
-		TotalStudents:     totalStudents,
-		Percentage:        pct,
-		Status:            sessionStatus,
-		CreatedAt:         session.CreatedAt,
+		ID:                   session.ID,
+		TeacherID:            teacher.ID,
+		TeacherName:          teacher.User.Name,
+		TeacherEmployeeID:    teacher.EmployeeID,
+		SubjectID:            session.SubjectID,
+		SubjectName:          session.Subject.Name,
+		SubjectCode:          session.Subject.Code,
+		ClassID:              session.ClassID,
+		ClassName:            session.Class.Name,
+		Department:           session.Class.Department,
+		Semester:             session.Class.Semester,
+		Section:              session.Class.Section,
+		AcademicYear:         session.Class.AcademicYear,
+		SessionToken:         session.SessionToken,
+		StartedAt:            session.StartedAt,
+		ExpiresAt:            session.ExpiresAt,
+		DurationMinutes:      duration,
+		LateThresholdMinutes: lateThresh,
+		LateAfter:            lateAfter,
+		IsActive:             session.IsActive,
+		IsExpired:            isExpired,
+		PresentCount:         presentCount,
+		LateCount:            lateCount,
+		AbsentCount:          absentCount,
+		TotalStudents:        totalStudents,
+		Percentage:           pct,
+		LatePercentage:       latePct,
+		Status:               sessionStatus,
+		CreatedAt:            session.CreatedAt,
 	}, nil
 }
 
@@ -387,38 +470,59 @@ func GetLiveSessionData(db *gorm.DB, teacherUserID string, sessionID string) (*m
 	var totalStudents int64
 	db.Model(&models.Student{}).Where("class_id = ?", session.ClassID).Count(&totalStudents)
 
-	// Fetch all PRESENT attendances for this session joined with student and user details, ordered newest marked_at first
+	// Fetch all attendances for this session joined with student and user details, ordered newest marked_at first
 	type presentRow struct {
 		StudentID  string
 		RollNumber string
 		Name       string
 		Email      string
+		Status     string
 		MarkedAt   time.Time
 	}
 	var presentRows []presentRow
 	query := `
-		SELECT a.student_id, s.roll_number, u.name, u.email, a.marked_at
+		SELECT a.student_id, s.roll_number, u.name, u.email, a.status, a.marked_at
 		FROM attendance a
 		JOIN students s ON a.student_id = s.id
 		JOIN users u ON s.user_id = u.id
-		WHERE a.session_id = ?
+		WHERE a.session_id = ? AND a.status IN ('PRESENT', 'LATE')
 		ORDER BY a.marked_at DESC
 	`
 	if err := db.Raw(query, session.ID).Scan(&presentRows).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch live attendance check-ins: %w", err)
 	}
 
-	presentCount := int64(len(presentRows))
-	absentCount := computeAbsentCount(totalStudents, presentCount)
+	var presentCount int64 = 0
+	var lateCount int64 = 0
+	for _, r := range presentRows {
+		if r.Status == models.StatusLate {
+			lateCount++
+		} else {
+			presentCount++
+		}
+	}
+
+	attendedCount := presentCount + lateCount
+	absentCount := computeAbsentCount(totalStudents, attendedCount)
 	pct := 0.0
 	if totalStudents > 0 {
-		pct = math.Round((float64(presentCount)/float64(totalStudents))*1000) / 10
+		pct = math.Round((float64(attendedCount)/float64(totalStudents))*1000) / 10
+	}
+	latePct := 0.0
+	if totalStudents > 0 {
+		latePct = math.Round((float64(lateCount)/float64(totalStudents))*1000) / 10
 	}
 
 	now := time.Now().UTC()
 	isExpired := now.After(session.ExpiresAt)
 	duration := computeDurationMinutes(session.StartedAt, session.ExpiresAt)
 	sessionStatus := computeSessionStatus(session.IsActive, isExpired)
+
+	lateThresh := session.LateThresholdMinutes
+	if lateThresh < 0 {
+		lateThresh = 10
+	}
+	lateAfter := session.StartedAt.Add(time.Duration(lateThresh) * time.Minute)
 
 	students := make([]models.AttendanceStudentRecord, len(presentRows))
 	for i, r := range presentRows {
@@ -428,7 +532,7 @@ func GetLiveSessionData(db *gorm.DB, teacherUserID string, sessionID string) (*m
 			RollNumber: r.RollNumber,
 			Name:       r.Name,
 			Email:      r.Email,
-			Status:     "PRESENT",
+			Status:     r.Status,
 			MarkedAt:   &mTime,
 		}
 	}
@@ -438,8 +542,12 @@ func GetLiveSessionData(db *gorm.DB, teacherUserID string, sessionID string) (*m
 		Status:               sessionStatus,
 		TotalStudents:        totalStudents,
 		PresentCount:         presentCount,
+		LateCount:            lateCount,
 		AbsentCount:          absentCount,
 		AttendancePercentage: pct,
+		LatePercentage:       latePct,
+		LateThresholdMinutes: lateThresh,
+		LateAfter:            lateAfter,
 		QRExpiresAt:          session.ExpiresAt,
 		StartedAt:            session.StartedAt,
 		DurationMinutes:      duration,
@@ -474,7 +582,7 @@ func EndAttendanceSession(db *gorm.DB, teacherUserID string, sessionID string) e
 	return nil
 }
 
-// GetSessionAttendanceRecords returns the full class roster with PRESENT (marked time) and dynamically calculated ABSENT
+// GetSessionAttendanceRecords returns the full class roster with PRESENT/LATE (marked time) and dynamically calculated ABSENT
 func GetSessionAttendanceRecords(db *gorm.DB, sessionID string, teacherUserID *string) (*models.SessionAttendanceDetailsResponse, error) {
 	var session models.AttendanceSession
 	query := db.Preload("Teacher.User").Preload("Subject").Preload("Class").Where("id = ?", sessionID)
@@ -527,6 +635,7 @@ func GetSessionAttendanceRecords(db *gorm.DB, sessionID string, teacherUserID *s
 	// 3. Build full roster records
 	records := make([]models.AttendanceStudentRecord, len(classStudents))
 	var presentCount int64 = 0
+	var lateCount int64 = 0
 
 	for i, st := range classStudents {
 		att, hasAtt := attMap[st.ID]
@@ -541,6 +650,19 @@ func GetSessionAttendanceRecords(db *gorm.DB, sessionID string, teacherUserID *s
 				Name:         st.Name,
 				Email:        st.Email,
 				Status:       models.StatusPresent,
+				MarkedAt:     &tCopy,
+			}
+		} else if hasAtt && att.Status == models.StatusLate {
+			lateCount++
+			tCopy := att.MarkedAt
+			attID := att.ID
+			records[i] = models.AttendanceStudentRecord{
+				AttendanceID: &attID,
+				StudentID:    st.ID,
+				RollNumber:   st.RollNumber,
+				Name:         st.Name,
+				Email:        st.Email,
+				Status:       models.StatusLate,
 				MarkedAt:     &tCopy,
 			}
 		} else if hasAtt && att.Status == models.StatusAbsent {
@@ -569,49 +691,66 @@ func GetSessionAttendanceRecords(db *gorm.DB, sessionID string, teacherUserID *s
 	}
 
 	totalStudents := int64(len(classStudents))
+	attendedCount := presentCount + lateCount
 	pct := 0.0
 	if totalStudents > 0 {
-		pct = math.Round((float64(presentCount)/float64(totalStudents))*1000) / 10
+		pct = math.Round((float64(attendedCount)/float64(totalStudents))*1000) / 10
+	}
+	latePct := 0.0
+	if totalStudents > 0 {
+		latePct = math.Round((float64(lateCount)/float64(totalStudents))*1000) / 10
 	}
 
 	now := time.Now().UTC()
 	isExpired := now.After(session.ExpiresAt)
 	duration := computeDurationMinutes(session.StartedAt, session.ExpiresAt)
-	absentCount := computeAbsentCount(totalStudents, presentCount)
+	absentCount := computeAbsentCount(totalStudents, attendedCount)
 	sessionStatus := computeSessionStatus(session.IsActive, isExpired)
+
+	lateThresh := session.LateThresholdMinutes
+	if lateThresh < 0 {
+		lateThresh = 10
+	}
+	lateAfter := session.StartedAt.Add(time.Duration(lateThresh) * time.Minute)
 
 	return &models.SessionAttendanceDetailsResponse{
 		Session: models.AttendanceSessionResponse{
-			ID:                session.ID,
-			TeacherID:         session.TeacherID,
-			TeacherName:       session.Teacher.User.Name,
-			TeacherEmployeeID: session.Teacher.EmployeeID,
-			SubjectID:         session.SubjectID,
-			SubjectName:       session.Subject.Name,
-			SubjectCode:       session.Subject.Code,
-			ClassID:           session.ClassID,
-			ClassName:         session.Class.Name,
-			Department:        session.Class.Department,
-			Semester:          session.Class.Semester,
-			Section:           session.Class.Section,
-			AcademicYear:      session.Class.AcademicYear,
-			SessionToken:      session.SessionToken,
-			StartedAt:         session.StartedAt,
-			ExpiresAt:         session.ExpiresAt,
-			DurationMinutes:   duration,
-			IsActive:          session.IsActive,
-			IsExpired:         isExpired,
-			PresentCount:      presentCount,
-			AbsentCount:       absentCount,
-			TotalStudents:     totalStudents,
-			Percentage:        pct,
-			Status:            sessionStatus,
-			CreatedAt:         session.CreatedAt,
+			ID:                   session.ID,
+			TeacherID:            session.TeacherID,
+			TeacherName:          session.Teacher.User.Name,
+			TeacherEmployeeID:    session.Teacher.EmployeeID,
+			SubjectID:            session.SubjectID,
+			SubjectName:          session.Subject.Name,
+			SubjectCode:          session.Subject.Code,
+			ClassID:              session.ClassID,
+			ClassName:            session.Class.Name,
+			Department:           session.Class.Department,
+			Semester:             session.Class.Semester,
+			Section:              session.Class.Section,
+			AcademicYear:         session.Class.AcademicYear,
+			SessionToken:         session.SessionToken,
+			StartedAt:            session.StartedAt,
+			ExpiresAt:            session.ExpiresAt,
+			DurationMinutes:      duration,
+			LateThresholdMinutes: lateThresh,
+			LateAfter:            lateAfter,
+			IsActive:             session.IsActive,
+			IsExpired:            isExpired,
+			PresentCount:         presentCount,
+			LateCount:            lateCount,
+			AbsentCount:          absentCount,
+			TotalStudents:        totalStudents,
+			Percentage:           pct,
+			LatePercentage:       latePct,
+			Status:               sessionStatus,
+			CreatedAt:            session.CreatedAt,
 		},
-		Records:       records,
-		PresentCount:  presentCount,
-		TotalStudents: totalStudents,
-		Percentage:    pct,
+		Records:        records,
+		PresentCount:   presentCount,
+		LateCount:      lateCount,
+		TotalStudents:  totalStudents,
+		Percentage:     pct,
+		LatePercentage: latePct,
 	}, nil
 }
 
@@ -680,12 +819,23 @@ func MarkStudentAttendance(db *gorm.DB, studentUserID string, sessionToken strin
 			return ErrDuplicateAttendance
 		}
 
-		// 7. Insert attendance record atomically
+		// 7. Authoritative late detection based on server time and session threshold
+		lateThreshold := session.LateThresholdMinutes
+		if lateThreshold < 0 {
+			lateThreshold = 10
+		}
+		lateCutoff := session.StartedAt.Add(time.Duration(lateThreshold) * time.Minute)
+		status := models.StatusPresent
+		if serverNow.After(lateCutoff) {
+			status = models.StatusLate
+		}
+
+		// 8. Insert attendance record atomically
 		attendance := models.Attendance{
 			SessionID: session.ID,
 			StudentID: student.ID,
 			MarkedAt:  serverNow,
-			Status:    "PRESENT",
+			Status:    status,
 		}
 
 		if err := tx.Create(&attendance).Error; err != nil {
@@ -701,12 +851,15 @@ func MarkStudentAttendance(db *gorm.DB, studentUserID string, sessionToken strin
 		}
 
 		response = &models.MarkAttendanceResponse{
-			SessionID:   session.ID,
-			MarkedAt:    attendance.MarkedAt,
-			SubjectName: session.Subject.Name,
-			SubjectCode: session.Subject.Code,
-			ClassName:   session.Class.Name,
-			Status:      attendance.Status,
+			AttendanceID:         attendance.ID,
+			SessionID:            session.ID,
+			MarkedAt:             attendance.MarkedAt,
+			SubjectName:          session.Subject.Name,
+			SubjectCode:          session.Subject.Code,
+			ClassName:            session.Class.Name,
+			Status:               attendance.Status,
+			LateThresholdMinutes: lateThreshold,
+			LateAfter:            lateCutoff,
 		}
 
 		return nil
@@ -731,7 +884,9 @@ func GetStudentAttendanceSummary(db *gorm.DB, studentUserID string) (*models.Stu
 			OverallPercentage: 0.0,
 			TotalSessions:     0,
 			TotalPresent:      0,
+			TotalLate:         0,
 			TotalAbsent:       0,
+			LatePercentage:    0.0,
 			Subjects:          []models.SubjectAttendanceStat{},
 		}, nil
 	}
@@ -757,6 +912,7 @@ func GetStudentAttendanceSummary(db *gorm.DB, studentUserID string) (*models.Stu
 	subjectsSummary := make([]models.SubjectAttendanceStat, len(classSubjects))
 	var totalAllSessions int64 = 0
 	var totalAllPresent int64 = 0
+	var totalAllLate int64 = 0
 
 	for i, sub := range classSubjects {
 		// Total sessions held for this class & subject
@@ -772,45 +928,67 @@ func GetStudentAttendanceSummary(db *gorm.DB, studentUserID string) (*models.Stu
 			Where("a.student_id = ? AND s.subject_id = ? AND a.status = 'PRESENT'", student.ID, sub.ID).
 			Count(&presentSubSessions)
 
+		// Sessions student was late for
+		var lateSubSessions int64
+		db.Table("attendance a").
+			Joins("JOIN attendance_sessions s ON a.session_id = s.id").
+			Where("a.student_id = ? AND s.subject_id = ? AND a.status = 'LATE'", student.ID, sub.ID).
+			Count(&lateSubSessions)
+
+		attendedSubSessions := presentSubSessions + lateSubSessions
 		subPct := 0.0
 		if totalSubSessions > 0 {
-			subPct = math.Round((float64(presentSubSessions)/float64(totalSubSessions))*1000) / 10
+			subPct = math.Round((float64(attendedSubSessions)/float64(totalSubSessions))*1000) / 10
+		}
+		subLatePct := 0.0
+		if totalSubSessions > 0 {
+			subLatePct = math.Round((float64(lateSubSessions)/float64(totalSubSessions))*1000) / 10
 		}
 
 		absentSubSessions := int64(0)
-		if totalSubSessions > presentSubSessions {
-			absentSubSessions = totalSubSessions - presentSubSessions
+		if totalSubSessions > attendedSubSessions {
+			absentSubSessions = totalSubSessions - attendedSubSessions
 		}
 
 		totalAllSessions += totalSubSessions
 		totalAllPresent += presentSubSessions
+		totalAllLate += lateSubSessions
 
 		subjectsSummary[i] = models.SubjectAttendanceStat{
 			SubjectID:       sub.ID,
 			SubjectName:     sub.Name,
 			SubjectCode:     sub.Code,
 			PresentSessions: presentSubSessions,
+			LateSessions:    lateSubSessions,
 			AbsentSessions:  absentSubSessions,
 			TotalSessions:   totalSubSessions,
 			Percentage:      subPct,
+			LatePercentage:  subLatePct,
 		}
 	}
 
+	totalAllAttended := totalAllPresent + totalAllLate
 	overallPct := 0.0
 	if totalAllSessions > 0 {
-		overallPct = math.Round((float64(totalAllPresent)/float64(totalAllSessions))*1000) / 10
+		overallPct = math.Round((float64(totalAllAttended)/float64(totalAllSessions))*1000) / 10
+	}
+	overallLatePct := 0.0
+	if totalAllSessions > 0 {
+		overallLatePct = math.Round((float64(totalAllLate)/float64(totalAllSessions))*1000) / 10
 	}
 
 	totalAllAbsent := int64(0)
-	if totalAllSessions > totalAllPresent {
-		totalAllAbsent = totalAllSessions - totalAllPresent
+	if totalAllSessions > totalAllAttended {
+		totalAllAbsent = totalAllSessions - totalAllAttended
 	}
 
 	return &models.StudentAttendanceSummary{
 		OverallPercentage: overallPct,
 		TotalSessions:     totalAllSessions,
 		TotalPresent:      totalAllPresent,
+		TotalLate:         totalAllLate,
 		TotalAbsent:       totalAllAbsent,
+		LatePercentage:    overallLatePct,
 		Subjects:          subjectsSummary,
 	}, nil
 }
@@ -893,10 +1071,12 @@ func GetStudentAttendanceCalendar(db *gorm.DB, studentUserID string, monthStr st
 		return &models.StudentCalendarResponse{
 			Month: cleanMonth,
 			Summary: models.StudentCalendarSummary{
-				SessionsHeld: 0,
-				Present:      0,
-				Absent:       0,
-				Percentage:   0.0,
+				SessionsHeld:   0,
+				Present:        0,
+				Late:           0,
+				Absent:         0,
+				Percentage:     0.0,
+				LatePercentage: 0.0,
 			},
 			Days: []models.StudentCalendarDay{},
 		}, nil
@@ -920,10 +1100,12 @@ func GetStudentAttendanceCalendar(db *gorm.DB, studentUserID string, monthStr st
 		return &models.StudentCalendarResponse{
 			Month: cleanMonth,
 			Summary: models.StudentCalendarSummary{
-				SessionsHeld: 0,
-				Present:      0,
-				Absent:       0,
-				Percentage:   0.0,
+				SessionsHeld:   0,
+				Present:        0,
+				Late:           0,
+				Absent:         0,
+				Percentage:     0.0,
+				LatePercentage: 0.0,
 			},
 			Days: []models.StudentCalendarDay{},
 		}, nil
@@ -952,6 +1134,7 @@ func GetStudentAttendanceCalendar(db *gorm.DB, studentUserID string, monthStr st
 	dayMap := make(map[string][]models.StudentCalendarSessionItem)
 	var totalHeld int64 = 0
 	var totalPresent int64 = 0
+	var totalLate int64 = 0
 	var totalAbsent int64 = 0
 
 	for _, s := range sessions {
@@ -960,7 +1143,7 @@ func GetStudentAttendanceCalendar(db *gorm.DB, studentUserID string, monthStr st
 
 		att, found := attMap[s.ID]
 		var sessionItem models.StudentCalendarSessionItem
-		if found && att.Status == "PRESENT" {
+		if found && att.Status == models.StatusPresent {
 			totalPresent++
 			markedAt := att.MarkedAt
 			sessionItem = models.StudentCalendarSessionItem{
@@ -968,7 +1151,19 @@ func GetStudentAttendanceCalendar(db *gorm.DB, studentUserID string, monthStr st
 				SubjectID:   s.SubjectID,
 				SubjectName: s.Subject.Name,
 				SubjectCode: s.Subject.Code,
-				Status:      "PRESENT",
+				Status:      models.StatusPresent,
+				MarkedAt:    &markedAt,
+				StartedAt:   s.StartedAt,
+			}
+		} else if found && att.Status == models.StatusLate {
+			totalLate++
+			markedAt := att.MarkedAt
+			sessionItem = models.StudentCalendarSessionItem{
+				SessionID:   s.ID,
+				SubjectID:   s.SubjectID,
+				SubjectName: s.Subject.Name,
+				SubjectCode: s.Subject.Code,
+				Status:      models.StatusLate,
 				MarkedAt:    &markedAt,
 				StartedAt:   s.StartedAt,
 			}
@@ -979,7 +1174,7 @@ func GetStudentAttendanceCalendar(db *gorm.DB, studentUserID string, monthStr st
 				SubjectID:   s.SubjectID,
 				SubjectName: s.Subject.Name,
 				SubjectCode: s.Subject.Code,
-				Status:      "ABSENT",
+				Status:      models.StatusAbsent,
 				MarkedAt:    nil,
 				StartedAt:   s.StartedAt,
 			}
@@ -999,20 +1194,28 @@ func GetStudentAttendanceCalendar(db *gorm.DB, studentUserID string, monthStr st
 	for i, d := range uniqueDates {
 		sessionItems := dayMap[d]
 		presentCount := 0
+		lateCount := 0
 		absentCount := 0
 		for _, it := range sessionItems {
-			if it.Status == "PRESENT" {
+			if it.Status == models.StatusPresent {
 				presentCount++
+			} else if it.Status == models.StatusLate {
+				lateCount++
 			} else {
 				absentCount++
 			}
 		}
 
+		attendedCount := presentCount + lateCount
 		dayStatus := "PRESENT"
-		if presentCount > 0 && absentCount > 0 {
+		if attendedCount > 0 && absentCount > 0 {
 			dayStatus = "PARTIAL"
-		} else if absentCount > 0 && presentCount == 0 {
+		} else if absentCount > 0 && attendedCount == 0 {
 			dayStatus = "ABSENT"
+		} else if absentCount == 0 && lateCount > 0 && presentCount == 0 {
+			dayStatus = "LATE"
+		} else {
+			dayStatus = "PRESENT"
 		}
 
 		days[i] = models.StudentCalendarDay{
@@ -1022,18 +1225,25 @@ func GetStudentAttendanceCalendar(db *gorm.DB, studentUserID string, monthStr st
 		}
 	}
 
+	totalAttended := totalPresent + totalLate
 	pct := 0.0
 	if totalHeld > 0 {
-		pct = math.Round((float64(totalPresent)/float64(totalHeld))*1000) / 10
+		pct = math.Round((float64(totalAttended)/float64(totalHeld))*1000) / 10
+	}
+	latePct := 0.0
+	if totalHeld > 0 {
+		latePct = math.Round((float64(totalLate)/float64(totalHeld))*1000) / 10
 	}
 
 	return &models.StudentCalendarResponse{
 		Month: cleanMonth,
 		Summary: models.StudentCalendarSummary{
-			SessionsHeld: totalHeld,
-			Present:      totalPresent,
-			Absent:       totalAbsent,
-			Percentage:   pct,
+			SessionsHeld:   totalHeld,
+			Present:        totalPresent,
+			Late:           totalLate,
+			Absent:         totalAbsent,
+			Percentage:     pct,
+			LatePercentage: latePct,
 		},
 		Days: days,
 	}, nil
@@ -1075,10 +1285,12 @@ func GetStudentAttendanceHistory(
 				TotalPages:   0,
 			},
 			Summary: models.StudentAttendanceHistorySummary{
-				Total:      0,
-				Present:    0,
-				Absent:     0,
-				Percentage: 0.0,
+				Total:          0,
+				Present:        0,
+				Late:           0,
+				Absent:         0,
+				Percentage:     0.0,
+				LatePercentage: 0.0,
 			},
 		}, nil
 	}
@@ -1117,20 +1329,24 @@ func GetStudentAttendanceHistory(
 	cleanStatus := strings.ToUpper(strings.TrimSpace(statusFilter))
 	if cleanStatus == "PRESENT" {
 		baseQuery += " AND a.id IS NOT NULL AND a.status = 'PRESENT'"
+	} else if cleanStatus == "LATE" {
+		baseQuery += " AND a.id IS NOT NULL AND a.status = 'LATE'"
 	} else if cleanStatus == "ABSENT" {
-		baseQuery += " AND (a.id IS NULL OR a.status != 'PRESENT')"
+		baseQuery += " AND (a.id IS NULL OR a.status = 'ABSENT')"
 	}
 
-	// 2. Count total matching records and present count for summary
+	// 2. Count total matching records and present/late count for summary
 	type summaryCounts struct {
 		TotalCount   int64 `gorm:"column:total_count"`
 		PresentCount int64 `gorm:"column:present_count"`
+		LateCount    int64 `gorm:"column:late_count"`
 	}
 	var counts summaryCounts
 	summarySQL := `
 		SELECT 
 			COUNT(*) AS total_count,
-			COUNT(CASE WHEN a.id IS NOT NULL AND a.status = 'PRESENT' THEN 1 END) AS present_count
+			COUNT(CASE WHEN a.id IS NOT NULL AND a.status = 'PRESENT' THEN 1 END) AS present_count,
+			COUNT(CASE WHEN a.id IS NOT NULL AND a.status = 'LATE' THEN 1 END) AS late_count
 	` + baseQuery
 
 	if err := db.Raw(summarySQL, args...).Scan(&counts).Error; err != nil {
@@ -1144,21 +1360,29 @@ func GetStudentAttendanceHistory(
 	}
 
 	totalPresent := counts.PresentCount
+	totalLate := counts.LateCount
+	totalAttended := totalPresent + totalLate
 	totalAbsent := int64(0)
-	if totalRecords > totalPresent {
-		totalAbsent = totalRecords - totalPresent
+	if totalRecords > totalAttended {
+		totalAbsent = totalRecords - totalAttended
 	}
 
 	pct := 0.0
 	if totalRecords > 0 {
-		pct = math.Round((float64(totalPresent)/float64(totalRecords))*1000) / 10
+		pct = math.Round((float64(totalAttended)/float64(totalRecords))*1000) / 10
+	}
+	latePct := 0.0
+	if totalRecords > 0 {
+		latePct = math.Round((float64(totalLate)/float64(totalRecords))*1000) / 10
 	}
 
 	summary := models.StudentAttendanceHistorySummary{
-		Total:      totalRecords,
-		Present:    totalPresent,
-		Absent:     totalAbsent,
-		Percentage: pct,
+		Total:          totalRecords,
+		Present:        totalPresent,
+		Late:           totalLate,
+		Absent:         totalAbsent,
+		Percentage:     pct,
+		LatePercentage: latePct,
 	}
 
 	if totalRecords == 0 {
@@ -1187,6 +1411,7 @@ func GetStudentAttendanceHistory(
 			ses.started_at,
 			ses.expires_at AS ended_at,
 			CASE 
+				WHEN a.id IS NOT NULL AND a.status = 'LATE' THEN 'LATE'
 				WHEN a.id IS NOT NULL AND a.status = 'PRESENT' THEN 'PRESENT' 
 				ELSE 'ABSENT' 
 			END AS status,
@@ -1273,45 +1498,63 @@ func GetAdminAttendanceSessions(db *gorm.DB, dateFilter, subjectFilter, classFil
 		var presentCount int64
 		db.Model(&models.Attendance{}).Where("session_id = ? AND status = 'PRESENT'", s.ID).Count(&presentCount)
 
+		var lateCount int64
+		db.Model(&models.Attendance{}).Where("session_id = ? AND status = 'LATE'", s.ID).Count(&lateCount)
+
 		var totalStudents int64
 		db.Model(&models.Student{}).Where("class_id = ?", s.ClassID).Count(&totalStudents)
 
+		attendedCount := presentCount + lateCount
 		pct := 0.0
 		if totalStudents > 0 {
-			pct = math.Round((float64(presentCount)/float64(totalStudents))*1000) / 10
+			pct = math.Round((float64(attendedCount)/float64(totalStudents))*1000) / 10
+		}
+		latePct := 0.0
+		if totalStudents > 0 {
+			latePct = math.Round((float64(lateCount)/float64(totalStudents))*1000) / 10
 		}
 
 		isExpired := now.After(s.ExpiresAt)
 		duration := computeDurationMinutes(s.StartedAt, s.ExpiresAt)
-		absentCount := computeAbsentCount(totalStudents, presentCount)
+		absentCount := computeAbsentCount(totalStudents, attendedCount)
 		sessionStatus := computeSessionStatus(s.IsActive, isExpired)
 
+		lateThresh := s.LateThresholdMinutes
+		if lateThresh < 0 {
+			lateThresh = 10
+		}
+		lateAfter := s.StartedAt.Add(time.Duration(lateThresh) * time.Minute)
+
 		results[i] = models.AttendanceSessionResponse{
-			ID:                s.ID,
-			TeacherID:         s.TeacherID,
-			TeacherName:       s.Teacher.User.Name,
-			TeacherEmployeeID: s.Teacher.EmployeeID,
-			SubjectID:         s.SubjectID,
-			SubjectName:       s.Subject.Name,
-			SubjectCode:       s.Subject.Code,
-			ClassID:           s.ClassID,
-			ClassName:         s.Class.Name,
-			Department:        s.Class.Department,
-			Semester:          s.Class.Semester,
-			Section:           s.Class.Section,
-			AcademicYear:      s.Class.AcademicYear,
-			SessionToken:      s.SessionToken,
-			StartedAt:         s.StartedAt,
-			ExpiresAt:         s.ExpiresAt,
-			DurationMinutes:   duration,
-			IsActive:          s.IsActive,
-			IsExpired:         isExpired,
-			PresentCount:      presentCount,
-			AbsentCount:       absentCount,
-			TotalStudents:     totalStudents,
-			Percentage:        pct,
-			Status:            sessionStatus,
-			CreatedAt:         s.CreatedAt,
+			ID:                   s.ID,
+			TeacherID:            s.TeacherID,
+			TeacherName:          s.Teacher.User.Name,
+			TeacherEmployeeID:    s.Teacher.EmployeeID,
+			SubjectID:            s.SubjectID,
+			SubjectName:          s.Subject.Name,
+			SubjectCode:          s.Subject.Code,
+			ClassID:              s.ClassID,
+			ClassName:            s.Class.Name,
+			Department:           s.Class.Department,
+			Semester:             s.Class.Semester,
+			Section:              s.Class.Section,
+			AcademicYear:         s.Class.AcademicYear,
+			SessionToken:         s.SessionToken,
+			StartedAt:            s.StartedAt,
+			ExpiresAt:            s.ExpiresAt,
+			DurationMinutes:      duration,
+			LateThresholdMinutes: lateThresh,
+			LateAfter:            lateAfter,
+			IsActive:             s.IsActive,
+			IsExpired:            isExpired,
+			PresentCount:         presentCount,
+			LateCount:            lateCount,
+			AbsentCount:          absentCount,
+			TotalStudents:        totalStudents,
+			Percentage:           pct,
+			LatePercentage:       latePct,
+			Status:               sessionStatus,
+			CreatedAt:            s.CreatedAt,
 		}
 	}
 
@@ -1341,7 +1584,9 @@ func GetStudentAttendanceAnalytics(
 				OverallPercentage:        0.0,
 				TotalSessions:            0,
 				TotalPresent:             0,
+				TotalLate:                0,
 				TotalAbsent:              0,
+				LatePercentage:           0.0,
 				TotalSubjects:            0,
 				SubjectsBelowRequirement: 0,
 				SubjectsCritical:         0,
@@ -1440,40 +1685,47 @@ func GetStudentAttendanceAnalytics(
 		sessionIDs[i] = s.ID
 	}
 
-	attendedSessionSet := make(map[string]bool)
+	type studentAttRow struct {
+		SessionID string
+		Status    string
+	}
+	var attendedRecords []studentAttRow
+	attStatusMap := make(map[string]string)
 	if len(sessionIDs) > 0 {
-		var attendedIDs []string
 		if err := db.Table("attendance").
+			Select("session_id, status").
 			Where("student_id = ? AND session_id IN ?", student.ID, sessionIDs).
-			Pluck("session_id", &attendedIDs).Error; err != nil {
+			Scan(&attendedRecords).Error; err != nil {
 			return nil, fmt.Errorf("failed to fetch student attendance records: %w", err)
 		}
-		for _, id := range attendedIDs {
-			attendedSessionSet[id] = true
+		for _, ar := range attendedRecords {
+			attStatusMap[ar.SessionID] = ar.Status
 		}
 	}
 
 	// 5. In-Memory Aggregations
 	var totalSessions int64 = int64(len(sessions))
 	var totalPresent int64 = 0
+	var totalLate int64 = 0
 
-	// Subject stats map: subjectID -> (total, present)
+	// Subject stats map: subjectID -> (total, present, late)
 	type subStat struct {
 		Total   int64
 		Present int64
+		Late    int64
 	}
 	subjectStatsMap := make(map[string]*subStat)
 	for _, s := range classSubjects {
-		subjectStatsMap[s.ID] = &subStat{Total: 0, Present: 0}
+		subjectStatsMap[s.ID] = &subStat{Total: 0, Present: 0, Late: 0}
 	}
 
-	// Monthly stats map: "YYYY-MM" -> (total, present)
+	// Monthly stats map: "YYYY-MM" -> (total, present, late)
 	monthlyStatsMap := make(map[string]*subStat)
 
 	for _, s := range sessions {
 		monthKey := s.StartedAt.UTC().Format("2006-01")
 		if _, ok := monthlyStatsMap[monthKey]; !ok {
-			monthlyStatsMap[monthKey] = &subStat{Total: 0, Present: 0}
+			monthlyStatsMap[monthKey] = &subStat{Total: 0, Present: 0, Late: 0}
 		}
 		monthlyStatsMap[monthKey].Total++
 
@@ -1481,23 +1733,36 @@ func GetStudentAttendanceAnalytics(
 			stat.Total++
 		}
 
-		if attendedSessionSet[s.ID] {
-			totalPresent++
-			monthlyStatsMap[monthKey].Present++
-			if stat, ok := subjectStatsMap[s.SubjectID]; ok {
-				stat.Present++
+		if status, attended := attStatusMap[s.ID]; attended {
+			if status == models.StatusLate {
+				totalLate++
+				monthlyStatsMap[monthKey].Late++
+				if stat, ok := subjectStatsMap[s.SubjectID]; ok {
+					stat.Late++
+				}
+			} else if status == models.StatusPresent {
+				totalPresent++
+				monthlyStatsMap[monthKey].Present++
+				if stat, ok := subjectStatsMap[s.SubjectID]; ok {
+					stat.Present++
+				}
 			}
 		}
 	}
 
+	totalAttended := totalPresent + totalLate
 	var totalAbsent int64 = 0
-	if totalSessions > totalPresent {
-		totalAbsent = totalSessions - totalPresent
+	if totalSessions > totalAttended {
+		totalAbsent = totalSessions - totalAttended
 	}
 
 	overallPct := 0.0
 	if totalSessions > 0 {
-		overallPct = math.Round((float64(totalPresent)/float64(totalSessions))*1000) / 10
+		overallPct = math.Round((float64(totalAttended)/float64(totalSessions))*1000) / 10
+	}
+	overallLatePct := 0.0
+	if totalSessions > 0 {
+		overallLatePct = math.Round((float64(totalLate)/float64(totalSessions))*1000) / 10
 	}
 
 	absencePct := 0.0
@@ -1540,18 +1805,25 @@ func GetStudentAttendanceAnalytics(
 		st := subjectStatsMap[s.ID]
 		subTotal := int64(0)
 		subPresent := int64(0)
+		subLate := int64(0)
 		if st != nil {
 			subTotal = st.Total
 			subPresent = st.Present
+			subLate = st.Late
 		}
+		subAttended := subPresent + subLate
 		subAbsent := int64(0)
-		if subTotal > subPresent {
-			subAbsent = subTotal - subPresent
+		if subTotal > subAttended {
+			subAbsent = subTotal - subAttended
 		}
 
 		subPct := 0.0
 		if subTotal > 0 {
-			subPct = math.Round((float64(subPresent)/float64(subTotal))*1000) / 10
+			subPct = math.Round((float64(subAttended)/float64(subTotal))*1000) / 10
+		}
+		subLatePct := 0.0
+		if subTotal > 0 {
+			subLatePct = math.Round((float64(subLate)/float64(subTotal))*1000) / 10
 		}
 
 		status := "REQUIREMENT_MET"
@@ -1601,8 +1873,10 @@ func GetStudentAttendanceAnalytics(
 			SubjectCode:     s.Code,
 			TotalSessions:   subTotal,
 			PresentSessions: subPresent,
+			LateSessions:    subLate,
 			AbsentSessions:  subAbsent,
 			Percentage:      subPct,
+			LatePercentage:  subLatePct,
 			Status:          status,
 		})
 	}
@@ -1617,20 +1891,27 @@ func GetStudentAttendanceAnalytics(
 	monthlyStats := make([]models.StudentAttendanceMonthlyStat, len(monthsList))
 	for i, m := range monthsList {
 		st := monthlyStatsMap[m]
+		mAttended := st.Present + st.Late
 		mAbsent := int64(0)
-		if st.Total > st.Present {
-			mAbsent = st.Total - st.Present
+		if st.Total > mAttended {
+			mAbsent = st.Total - mAttended
 		}
 		mPct := 0.0
 		if st.Total > 0 {
-			mPct = math.Round((float64(st.Present)/float64(st.Total))*1000) / 10
+			mPct = math.Round((float64(mAttended)/float64(st.Total))*1000) / 10
+		}
+		mLatePct := 0.0
+		if st.Total > 0 {
+			mLatePct = math.Round((float64(st.Late)/float64(st.Total))*1000) / 10
 		}
 		monthlyStats[i] = models.StudentAttendanceMonthlyStat{
-			Month:      m,
-			Sessions:   st.Total,
-			Present:    st.Present,
-			Absent:     mAbsent,
-			Percentage: mPct,
+			Month:          m,
+			Sessions:       st.Total,
+			Present:        st.Present,
+			Late:           st.Late,
+			Absent:         mAbsent,
+			Percentage:     mPct,
+			LatePercentage: mLatePct,
 		}
 	}
 
@@ -1673,7 +1954,7 @@ func GetStudentAttendanceAnalytics(
 			classesNeeded = &zero
 			isMeeting = true
 		} else {
-			val := int(3*totalSessions - 4*totalPresent)
+			val := int(3*totalSessions - 4*totalAttended)
 			if val < 0 {
 				val = 0
 			}
@@ -1689,7 +1970,9 @@ func GetStudentAttendanceAnalytics(
 			OverallPercentage:        overallPct,
 			TotalSessions:            totalSessions,
 			TotalPresent:             totalPresent,
+			TotalLate:                totalLate,
 			TotalAbsent:              totalAbsent,
+			LatePercentage:           overallLatePct,
 			TotalSubjects:            totalSubjectsCount,
 			SubjectsBelowRequirement: subjectsBelowReq,
 			SubjectsCritical:         subjectsCritical,
@@ -1920,21 +2203,27 @@ func SearchTeacherStudents(
 	type attRow struct {
 		StudentID string
 		SessionID string
+		Status    string
 	}
 	var attendanceRecords []attRow
 	if len(sessionIDs) > 0 && len(studentIDs) > 0 {
 		if err := db.Table("attendance").
-			Select("student_id, session_id").
-			Where("student_id IN ? AND session_id IN ? AND status = 'PRESENT'", studentIDs, sessionIDs).
+			Select("student_id, session_id, status").
+			Where("student_id IN ? AND session_id IN ? AND status IN ('PRESENT', 'LATE')", studentIDs, sessionIDs).
 			Scan(&attendanceRecords).Error; err != nil {
 			return nil, fmt.Errorf("failed to fetch attendance records: %w", err)
 		}
 	}
 
-	// Map student_id -> count of present sessions
+	// Map student_id -> count of present and late sessions
 	studentPresentCountMap := make(map[string]int64)
+	studentLateCountMap := make(map[string]int64)
 	for _, a := range attendanceRecords {
-		studentPresentCountMap[a.StudentID]++
+		if a.Status == models.StatusLate {
+			studentLateCountMap[a.StudentID]++
+		} else {
+			studentPresentCountMap[a.StudentID]++
+		}
 	}
 
 	// 6. Build evaluated items and compute standing status
@@ -1944,14 +2233,21 @@ func SearchTeacherStudents(
 	for _, st := range students {
 		totalSess := classSessionsCountMap[st.ClassID]
 		presentSess := studentPresentCountMap[st.ID]
+		lateSess := studentLateCountMap[st.ID]
+		attendedSess := presentSess + lateSess
+
 		absentSess := int64(0)
-		if totalSess > presentSess {
-			absentSess = totalSess - presentSess
+		if totalSess > attendedSess {
+			absentSess = totalSess - attendedSess
 		}
 
 		pct := 0.0
 		if totalSess > 0 {
-			pct = math.Round((float64(presentSess)/float64(totalSess))*1000) / 10
+			pct = math.Round((float64(attendedSess)/float64(totalSess))*1000) / 10
+		}
+		latePct := 0.0
+		if totalSess > 0 {
+			latePct = math.Round((float64(lateSess)/float64(totalSess))*1000) / 10
 		}
 
 		status := "REQUIREMENT_MET"
@@ -1985,8 +2281,10 @@ func SearchTeacherStudents(
 			Section:              st.Section,
 			AttendancePercentage: pct,
 			Present:              presentSess,
+			Late:                 lateSess,
 			Absent:               absentSess,
 			TotalSessions:        totalSess,
+			LatePercentage:       latePct,
 			Status:               status,
 		}
 
@@ -1994,7 +2292,19 @@ func SearchTeacherStudents(
 		if statusFilter != nil && strings.TrimSpace(*statusFilter) != "" {
 			sf := strings.ToUpper(strings.TrimSpace(*statusFilter))
 			if sf != "ALL" {
-				if sf == "MET" || sf == "REQUIREMENT_MET" {
+				if sf == "LATE" {
+					if lateSess == 0 {
+						continue
+					}
+				} else if sf == "PRESENT" {
+					if presentSess == 0 {
+						continue
+					}
+				} else if sf == "ABSENT" {
+					if absentSess == 0 {
+						continue
+					}
+				} else if sf == "MET" || sf == "REQUIREMENT_MET" {
 					if status != "REQUIREMENT_MET" {
 						continue
 					}
@@ -2038,6 +2348,14 @@ func SearchTeacherStudents(
 			if a.Present < b.Present {
 				cmp = -1
 			} else if a.Present > b.Present {
+				cmp = 1
+			} else {
+				cmp = strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+			}
+		case "late":
+			if a.Late < b.Late {
+				cmp = -1
+			} else if a.Late > b.Late {
 				cmp = 1
 			} else {
 				cmp = strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
@@ -2224,35 +2542,49 @@ func GetTeacherStudentAttendanceDetail(
 	type subAcc struct {
 		Total   int64
 		Present int64
+		Late    int64
 	}
 	subjectStatsMap := make(map[string]*subAcc)
 	for _, cs := range classSubjects {
-		subjectStatsMap[cs.ID] = &subAcc{Total: 0, Present: 0}
+		subjectStatsMap[cs.ID] = &subAcc{Total: 0, Present: 0, Late: 0}
 	}
 
 	var overallTotal int64 = int64(len(allSessions))
 	var overallPresent int64 = 0
+	var overallLate int64 = 0
 
 	for _, s := range allSessions {
 		if acc, ok := subjectStatsMap[s.SubjectID]; ok {
 			acc.Total++
 		}
-		if att, attended := attendanceMap[s.ID]; attended && att.Status == models.StatusPresent {
-			overallPresent++
-			if acc, ok := subjectStatsMap[s.SubjectID]; ok {
-				acc.Present++
+		if att, attended := attendanceMap[s.ID]; attended {
+			if att.Status == models.StatusPresent {
+				overallPresent++
+				if acc, ok := subjectStatsMap[s.SubjectID]; ok {
+					acc.Present++
+				}
+			} else if att.Status == models.StatusLate {
+				overallLate++
+				if acc, ok := subjectStatsMap[s.SubjectID]; ok {
+					acc.Late++
+				}
 			}
 		}
 	}
 
+	overallAttended := overallPresent + overallLate
 	var overallAbsent int64 = 0
-	if overallTotal > overallPresent {
-		overallAbsent = overallTotal - overallPresent
+	if overallTotal > overallAttended {
+		overallAbsent = overallTotal - overallAttended
 	}
 
 	overallPct := 0.0
 	if overallTotal > 0 {
-		overallPct = math.Round((float64(overallPresent)/float64(overallTotal))*1000) / 10
+		overallPct = math.Round((float64(overallAttended)/float64(overallTotal))*1000) / 10
+	}
+	overallLatePct := 0.0
+	if overallTotal > 0 {
+		overallLatePct = math.Round((float64(overallLate)/float64(overallTotal))*1000) / 10
 	}
 
 	overallStatus := "REQUIREMENT_MET"
@@ -2271,17 +2603,24 @@ func GetTeacherStudentAttendanceDetail(
 		acc := subjectStatsMap[cs.ID]
 		sTotal := int64(0)
 		sPresent := int64(0)
+		sLate := int64(0)
 		if acc != nil {
 			sTotal = acc.Total
 			sPresent = acc.Present
+			sLate = acc.Late
 		}
+		sAttended := sPresent + sLate
 		sAbsent := int64(0)
-		if sTotal > sPresent {
-			sAbsent = sTotal - sPresent
+		if sTotal > sAttended {
+			sAbsent = sTotal - sAttended
 		}
 		sPct := 0.0
 		if sTotal > 0 {
-			sPct = math.Round((float64(sPresent)/float64(sTotal))*1000) / 10
+			sPct = math.Round((float64(sAttended)/float64(sTotal))*1000) / 10
+		}
+		sLatePct := 0.0
+		if sTotal > 0 {
+			sLatePct = math.Round((float64(sLate)/float64(sTotal))*1000) / 10
 		}
 		sStatus := "REQUIREMENT_MET"
 		if sTotal > 0 {
@@ -2294,14 +2633,16 @@ func GetTeacherStudentAttendanceDetail(
 			}
 		}
 		subjectDetails = append(subjectDetails, models.TeacherStudentAttendanceDetailSubject{
-			SubjectID:   cs.ID,
-			SubjectName: cs.Name,
-			SubjectCode: cs.Code,
-			Total:       sTotal,
-			Present:     sPresent,
-			Absent:      sAbsent,
-			Percentage:  sPct,
-			Status:      sStatus,
+			SubjectID:      cs.ID,
+			SubjectName:    cs.Name,
+			SubjectCode:    cs.Code,
+			Total:          sTotal,
+			Present:        sPresent,
+			Late:           sLate,
+			Absent:         sAbsent,
+			Percentage:     sPct,
+			LatePercentage: sLatePct,
+			Status:         sStatus,
 		})
 	}
 
@@ -2417,7 +2758,9 @@ func GetTeacherStudentAttendanceDetail(
 			OverallPercentage: overallPct,
 			TotalSessions:     overallTotal,
 			TotalPresent:      overallPresent,
+			TotalLate:         overallLate,
 			TotalAbsent:       overallAbsent,
+			LatePercentage:    overallLatePct,
 			Status:            overallStatus,
 		},
 		Subjects: subjectDetails,

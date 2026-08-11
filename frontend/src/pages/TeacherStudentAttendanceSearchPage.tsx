@@ -107,7 +107,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
     attendanceId: string;
     student: { name: string; roll_number: string; email?: string };
     sessionInfo: { subject_name: string; subject_code: string; class_name?: string };
-    currentStatus: 'PRESENT' | 'ABSENT';
+    currentStatus: 'PRESENT' | 'LATE' | 'ABSENT';
   } | null>(null);
   const [auditModalOpen, setAuditModalOpen] = useState(false);
   const [auditAttendance, setAuditAttendance] = useState<{
@@ -1007,10 +1007,11 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
               ) : detailData ? (
                 <>
                   {/* Overall Attendance Summary Banner */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100">
+                  {/* Overall Attendance Summary Banner */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100 col-span-2 sm:col-span-1">
                       <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-wider block">
-                        Overall Attendance
+                        Attended Rate
                       </span>
                       <p className="text-2xl font-black font-heading text-indigo-600 mt-1">
                         {detailData.summary.overall_percentage}%
@@ -1026,12 +1027,21 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+                    <div className="p-3.5 rounded-2xl bg-emerald-50/50 border border-emerald-100">
                       <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
-                        Present
+                        On-Time
                       </span>
-                      <p className="text-xl font-bold font-heading text-emerald-600 mt-1">
+                      <p className="text-xl font-bold font-heading text-emerald-700 mt-1">
                         {detailData.summary.total_present}
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-amber-50/50 border border-amber-200/80">
+                      <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">
+                        Late ({detailData.summary.late_percentage || 0}%)
+                      </span>
+                      <p className="text-xl font-bold font-heading text-amber-800 mt-1">
+                        {detailData.summary.total_late || 0}
                       </p>
                     </div>
 
@@ -1095,6 +1105,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
 
                             <div className="flex items-center justify-between text-[10px] text-slate-500">
                               <span>Present: {sub.present}</span>
+                              {sub.late > 0 && <span className="text-amber-700 font-medium">Late: {sub.late}</span>}
                               <span>Absent: {sub.absent}</span>
                               <span>Total: {sub.total}</span>
                             </div>
@@ -1139,7 +1150,8 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                           className="text-[11px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700"
                         >
                           <option value="">All Statuses</option>
-                          <option value="PRESENT">Present</option>
+                          <option value="PRESENT">On-Time</option>
+                          <option value="LATE">Late</option>
                           <option value="ABSENT">Absent</option>
                         </select>
                       </div>
@@ -1184,13 +1196,27 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                                   </span>
                                 </td>
                                 <td className="py-2.5 px-3.5">
-                                  <Badge
-                                    variant={r.status === 'PRESENT' ? 'success' : 'error'}
-                                    withDot
-                                    className="text-[10px] font-bold"
-                                  >
-                                    {r.status}
-                                  </Badge>
+                                  {r.status === 'PRESENT' ? (
+                                    <Badge
+                                      variant="success"
+                                      withDot
+                                      className="text-[10px] font-bold"
+                                    >
+                                      PRESENT
+                                    </Badge>
+                                  ) : r.status === 'LATE' ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-300">
+                                      ● LATE
+                                    </span>
+                                  ) : (
+                                    <Badge
+                                      variant="error"
+                                      withDot
+                                      className="text-[10px] font-bold"
+                                    >
+                                      ABSENT
+                                    </Badge>
+                                  )}
                                 </td>
                                 <td className="py-2.5 px-3.5 text-slate-400 text-[11px]">
                                   {r.marked_at

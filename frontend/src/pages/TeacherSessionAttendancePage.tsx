@@ -31,7 +31,7 @@ export const TeacherSessionAttendancePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PRESENT' | 'ABSENT'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PRESENT' | 'LATE' | 'ABSENT'>('ALL');
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<AttendanceExportFormat | null>(null);
@@ -43,7 +43,7 @@ export const TeacherSessionAttendancePage: React.FC = () => {
   const [correctingStudent, setCorrectingStudent] = useState<{
     student: { name: string; roll_number: string };
     attendanceId: string;
-    status: 'PRESENT' | 'ABSENT';
+    status: 'PRESENT' | 'LATE' | 'ABSENT';
   } | null>(null);
   const [auditModalOpen, setAuditModalOpen] = useState<boolean>(false);
   const [auditStudent, setAuditStudent] = useState<{
@@ -127,7 +127,9 @@ export const TeacherSessionAttendancePage: React.FC = () => {
   }
 
   const { session } = data;
-  const absentCount = data.total_students - data.present_count;
+  const lateCount = data.late_count ?? 0;
+  const attendedCount = data.present_count + lateCount;
+  const absentCount = Math.max(0, data.total_students - attendedCount);
   const duration = session.duration_minutes || Math.max(1, Math.round((new Date(session.expires_at).getTime() - new Date(session.started_at).getTime()) / 60000));
 
   return (
@@ -159,7 +161,7 @@ export const TeacherSessionAttendancePage: React.FC = () => {
 
       <PageHeader
         title={`${session.subject_name} — Attendance Roster`}
-        description={`${session.class_name} (${session.department}, Sem ${session.semester}) • Subject Code: ${session.subject_code} • Duration: ${duration}m`}
+        description={`${session.class_name} (${session.department}, Sem ${session.semester}) • Subject Code: ${session.subject_code} • Duration: ${duration}m • Late Threshold: ${session.late_threshold_minutes ?? 10}m`}
         badge={
           session.is_active && !session.is_expired ? (
             <Badge variant="success" withDot>LIVE SESSION</Badge>
@@ -294,23 +296,27 @@ export const TeacherSessionAttendancePage: React.FC = () => {
         }
       />
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="p-4 border-slate-200">
+      {/* Overview Stats (Feature #12: Total, Present, Late, Absent, Attendance Rate) */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <Card className="p-3.5 border-slate-200">
           <p className="text-[10px] font-bold uppercase text-slate-400">Total Enrolled</p>
-          <p className="text-2xl font-bold text-slate-900">{data.total_students}</p>
+          <p className="text-xl font-extrabold text-slate-900 font-heading">{data.total_students}</p>
         </Card>
-        <Card className="p-4 border-emerald-100 bg-emerald-50/30">
-          <p className="text-[10px] font-bold uppercase text-emerald-700">Present</p>
-          <p className="text-2xl font-bold text-emerald-800">{data.present_count}</p>
+        <Card className="p-3.5 border-emerald-100 bg-emerald-50/40">
+          <p className="text-[10px] font-bold uppercase text-emerald-700">On-Time</p>
+          <p className="text-xl font-extrabold text-emerald-800 font-heading">{data.present_count}</p>
         </Card>
-        <Card className="p-4 border-slate-200">
+        <Card className="p-3.5 border-amber-200 bg-amber-50/50">
+          <p className="text-[10px] font-bold uppercase text-amber-700">Late ({data.late_percentage}%)</p>
+          <p className="text-xl font-extrabold text-amber-800 font-heading">{lateCount}</p>
+        </Card>
+        <Card className="p-3.5 border-slate-200">
           <p className="text-[10px] font-bold uppercase text-slate-500">Absent</p>
-          <p className="text-2xl font-bold text-slate-700">{absentCount}</p>
+          <p className="text-xl font-extrabold text-slate-700 font-heading">{absentCount}</p>
         </Card>
-        <Card className="p-4 border-indigo-100 bg-indigo-50/30">
-          <p className="text-[10px] font-bold uppercase text-indigo-700">Rate</p>
-          <p className="text-2xl font-bold text-indigo-900">{data.percentage}%</p>
+        <Card className="p-3.5 border-indigo-100 bg-indigo-50/40 col-span-2 sm:col-span-1">
+          <p className="text-[10px] font-bold uppercase text-indigo-700">Attended Rate</p>
+          <p className="text-xl font-extrabold text-indigo-900 font-heading font-mono">{data.percentage}%</p>
         </Card>
       </div>
 
@@ -340,7 +346,16 @@ export const TeacherSessionAttendancePage: React.FC = () => {
                   statusFilter === 'PRESENT' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Present ({data.present_count})
+                On-Time ({data.present_count})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('LATE')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition ${
+                  statusFilter === 'LATE' ? 'bg-amber-500 text-white' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Late ({lateCount})
               </button>
               <button
                 type="button"
@@ -355,7 +370,7 @@ export const TeacherSessionAttendancePage: React.FC = () => {
 
             <div className="w-48 sm:w-60">
               <Input
-                placeholder="Search..."
+                placeholder="Search name, roll..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="text-xs"
@@ -382,12 +397,16 @@ export const TeacherSessionAttendancePage: React.FC = () => {
                   <td className="py-3 px-4">
                     {st.status === 'PRESENT' ? (
                       <Badge variant="success" className="text-[10px]">PRESENT</Badge>
+                    ) : st.status === 'LATE' ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-300">
+                        LATE
+                      </span>
                     ) : (
                       <Badge variant="neutral" className="text-[10px]">ABSENT</Badge>
                     )}
                   </td>
                   <td className="py-3 px-4 text-center text-slate-500">
-                    {st.marked_at ? new Date(st.marked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                    {st.marked_at ? new Date(st.marked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
                   </td>
                   <td className="py-3 px-4 text-right space-x-2">
                     {st.attendance_id ? (

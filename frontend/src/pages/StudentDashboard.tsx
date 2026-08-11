@@ -95,9 +95,11 @@ export const StudentDashboard: React.FC = () => {
       subject_name: s.name,
       subject_code: s.code,
       present_sessions: 0,
+      late_sessions: 0,
       absent_sessions: 0,
       total_sessions: 0,
       percentage: 0.0,
+      late_percentage: 0.0,
     }));
   }, [summary?.subjects, subjects]);
 
@@ -131,7 +133,9 @@ export const StudentDashboard: React.FC = () => {
   // Metric computations
   const totalClasses = summary?.total_sessions ?? 0;
   const presentClasses = summary?.total_present ?? 0;
-  const absentClasses = summary?.total_absent ?? Math.max(0, totalClasses - presentClasses);
+  const lateClasses = summary?.total_late ?? 0;
+  const totalAttended = presentClasses + lateClasses;
+  const absentClasses = summary?.total_absent ?? Math.max(0, totalClasses - totalAttended);
   const overallPercentage = summary?.overall_percentage ?? 0.0;
   const isOverallLowAttendance = totalClasses > 0 && overallPercentage < MIN_ATTENDANCE_THRESHOLD;
   const allSubjectsHealthy = totalClasses > 0 && lowAttendanceSubjects.length === 0;
@@ -229,8 +233,8 @@ export const StudentDashboard: React.FC = () => {
                         Your overall attendance is currently{' '}
                         <strong className="font-mono text-amber-950 dark:text-amber-100 font-bold">{overallPercentage}%</strong>{' '}
                         (minimum required: <strong>{MIN_ATTENDANCE_THRESHOLD}%</strong>). You have attended{' '}
-                        <strong>{presentClasses}</strong> of <strong>{totalClasses}</strong> scheduled classes{' '}
-                        (<strong>{absentClasses}</strong> missed). Attend upcoming classes consistently to improve your attendance percentage.
+                        <strong>{totalAttended}</strong> of <strong>{totalClasses}</strong> scheduled classes{' '}
+                        ({presentClasses} on-time, {lateClasses} late, <strong>{absentClasses}</strong> missed). Attend upcoming classes consistently to improve your attendance percentage.
                       </p>
                     </div>
                   </div>
@@ -263,7 +267,7 @@ export const StudentDashboard: React.FC = () => {
                   <div className="hidden sm:block text-right flex-shrink-0">
                     <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Status</span>
                     <span className="text-xs font-mono font-bold text-emerald-900 dark:text-emerald-100">
-                      {presentClasses} / {totalClasses} Attended
+                      {totalAttended} / {totalClasses} Attended
                     </span>
                   </div>
                 </div>
@@ -427,7 +431,7 @@ export const StudentDashboard: React.FC = () => {
               </p>
             </Card>
 
-            {/* KPI 2: Total Present */}
+            {/* KPI 2: Total Attended */}
             <Card className="p-5 shadow-xs bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -440,13 +444,13 @@ export const StudentDashboard: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-heading font-mono">
-                    {presentClasses}
+                    {totalAttended}
                   </span>
-                  <span className="text-xs text-slate-400 ml-1">sessions</span>
+                  <span className="text-xs text-slate-400 ml-1">/ {totalClasses} sessions</span>
                 </div>
               </div>
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-                <span>Verified Presence</span>
+                <span>{presentClasses} on-time, {lateClasses} late</span>
                 <span className="font-semibold text-emerald-700 dark:text-emerald-400">Marked via QR</span>
               </div>
             </Card>

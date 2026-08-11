@@ -9,9 +9,11 @@ import {
   FileText,
   User,
   GraduationCap,
+  Clock,
 } from 'lucide-react';
 import { Button } from './Button';
 import { Badge } from './Badge';
+import { AttendanceStatus } from '../types';
 import { apiMarkAttendanceManually } from '../services/api';
 
 interface ManualAttendanceModalProps {
@@ -29,7 +31,7 @@ interface ManualAttendanceModalProps {
     name: string;
     roll_number: string;
     email: string;
-    status: 'PRESENT' | 'ABSENT';
+    status: AttendanceStatus;
   }>;
   initialStudentId?: string;
 }
@@ -43,7 +45,7 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
   initialStudentId,
 }) => {
   const [selectedStudentId, setSelectedStudentId] = useState<string>(initialStudentId || '');
-  const [status, setStatus] = useState<'PRESENT' | 'ABSENT'>('PRESENT');
+  const [status, setStatus] = useState<AttendanceStatus>('PRESENT');
   const [reason, setReason] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -170,7 +172,7 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                   <span className="text-slate-400 font-mono text-[11px]">&bull; {selectedStudent.email}</span>
                 </div>
                 <Badge
-                  variant={selectedStudent.status === 'PRESENT' ? 'success' : 'neutral'}
+                  variant={selectedStudent.status === 'PRESENT' ? 'success' : selectedStudent.status === 'LATE' ? 'warning' : 'neutral'}
                   className="text-[10px]"
                 >
                   Currently {selectedStudent.status}
@@ -184,31 +186,44 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
             <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Attendance Status
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setStatus('PRESENT')}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-bold transition text-xs ${
+                className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border font-bold transition text-xs ${
                   status === 'PRESENT'
                     ? 'bg-emerald-50 border-emerald-500 text-emerald-700 ring-2 ring-emerald-500/20'
                     : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Mark PRESENT</span>
+                <span>PRESENT</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStatus('LATE')}
+                className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border font-bold transition text-xs ${
+                  status === 'LATE'
+                    ? 'bg-amber-50 border-amber-500 text-amber-800 ring-2 ring-amber-500/20'
+                    : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Clock className="w-4 h-4 text-amber-600" />
+                <span>LATE</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setStatus('ABSENT')}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-bold transition text-xs ${
+                className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border font-bold transition text-xs ${
                   status === 'ABSENT'
                     ? 'bg-rose-50 border-rose-500 text-rose-700 ring-2 ring-rose-500/20'
                     : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 <XCircle className="w-4 h-4 text-rose-600" />
-                <span>Mark ABSENT</span>
+                <span>ABSENT</span>
               </button>
             </div>
           </div>

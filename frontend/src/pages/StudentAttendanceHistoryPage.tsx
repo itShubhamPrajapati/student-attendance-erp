@@ -356,7 +356,8 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
                 className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               >
                 <option value="">All Statuses</option>
-                <option value="PRESENT">Present (Attended)</option>
+                <option value="PRESENT">On-Time (Present)</option>
+                <option value="LATE">Late (Attended)</option>
                 <option value="ABSENT">Absent (Missed)</option>
               </select>
             </div>
@@ -506,6 +507,11 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           PRESENT
                         </span>
+                      ) : rec.status === 'LATE' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800/50">
+                          <Clock className="w-3.5 h-3.5" />
+                          LATE
+                        </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/50">
                           <XCircle className="w-3.5 h-3.5" />
@@ -564,6 +570,10 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
                     <Badge variant="success">
                       ✓ Present
                     </Badge>
+                  ) : rec.status === 'LATE' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                      ⏰ Late
+                    </span>
                   ) : (
                     <Badge variant="error">
                       ✕ Absent
@@ -751,15 +761,26 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
                   {selectedSession.status === 'PRESENT' ? (
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200 border border-emerald-300/60">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      ✓ PRESENT
+                      ✓ PRESENT (On-Time)
+                    </span>
+                  ) : selectedSession.status === 'LATE' ? (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200 border border-amber-300/60">
+                      <Clock className="w-3.5 h-3.5" />
+                      ⏰ LATE (Attended)
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200 border border-rose-300/60">
                       <XCircle className="w-3.5 h-3.5" />
-                      ✕ ABSENT
+                      ✕ ABSENT (Missed)
                     </span>
                   )}
                 </div>
+
+                {selectedSession.status === 'LATE' && (
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-200/60">
+                    💡 <strong>Academic Standing:</strong> Recorded after the late threshold. Per attendance policy, late attendance counts as <strong>ATTENDED</strong> towards your overall percentage.
+                  </p>
+                )}
 
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
                   <span className="text-slate-500 dark:text-slate-400">Verified Check-In</span>

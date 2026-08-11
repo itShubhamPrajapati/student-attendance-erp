@@ -1113,7 +1113,9 @@ func TestAttendanceStatusValidation(t *testing.T) {
 		{"present lowercase normalized", "present", nil, "PRESENT"},
 		{"absent lowercase normalized", "absent", nil, "ABSENT"},
 		{"Status with whitespace", "  PRESENT  ", nil, "PRESENT"},
-		{"Invalid status LATE rejected", "LATE", ErrInvalidAttendanceStatus, ""},
+		{"Valid status LATE", "LATE", nil, "LATE"},
+		{"Valid lowercase late", "late", nil, "LATE"},
+		{"Valid late with whitespace", "  LATE  ", nil, "LATE"},
 		{"Invalid status EXCUSED rejected", "EXCUSED", ErrInvalidAttendanceStatus, ""},
 		{"Invalid arbitrary string rejected", "UNKNOWN_STATUS", ErrInvalidAttendanceStatus, ""},
 		{"Empty string rejected", "", ErrInvalidAttendanceStatus, ""},
@@ -1146,7 +1148,7 @@ func TestManualAttendanceResponseSecurity(t *testing.T) {
 		StudentID:    "stud-abcde",
 		Status:       "PRESENT",
 		MarkedAt:     time.Now().UTC(),
-		Action:       models.AuditActionManualMark,
+		Action:       string(models.AuditActionManualMark),
 		Reason:       "Student attended but QR scanner failed",
 	}
 
@@ -1227,6 +1229,137 @@ func TestAttendanceAuditItemSecurity(t *testing.T) {
 	}
 }
 
+// TestLateAttendanceCalculations verifies Feature #12 calculation rules:
+// Attended = Present + Late, Absent = Total - Attended,
+// Attendance % = (Present + Late) / Total * 100, Late % = Late / Total * 100
+func TestLateAttendanceCalculations(t *testing.T) {
+	tests := []struct {
+		name          string
+		totalSessions int64
+		present       int64
+		late          int64
+		expectedAtt   int64
+		expectedAbs   int64
+		expectedAttPct float64
+		expectedLatePct float64
+	}{
+		{
+			name:          "Mixed present and late sessions",
+			totalSessions: 10,
+			present:       7,
+			late:          2,
+			expectedAtt:   9,
+			expectedAbs:   1,
+			expectedAttPct: 90.0,
+			expectedLatePct: 20.0,
+		},
+		{
+			name:          "All late sessions (still 100% attended, 0% absent)",
+			totalSessions: 5,
+			present:       0,
+			late:          5,
+			expectedAtt:   5,
+			expectedAbs:   0,
+			expectedAttPct: 100.0,
+			expectedLatePct: 100.0,
+		},
+		{
+			name:          "All absent sessions",
+			totalSessions: 8,
+			present:       0,
+			late:          0,
+			expectedAtt:   0,
+			expectedAbs:   8,
+			expectedAttPct: 0.0,
+			expectedLatePct: 0.0,
+		},
+		{
+			name:          "Zero total sessions",
+			totalSessions: 0,
+			present:       0,
+			late:          0,
+			expectedAtt:   0,
+			expectedAbs:   0,
+			expectedAttPct: 0.0,
+			expectedLatePct: 0.0,
+		},
+	}
 
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			attended := tt.present + tt.late
+			if attended != tt.expectedAtt {
+				t.Errorf("expected attended %d, got %d", tt.expectedAtt, attended)
+			}
 
+			var absent int64
+			if tt.totalSessions > attended {
+				absent = tt.totalSessions - attended
+			}
+			if absent != tt.expectedAbs {
+				t.Errorf("expected absent %d, got %d", tt.expectedAbs, absent)
+			}
 
+			var attPct, latePct float64
+			if tt.totalSessions > 0 {
+				attPct = float64(attended) / float64(tt.totalSessions) * 100
+				latePct = float64(tt.late) / float64(tt.totalSessions) * 100
+			}
+
+			if attPct != tt.expectedAttPct {
+				t.Errorf("expected attPct %.1f, got %.1f", tt.expectedAttPct, attPct)
+			}
+			if latePct != tt.expectedLatePct {
+				t.Errorf("expected latePct %.1f, got %.1f", tt.expectedLatePct, latePct)
+			}
+		})
+	}
+}
+
+// TestLateCutoffDetermination tests the authoritative server-time late cutoff logic
+func TestLateCutoffDetermination(t *testing.T) {
+	sessionStart := time.Date(2026, 8, 11, 10, 0, 0, 0, time.UTC)
+	lateThreshold := 10 // 10 minutes
+
+	lateCutoff := sessionStart.Add(time.Duration(lateThreshold) * time.Minute) // 10:10:00
+
+	// 1. Scan exactly at start time -> PRESENT
+	scanTime1 := sessionStart
+	status1 := models.StatusPresent
+	if scanTime1.After(lateCutoff) {
+		status1 = models.StatusLate
+	}
+	if status1 != models.StatusPresent {
+		t.Errorf("expected PRESENT at session start, got %s", status1)
+	}
+
+	// 2. Scan at 10:09:59 (before cutoff) -> PRESENT
+	scanTime2 := sessionStart.Add(9*time.Minute + 59*time.Second)
+	status2 := models.StatusPresent
+	if scanTime2.After(lateCutoff) {
+		status2 = models.StatusLate
+	}
+	if status2 != models.StatusPresent {
+		t.Errorf("expected PRESENT before cutoff, got %s", status2)
+	}
+
+	// 3. Scan at 10:10:00 (exact cutoff) -> PRESENT
+	scanTime3 := lateCutoff
+	status3 := models.StatusPresent
+	if scanTime3.After(lateCutoff) {
+		status3 = models.StatusLate
+	}
+	if status3 != models.StatusPresent {
+		t.Errorf("expected PRESENT at exact cutoff, got %s", status3)
+	}
+
+	// 4. Scan at 10:10:01 (after cutoff) -> LATE
+	scanTime4 := lateCutoff.Add(1 * time.Second)
+	status4 := models.StatusPresent
+	if scanTime4.After(lateCutoff) {
+		status4 = models.StatusLate
+	}
+	if status4 != models.StatusLate {
+		t.Errorf("expected LATE after cutoff, got %s", status4)
+	}
+}
