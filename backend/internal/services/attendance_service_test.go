@@ -29,6 +29,7 @@ func TestModelTableNames(t *testing.T) {
 		{"TeacherSubjectClass", models.TeacherSubjectClass{}.TableName(), "teacher_subject_classes"},
 		{"AttendanceSession", models.AttendanceSession{}.TableName(), "attendance_sessions"},
 		{"Attendance", models.Attendance{}.TableName(), "attendance"}, // Crucial fix: must be "attendance", not "attendances"
+		{"AttendanceAudit", models.AttendanceAudit{}.TableName(), "attendance_audit"},
 	}
 
 	for _, tt := range tests {
@@ -1011,6 +1012,221 @@ func TestTeacherStudentSearchPaginationBoundaries(t *testing.T) {
 		t.Errorf("expected 0 items for out of bounds page, got %d", len(p4))
 	}
 }
+
+// ==============================================================================
+// FEATURE #11 TESTS: MANUAL ATTENDANCE & ATTENDANCE CORRECTION
+// ==============================================================================
+
+// TestAttendanceReasonValidation tests mandatory reason rules (non-empty, min 5 chars, max 500 chars, whitespace trimming)
+func TestAttendanceReasonValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		inputReason string
+		expectErr   error
+		expectedVal string
+	}{
+		{
+			name:        "Empty string rejected",
+			inputReason: "",
+			expectErr:   ErrReasonRequired,
+		},
+		{
+			name:        "Whitespace-only rejected",
+			inputReason: "   \t\n  ",
+			expectErr:   ErrReasonRequired,
+		},
+		{
+			name:        "Too short (1 char)",
+			inputReason: "A",
+			expectErr:   ErrReasonTooShort,
+		},
+		{
+			name:        "Too short (4 chars)",
+			inputReason: "Fix!",
+			expectErr:   ErrReasonTooShort,
+		},
+		{
+			name:        "Too short with leading/trailing spaces (3 effective chars)",
+			inputReason: "   abc   ",
+			expectErr:   ErrReasonTooShort,
+		},
+		{
+			name:        "Exact 5 characters accepted",
+			inputReason: "Valid",
+			expectErr:   nil,
+			expectedVal: "Valid",
+		},
+		{
+			name:        "Standard valid reason",
+			inputReason: "Student attended but QR scanner failed",
+			expectErr:   nil,
+			expectedVal: "Student attended but QR scanner failed",
+		},
+		{
+			name:        "Valid reason with padding whitespace trimmed",
+			inputReason: "   Correcting attendance after faculty verification   ",
+			expectErr:   nil,
+			expectedVal: "Correcting attendance after faculty verification",
+		},
+		{
+			name:        "Exact 500 characters accepted",
+			inputReason: strings.Repeat("A", 500),
+			expectErr:   nil,
+			expectedVal: strings.Repeat("A", 500),
+		},
+		{
+			name:        "Exceeding 500 characters (501 chars) rejected",
+			inputReason: strings.Repeat("A", 501),
+			expectErr:   ErrReasonTooLong,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			val, err := ValidateAttendanceReason(tt.inputReason)
+			if tt.expectErr != nil {
+				if err != tt.expectErr {
+					t.Errorf("expected error %v, got %v", tt.expectErr, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got %v", err)
+				}
+				if val != tt.expectedVal {
+					t.Errorf("expected trimmed value %q, got %q", tt.expectedVal, val)
+				}
+			}
+		})
+	}
+}
+
+// TestAttendanceStatusValidation verifies that only PRESENT and ABSENT are permitted
+func TestAttendanceStatusValidation(t *testing.T) {
+	tests := []struct {
+		name         string
+		inputStatus  string
+		expectErr    error
+		expectStatus string
+	}{
+		{"PRESENT exact uppercase", "PRESENT", nil, "PRESENT"},
+		{"ABSENT exact uppercase", "ABSENT", nil, "ABSENT"},
+		{"present lowercase normalized", "present", nil, "PRESENT"},
+		{"absent lowercase normalized", "absent", nil, "ABSENT"},
+		{"Status with whitespace", "  PRESENT  ", nil, "PRESENT"},
+		{"Invalid status LATE rejected", "LATE", ErrInvalidAttendanceStatus, ""},
+		{"Invalid status EXCUSED rejected", "EXCUSED", ErrInvalidAttendanceStatus, ""},
+		{"Invalid arbitrary string rejected", "UNKNOWN_STATUS", ErrInvalidAttendanceStatus, ""},
+		{"Empty string rejected", "", ErrInvalidAttendanceStatus, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			st, err := ValidateAttendanceStatus(tt.inputStatus)
+			if tt.expectErr != nil {
+				if err != tt.expectErr {
+					t.Errorf("expected error %v, got %v", tt.expectErr, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got %v", err)
+				}
+				if st != tt.expectStatus {
+					t.Errorf("expected status %q, got %q", tt.expectStatus, st)
+				}
+			}
+		})
+	}
+}
+
+// TestManualAttendanceResponseSecurity verifies that responses do not leak sensitive credentials
+func TestManualAttendanceResponseSecurity(t *testing.T) {
+	resp := models.ManualAttendanceResponse{
+		AttendanceID: "att-12345",
+		SessionID:    "sess-67890",
+		StudentID:    "stud-abcde",
+		Status:       "PRESENT",
+		MarkedAt:     time.Now().UTC(),
+		Action:       models.AuditActionManualMark,
+		Reason:       "Student attended but QR scanner failed",
+	}
+
+	data, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatalf("failed to marshal ManualAttendanceResponse: %v", err)
+	}
+
+	var jsonMap map[string]interface{}
+	if err := json.Unmarshal(data, &jsonMap); err != nil {
+		t.Fatalf("failed to unmarshal JSON map: %v", err)
+	}
+
+	forbiddenKeys := []string{
+		"password",
+		"password_hash",
+		"token",
+		"jwt",
+		"session_token",
+		"secret",
+	}
+
+	for _, k := range forbiddenKeys {
+		if _, exists := jsonMap[k]; exists {
+			t.Errorf("SECURITY VIOLATION: ManualAttendanceResponse contains sensitive key %q", k)
+		}
+	}
+}
+
+// TestAttendanceAuditItemSecurity verifies that audit items do not expose passwords or tokens
+func TestAttendanceAuditItemSecurity(t *testing.T) {
+	prev := "ABSENT"
+	auditItem := models.AttendanceAuditItem{
+		ID:             "audit-uuid-123",
+		AttendanceID:   &prev,
+		SessionID:      "sess-uuid-456",
+		StudentID:      "stud-uuid-789",
+		ActorUserID:    "user-uuid-999",
+		ActorName:      "Dr. Sarah Johnson",
+		ActorRole:      "TEACHER",
+		Action:         models.AuditActionCorrection,
+		PreviousStatus: &prev,
+		NewStatus:      "PRESENT",
+		Reason:         "Correcting attendance after faculty verification",
+		CreatedAt:      time.Now().UTC(),
+	}
+
+	data, err := json.Marshal(auditItem)
+	if err != nil {
+		t.Fatalf("failed to marshal AttendanceAuditItem: %v", err)
+	}
+
+	var jsonMap map[string]interface{}
+	if err := json.Unmarshal(data, &jsonMap); err != nil {
+		t.Fatalf("failed to unmarshal JSON map: %v", err)
+	}
+
+	forbiddenKeys := []string{
+		"password",
+		"password_hash",
+		"token",
+		"jwt",
+		"session_token",
+		"secret",
+	}
+
+	for _, k := range forbiddenKeys {
+		if _, exists := jsonMap[k]; exists {
+			t.Errorf("SECURITY VIOLATION: AttendanceAuditItem contains sensitive key %q", k)
+		}
+	}
+
+	if jsonMap["actor_name"] != "Dr. Sarah Johnson" {
+		t.Errorf("expected actor_name to be 'Dr. Sarah Johnson', got %v", jsonMap["actor_name"])
+	}
+	if jsonMap["action"] != "CORRECTION" {
+		t.Errorf("expected action to be 'CORRECTION', got %v", jsonMap["action"])
+	}
+}
+
 
 
 

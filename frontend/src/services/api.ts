@@ -31,6 +31,10 @@ import {
   TeacherStudentSearchResponse,
   TeacherStudentAttendanceDetailResponse,
   CreateAttendanceSessionPayload,
+  ManualAttendancePayload,
+  CorrectAttendancePayload,
+  AttendanceAuditItem,
+  ManualAttendanceResponse,
 } from '../types';
 import { getToken } from '../auth/authService';
 
@@ -775,5 +779,46 @@ export async function apiExportTeacherStudentAttendance(
   const fallback = `student-attendance-${studentId}-${new Date().toISOString().slice(0, 10)}.${ext}`;
   return downloadFileRequest(`/api/teacher/students/${studentId}/attendance/export/${format}${qs}`, fallback);
 }
+
+// ==============================================================================
+// Feature #11: Manual Attendance & Correction APIs
+// ==============================================================================
+
+export async function apiMarkAttendanceManually(
+  payload: ManualAttendancePayload
+): Promise<{ success: boolean; message: string; data: ManualAttendanceResponse }> {
+  return request<{ success: boolean; message: string; data: ManualAttendanceResponse }>(
+    '/api/teacher/attendance/manual',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function apiCorrectAttendance(
+  attendanceId: string,
+  payload: CorrectAttendancePayload
+): Promise<{ success: boolean; message: string; data: ManualAttendanceResponse }> {
+  return request<{ success: boolean; message: string; data: ManualAttendanceResponse }>(
+    `/api/teacher/attendance/${attendanceId}/correct`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function apiGetAttendanceAudit(
+  attendanceId: string
+): Promise<{ success: boolean; data: AttendanceAuditItem[] }> {
+  return request<{ success: boolean; data: AttendanceAuditItem[] }>(
+    `/api/teacher/attendance/${attendanceId}/audit`,
+    {
+      method: 'GET',
+    }
+  );
+}
+
 
 

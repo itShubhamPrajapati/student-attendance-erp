@@ -248,6 +248,7 @@ export interface AttendanceSession {
 }
 
 export interface AttendanceStudentRecord {
+  attendance_id?: string | null;
   student_id: string;
   roll_number: string;
   name: string;
@@ -535,6 +536,7 @@ export interface TeacherStudentAttendanceDetailSummary {
 }
 
 export interface TeacherStudentAttendanceDetailHistoryRecord {
+  attendance_id?: string | null;
   session_id: string;
   subject_id: string;
   subject_name: string;
@@ -570,5 +572,48 @@ export interface ApiResponse<T = unknown> {
 }
 
 export type AttendanceExportFormat = 'csv' | 'excel' | 'pdf';
+
+// ==============================================================================
+// Feature #11: Manual Attendance & Attendance Correction Types
+// ==============================================================================
+
+export interface ManualAttendancePayload {
+  session_id: string;
+  student_id: string;
+  status: 'PRESENT' | 'ABSENT';
+  reason: string;
+}
+
+export interface CorrectAttendancePayload {
+  status: 'PRESENT' | 'ABSENT';
+  reason: string;
+}
+
+export interface AttendanceAuditItem {
+  id: string;
+  college_id?: string | null;
+  attendance_id?: string | null;
+  session_id: string;
+  student_id: string;
+  actor_user_id: string;
+  actor_name: string;
+  actor_role: string;
+  action: 'MANUAL_MARK' | 'CORRECTION';
+  previous_status?: string | null;
+  new_status: string;
+  reason: string;
+  created_at: string;
+}
+
+export interface ManualAttendanceResponse {
+  attendance_id: string;
+  session_id: string;
+  student_id: string;
+  status: 'PRESENT' | 'ABSENT';
+  marked_at: string;
+  action: string;
+  reason: string;
+}
+
 
 

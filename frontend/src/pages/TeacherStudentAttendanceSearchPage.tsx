@@ -30,6 +30,9 @@ import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
+import { ManualAttendanceModal } from '../components/ManualAttendanceModal';
+import { CorrectAttendanceModal } from '../components/CorrectAttendanceModal';
+import { AttendanceAuditHistoryModal } from '../components/AttendanceAuditHistoryModal';
 import {
   TeacherStudentSearchResponse,
   TeacherStudentAttendanceDetailResponse,
@@ -90,6 +93,36 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
   const [detailToDate, setDetailToDate] = useState('');
   const [detailPage, setDetailPage] = useState(1);
   const detailLimit = 15;
+
+  // Feature #11 Modals State
+  const [manualModalOpen, setManualModalOpen] = useState(false);
+  const [selectedManualSession, setSelectedManualSession] = useState<{
+    session_id: string;
+    subject_name: string;
+    subject_code: string;
+    class_name: string;
+  } | null>(null);
+  const [correctModalOpen, setCorrectModalOpen] = useState(false);
+  const [correctingAttendance, setCorrectingAttendance] = useState<{
+    attendanceId: string;
+    student: { name: string; roll_number: string; email?: string };
+    sessionInfo: { subject_name: string; subject_code: string; class_name?: string };
+    currentStatus: 'PRESENT' | 'ABSENT';
+  } | null>(null);
+  const [auditModalOpen, setAuditModalOpen] = useState(false);
+  const [auditAttendance, setAuditAttendance] = useState<{
+    attendanceId: string;
+    studentName: string;
+    rollNumber: string;
+    subjectName: string;
+  } | null>(null);
+
+  const handleAuditSuccess = () => {
+    if (inspectingStudentId) {
+      fetchStudentDetail(inspectingStudentId);
+    }
+    fetchStudents();
+  };
 
   // Debounce search input (350ms)
   useEffect(() => {
@@ -1125,6 +1158,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                               <th className="py-2.5 px-3.5">Subject</th>
                               <th className="py-2.5 px-3.5">Status</th>
                               <th className="py-2.5 px-3.5">Marked At</th>
+                              <th className="py-2.5 px-3.5 text-right">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
@@ -1165,6 +1199,63 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                                         minute: '2-digit',
                                       })
                                     : '—'}
+                                </td>
+                                <td className="py-2.5 px-3.5 text-right space-x-2 whitespace-nowrap">
+                                  {r.attendance_id ? (
+                                    <>
+                                      <button
+                                        onClick={() => {
+                                          setCorrectingAttendance({
+                                            attendanceId: r.attendance_id!,
+                                            student: {
+                                              name: detailData.student.name,
+                                              roll_number: detailData.student.roll_number,
+                                              email: detailData.student.email,
+                                            },
+                                            sessionInfo: {
+                                              subject_name: r.subject_name,
+                                              subject_code: r.subject_code,
+                                              class_name: detailData.student.class_name,
+                                            },
+                                            currentStatus: r.status,
+                                          });
+                                          setCorrectModalOpen(true);
+                                        }}
+                                        className="text-amber-600 font-bold hover:underline text-[11px]"
+                                      >
+                                        Correct
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setAuditAttendance({
+                                            attendanceId: r.attendance_id!,
+                                            studentName: detailData.student.name,
+                                            rollNumber: detailData.student.roll_number,
+                                            subjectName: r.subject_name,
+                                          });
+                                          setAuditModalOpen(true);
+                                        }}
+                                        className="text-indigo-600 font-bold hover:underline text-[11px]"
+                                      >
+                                        Audit
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setSelectedManualSession({
+                                          session_id: r.session_id,
+                                          subject_name: r.subject_name,
+                                          subject_code: r.subject_code,
+                                          class_name: detailData.student.class_name,
+                                        });
+                                        setManualModalOpen(true);
+                                      }}
+                                      className="text-emerald-600 font-bold hover:underline text-[11px]"
+                                    >
+                                      Mark Manual
+                                    </button>
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -1228,6 +1319,63 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Feature #11 Modals */}
+      {manualModalOpen && selectedManualSession && detailData && (
+        <ManualAttendanceModal
+          isOpen={manualModalOpen}
+          onClose={() => {
+            setManualModalOpen(false);
+            setSelectedManualSession(null);
+          }}
+          onSuccess={handleAuditSuccess}
+          session={{
+            id: selectedManualSession.session_id,
+            subject_name: selectedManualSession.subject_name,
+            subject_code: selectedManualSession.subject_code,
+            class_name: selectedManualSession.class_name,
+          }}
+          students={[
+            {
+              student_id: detailData.student.id,
+              name: detailData.student.name,
+              roll_number: detailData.student.roll_number,
+              email: detailData.student.email,
+              status: 'ABSENT',
+            },
+          ]}
+          initialStudentId={detailData.student.id}
+        />
+      )}
+
+      {correctModalOpen && correctingAttendance && (
+        <CorrectAttendanceModal
+          isOpen={correctModalOpen}
+          onClose={() => {
+            setCorrectModalOpen(false);
+            setCorrectingAttendance(null);
+          }}
+          onSuccess={handleAuditSuccess}
+          attendanceId={correctingAttendance.attendanceId}
+          student={correctingAttendance.student}
+          sessionInfo={correctingAttendance.sessionInfo}
+          currentStatus={correctingAttendance.currentStatus}
+        />
+      )}
+
+      {auditModalOpen && auditAttendance && (
+        <AttendanceAuditHistoryModal
+          isOpen={auditModalOpen}
+          onClose={() => {
+            setAuditModalOpen(false);
+            setAuditAttendance(null);
+          }}
+          attendanceId={auditAttendance.attendanceId}
+          studentName={auditAttendance.studentName}
+          rollNumber={auditAttendance.rollNumber}
+          subjectName={auditAttendance.subjectName}
+        />
       )}
     </div>
   );

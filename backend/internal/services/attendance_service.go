@@ -13,6 +13,7 @@ import (
 	"qr-attendance-backend/internal/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // Sentinel errors for attendance engine validation
@@ -26,7 +27,43 @@ var (
 	ErrSessionExpired          = errors.New("This attendance session has expired.")
 	ErrWrongClass              = errors.New("You are not enrolled in this class.")
 	ErrDuplicateAttendance     = errors.New("Attendance has already been marked for this session.")
+
+	// Feature #11 Sentinel Errors
+	ErrReasonRequired          = errors.New("A reason is mandatory for manual attendance and corrections.")
+	ErrReasonTooShort          = errors.New("Reason must be at least 5 characters long.")
+	ErrReasonTooLong           = errors.New("Reason cannot exceed 500 characters.")
+	ErrInvalidAttendanceStatus = errors.New("Invalid attendance status. Allowed values are PRESENT or ABSENT.")
+	ErrSameStatusCorrection    = errors.New("New status must be different from current status.")
+	ErrAttendanceNotFound      = errors.New("Attendance record not found.")
+	ErrUnauthorizedTeacher     = errors.New("You are not authorized to mark or correct attendance for this student or session.")
+	ErrStudentNotFound         = errors.New("Student not found.")
+	ErrSessionNotFound         = errors.New("Attendance session not found.")
+	ErrStudentClassMismatch    = errors.New("Student does not belong to the class for this attendance session.")
 )
+
+// ValidateAttendanceReason validates that the explanatory reason meets length and non-empty criteria
+func ValidateAttendanceReason(reason string) (string, error) {
+	clean := strings.TrimSpace(reason)
+	if clean == "" {
+		return "", ErrReasonRequired
+	}
+	if len(clean) < 5 {
+		return "", ErrReasonTooShort
+	}
+	if len(clean) > 500 {
+		return "", ErrReasonTooLong
+	}
+	return clean, nil
+}
+
+// ValidateAttendanceStatus validates that the status is either PRESENT or ABSENT
+func ValidateAttendanceStatus(status string) (string, error) {
+	clean := strings.ToUpper(strings.TrimSpace(status))
+	if clean != models.StatusPresent && clean != models.StatusAbsent {
+		return "", ErrInvalidAttendanceStatus
+	}
+	return clean, nil
+}
 
 // CreateSessionInput defines the payload required by a teacher to launch a live attendance session
 type CreateSessionInput struct {
@@ -219,7 +256,7 @@ func GetTeacherSessions(db *gorm.DB, teacherUserID string, subjectFilter, classF
 
 	for i, s := range sessions {
 		var presentCount int64
-		db.Model(&models.Attendance{}).Where("session_id = ?", s.ID).Count(&presentCount)
+		db.Model(&models.Attendance{}).Where("session_id = ? AND status = 'PRESENT'", s.ID).Count(&presentCount)
 
 		var totalStudents int64
 		db.Model(&models.Student{}).Where("class_id = ?", s.ClassID).Count(&totalStudents)
@@ -237,6 +274,8 @@ func GetTeacherSessions(db *gorm.DB, teacherUserID string, subjectFilter, classF
 		results[i] = models.AttendanceSessionResponse{
 			ID:                s.ID,
 			TeacherID:         teacher.ID,
+			TeacherName:       teacher.User.Name,
+			TeacherEmployeeID: teacher.EmployeeID,
 			SubjectID:         s.SubjectID,
 			SubjectName:       s.Subject.Name,
 			SubjectCode:       s.Subject.Code,
@@ -282,7 +321,7 @@ func GetTeacherSessionByID(db *gorm.DB, teacherUserID string, sessionID string) 
 	}
 
 	var presentCount int64
-	db.Model(&models.Attendance{}).Where("session_id = ?", session.ID).Count(&presentCount)
+	db.Model(&models.Attendance{}).Where("session_id = ? AND status = 'PRESENT'", session.ID).Count(&presentCount)
 
 	var totalStudents int64
 	db.Model(&models.Student{}).Where("class_id = ?", session.ClassID).Count(&totalStudents)
@@ -474,15 +513,15 @@ func GetSessionAttendanceRecords(db *gorm.DB, sessionID string, teacherUserID *s
 		return nil, fmt.Errorf("failed to fetch class student list: %w", err)
 	}
 
-	// 2. Fetch present records for this session
+	// 2. Fetch attendance records for this session
 	var attendances []models.Attendance
 	if err := db.Where("session_id = ?", session.ID).Find(&attendances).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch attendance entries: %w", err)
 	}
 
-	presentMap := make(map[string]time.Time)
+	attMap := make(map[string]models.Attendance)
 	for _, a := range attendances {
-		presentMap[a.StudentID] = a.MarkedAt
+		attMap[a.StudentID] = a
 	}
 
 	// 3. Build full roster records
@@ -490,26 +529,41 @@ func GetSessionAttendanceRecords(db *gorm.DB, sessionID string, teacherUserID *s
 	var presentCount int64 = 0
 
 	for i, st := range classStudents {
-		markedTime, isPresent := presentMap[st.ID]
-		if isPresent {
+		att, hasAtt := attMap[st.ID]
+		if hasAtt && att.Status == models.StatusPresent {
 			presentCount++
-			tCopy := markedTime
+			tCopy := att.MarkedAt
+			attID := att.ID
 			records[i] = models.AttendanceStudentRecord{
-				StudentID:  st.ID,
-				RollNumber: st.RollNumber,
-				Name:       st.Name,
-				Email:      st.Email,
-				Status:     "PRESENT",
-				MarkedAt:   &tCopy,
+				AttendanceID: &attID,
+				StudentID:    st.ID,
+				RollNumber:   st.RollNumber,
+				Name:         st.Name,
+				Email:        st.Email,
+				Status:       models.StatusPresent,
+				MarkedAt:     &tCopy,
+			}
+		} else if hasAtt && att.Status == models.StatusAbsent {
+			tCopy := att.MarkedAt
+			attID := att.ID
+			records[i] = models.AttendanceStudentRecord{
+				AttendanceID: &attID,
+				StudentID:    st.ID,
+				RollNumber:   st.RollNumber,
+				Name:         st.Name,
+				Email:        st.Email,
+				Status:       models.StatusAbsent,
+				MarkedAt:     &tCopy,
 			}
 		} else {
 			records[i] = models.AttendanceStudentRecord{
-				StudentID:  st.ID,
-				RollNumber: st.RollNumber,
-				Name:       st.Name,
-				Email:      st.Email,
-				Status:     "ABSENT",
-				MarkedAt:   nil,
+				AttendanceID: nil,
+				StudentID:    st.ID,
+				RollNumber:   st.RollNumber,
+				Name:         st.Name,
+				Email:        st.Email,
+				Status:       models.StatusAbsent,
+				MarkedAt:     nil,
 			}
 		}
 	}
@@ -715,7 +769,7 @@ func GetStudentAttendanceSummary(db *gorm.DB, studentUserID string) (*models.Stu
 		var presentSubSessions int64
 		db.Table("attendance a").
 			Joins("JOIN attendance_sessions s ON a.session_id = s.id").
-			Where("a.student_id = ? AND s.subject_id = ?", student.ID, sub.ID).
+			Where("a.student_id = ? AND s.subject_id = ? AND a.status = 'PRESENT'", student.ID, sub.ID).
 			Count(&presentSubSessions)
 
 		subPct := 0.0
@@ -1217,7 +1271,7 @@ func GetAdminAttendanceSessions(db *gorm.DB, dateFilter, subjectFilter, classFil
 
 	for i, s := range sessions {
 		var presentCount int64
-		db.Model(&models.Attendance{}).Where("session_id = ?", s.ID).Count(&presentCount)
+		db.Model(&models.Attendance{}).Where("session_id = ? AND status = 'PRESENT'", s.ID).Count(&presentCount)
 
 		var totalStudents int64
 		db.Model(&models.Student{}).Where("class_id = ?", s.ClassID).Count(&totalStudents)
@@ -1871,7 +1925,7 @@ func SearchTeacherStudents(
 	if len(sessionIDs) > 0 && len(studentIDs) > 0 {
 		if err := db.Table("attendance").
 			Select("student_id, session_id").
-			Where("student_id IN ? AND session_id IN ?", studentIDs, sessionIDs).
+			Where("student_id IN ? AND session_id IN ? AND status = 'PRESENT'", studentIDs, sessionIDs).
 			Scan(&attendanceRecords).Error; err != nil {
 			return nil, fmt.Errorf("failed to fetch attendance records: %w", err)
 		}
@@ -2146,6 +2200,7 @@ func GetTeacherStudentAttendanceDetail(
 	}
 
 	type attDetailRow struct {
+		ID        string
 		SessionID string
 		MarkedAt  time.Time
 		Status    string
@@ -2153,7 +2208,7 @@ func GetTeacherStudentAttendanceDetail(
 	var attRecords []attDetailRow
 	if len(allSessionIDs) > 0 {
 		if err := db.Table("attendance").
-			Select("session_id, marked_at, status").
+			Select("id, session_id, marked_at, status").
 			Where("student_id = ? AND session_id IN ?", student.ID, allSessionIDs).
 			Scan(&attRecords).Error; err != nil {
 			return nil, fmt.Errorf("failed to fetch student attendance: %w", err)
@@ -2182,7 +2237,7 @@ func GetTeacherStudentAttendanceDetail(
 		if acc, ok := subjectStatsMap[s.SubjectID]; ok {
 			acc.Total++
 		}
-		if _, attended := attendanceMap[s.ID]; attended {
+		if att, attended := attendanceMap[s.ID]; attended && att.Status == models.StatusPresent {
 			overallPresent++
 			if acc, ok := subjectStatsMap[s.SubjectID]; ok {
 				acc.Present++
@@ -2272,10 +2327,13 @@ func GetTeacherStudentAttendanceDetail(
 			}
 		}
 
-		recStatus := "ABSENT"
+		recStatus := models.StatusAbsent
 		var markedAt *time.Time
+		var attID *string
 		if att, attended := attendanceMap[s.ID]; attended {
-			recStatus = "PRESENT"
+			idCopy := att.ID
+			attID = &idCopy
+			recStatus = att.Status
 			mTime := att.MarkedAt
 			markedAt = &mTime
 		}
@@ -2289,6 +2347,7 @@ func GetTeacherStudentAttendanceDetail(
 		}
 
 		filteredHistoryRecords = append(filteredHistoryRecords, models.TeacherStudentAttendanceDetailHistoryRecord{
+			AttendanceID: attID,
 			SessionID:   s.ID,
 			SubjectID:   s.SubjectID,
 			SubjectName: s.SubjectName,
@@ -2373,4 +2432,436 @@ func GetTeacherStudentAttendanceDetail(
 		},
 	}, nil
 }
+
+// ==============================================================================
+// MANUAL ATTENDANCE & ATTENDANCE CORRECTION SERVICES (Feature #11)
+// ==============================================================================
+
+// MarkAttendanceManually marks or updates a student's attendance record with mandatory reason and transactional audit logging
+func MarkAttendanceManually(
+	db *gorm.DB,
+	actorUserID string,
+	actorRole string,
+	req *models.ManualAttendanceRequest,
+) (*models.ManualAttendanceResponse, error) {
+	// 1. Validate reason requirements
+	cleanReason, err := ValidateAttendanceReason(req.Reason)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Validate attendance status
+	cleanStatus, err := ValidateAttendanceStatus(req.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Validate actor role
+	cleanRole := strings.ToUpper(strings.TrimSpace(actorRole))
+	if cleanRole != models.RoleTeacher && cleanRole != models.RoleAdmin {
+		return nil, errors.New("Only teachers and administrators can manually mark attendance.")
+	}
+
+	// 4. Verify student profile
+	cleanStudentID := strings.TrimSpace(req.StudentID)
+	if cleanStudentID == "" {
+		return nil, errors.New("Student ID is required.")
+	}
+	var student models.Student
+	if err := db.Preload("User").Where("id = ?", cleanStudentID).First(&student).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrStudentNotFound
+		}
+		return nil, err
+	}
+	if !student.User.IsActive {
+		return nil, ErrStudentAccountInactive
+	}
+	if student.ClassID == nil || strings.TrimSpace(*student.ClassID) == "" {
+		return nil, ErrStudentNotAssignedClass
+	}
+
+	// 5. Verify attendance session
+	cleanSessionID := strings.TrimSpace(req.SessionID)
+	if cleanSessionID == "" {
+		return nil, errors.New("Session ID is required.")
+	}
+	var session models.AttendanceSession
+	if err := db.Preload("Subject").Preload("Class").Where("id = ?", cleanSessionID).First(&session).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrSessionNotFound
+		}
+		return nil, err
+	}
+
+	// 6. Verify class alignment: Student must belong to the exact class of the session
+	if *student.ClassID != session.ClassID {
+		return nil, ErrStudentClassMismatch
+	}
+
+	// 7. Verify teacher assignment if actor is TEACHER
+	if cleanRole == models.RoleTeacher {
+		var teacher models.Teacher
+		if err := db.Preload("User").Where("user_id = ?", actorUserID).First(&teacher).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, errors.New("Teacher profile not found.")
+			}
+			return nil, err
+		}
+		if !teacher.User.IsActive {
+			return nil, errors.New("Teacher account is inactive.")
+		}
+
+		var assignmentCount int64
+		if err := db.Model(&models.TeacherSubjectClass{}).
+			Where("teacher_id = ? AND subject_id = ? AND class_id = ?", teacher.ID, session.SubjectID, session.ClassID).
+			Count(&assignmentCount).Error; err != nil {
+			return nil, fmt.Errorf("failed to verify teacher assignments: %w", err)
+		}
+		if assignmentCount == 0 {
+			return nil, ErrUnauthorizedTeacher
+		}
+	}
+
+	// 8. Atomic Database Transaction: Insert/Update attendance + Insert immutable audit record
+	var response *models.ManualAttendanceResponse
+
+	txErr := db.Transaction(func(tx *gorm.DB) error {
+		// Row-level lock check for existing attendance row
+		var existing models.Attendance
+		findErr := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("session_id = ? AND student_id = ?", session.ID, student.ID).
+			First(&existing).Error
+
+		nowUTC := time.Now().UTC()
+
+		if findErr == nil {
+			// Record exists: Treat as correction / status change
+			if existing.Status == cleanStatus {
+				return fmt.Errorf("Attendance for this student is already marked as %s.", cleanStatus)
+			}
+
+			oldStatus := existing.Status
+			existing.Status = cleanStatus
+			existing.MarkedAt = nowUTC
+
+			if err := tx.Save(&existing).Error; err != nil {
+				return fmt.Errorf("failed to update attendance record: %w", err)
+			}
+
+			// Insert audit record
+			audit := models.AttendanceAudit{
+				AttendanceID:   &existing.ID,
+				SessionID:      session.ID,
+				StudentID:      student.ID,
+				ActorUserID:    actorUserID,
+				ActorRole:      cleanRole,
+				Action:         models.AuditActionCorrection,
+				PreviousStatus: &oldStatus,
+				NewStatus:      cleanStatus,
+				Reason:         cleanReason,
+				CreatedAt:      nowUTC,
+			}
+			if err := tx.Create(&audit).Error; err != nil {
+				return fmt.Errorf("failed to create attendance audit log: %w", err)
+			}
+
+			response = &models.ManualAttendanceResponse{
+				AttendanceID: existing.ID,
+				SessionID:    session.ID,
+				StudentID:    student.ID,
+				Status:       existing.Status,
+				MarkedAt:     existing.MarkedAt,
+				Action:       models.AuditActionCorrection,
+				Reason:       cleanReason,
+			}
+			return nil
+		}
+
+		if !errors.Is(findErr, gorm.ErrRecordNotFound) {
+			return findErr
+		}
+
+		// Record does not exist: Insert new manual attendance
+		newAttendance := models.Attendance{
+			SessionID: session.ID,
+			StudentID: student.ID,
+			MarkedAt:  nowUTC,
+			Status:    cleanStatus,
+		}
+		if err := tx.Create(&newAttendance).Error; err != nil {
+			errStr := strings.ToLower(err.Error())
+			if strings.Contains(errStr, "duplicate key") ||
+				strings.Contains(errStr, "unique constraint") ||
+				strings.Contains(errStr, "uq_session_student") {
+				return errors.New("Attendance was modified by another user. Please refresh and try again.")
+			}
+			return fmt.Errorf("failed to record attendance: %w", err)
+		}
+
+		// Insert immutable audit trail
+		audit := models.AttendanceAudit{
+			AttendanceID:   &newAttendance.ID,
+			SessionID:      session.ID,
+			StudentID:      student.ID,
+			ActorUserID:    actorUserID,
+			ActorRole:      cleanRole,
+			Action:         models.AuditActionManualMark,
+			PreviousStatus: nil,
+			NewStatus:      cleanStatus,
+			Reason:         cleanReason,
+			CreatedAt:      nowUTC,
+		}
+		if err := tx.Create(&audit).Error; err != nil {
+			return fmt.Errorf("failed to create attendance audit log: %w", err)
+		}
+
+		response = &models.ManualAttendanceResponse{
+			AttendanceID: newAttendance.ID,
+			SessionID:    session.ID,
+			StudentID:    student.ID,
+			Status:       newAttendance.Status,
+			MarkedAt:     newAttendance.MarkedAt,
+			Action:       models.AuditActionManualMark,
+			Reason:       cleanReason,
+		}
+		return nil
+	})
+
+	if txErr != nil {
+		return nil, txErr
+	}
+
+	return response, nil
+}
+
+// CorrectAttendance modifies an existing attendance record status with mandatory reason and immutable audit trail
+func CorrectAttendance(
+	db *gorm.DB,
+	actorUserID string,
+	actorRole string,
+	attendanceID string,
+	req *models.CorrectAttendanceRequest,
+) (*models.ManualAttendanceResponse, error) {
+	// 1. Validate reason
+	cleanReason, err := ValidateAttendanceReason(req.Reason)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Validate requested status
+	cleanStatus, err := ValidateAttendanceStatus(req.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Validate actor role
+	cleanRole := strings.ToUpper(strings.TrimSpace(actorRole))
+	if cleanRole != models.RoleTeacher && cleanRole != models.RoleAdmin {
+		return nil, errors.New("Only teachers and administrators can correct attendance.")
+	}
+
+	cleanAttID := strings.TrimSpace(attendanceID)
+	if cleanAttID == "" {
+		return nil, errors.New("Attendance ID is required.")
+	}
+
+	var response *models.ManualAttendanceResponse
+
+	txErr := db.Transaction(func(tx *gorm.DB) error {
+		// 4. Lock attendance record with FOR UPDATE
+		var attendance models.Attendance
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Preload("Session").
+			Where("id = ?", cleanAttID).
+			First(&attendance).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrAttendanceNotFound
+			}
+			return fmt.Errorf("failed to lock attendance record: %w", err)
+		}
+
+		// 5. Reject same status correction
+		if attendance.Status == cleanStatus {
+			return ErrSameStatusCorrection
+		}
+
+		// 6. Verify teacher assignment if actor is TEACHER
+		if cleanRole == models.RoleTeacher {
+			var teacher models.Teacher
+			if err := tx.Preload("User").Where("user_id = ?", actorUserID).First(&teacher).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return errors.New("Teacher profile not found.")
+				}
+				return err
+			}
+			if !teacher.User.IsActive {
+				return errors.New("Teacher account is inactive.")
+			}
+
+			var assignmentCount int64
+			if err := tx.Model(&models.TeacherSubjectClass{}).
+				Where("teacher_id = ? AND subject_id = ? AND class_id = ?", teacher.ID, attendance.Session.SubjectID, attendance.Session.ClassID).
+				Count(&assignmentCount).Error; err != nil {
+				return fmt.Errorf("failed to verify teacher authorization: %w", err)
+			}
+			if assignmentCount == 0 {
+				return ErrUnauthorizedTeacher
+			}
+		}
+
+		// 7. Update attendance status atomically
+		nowUTC := time.Now().UTC()
+		oldStatus := attendance.Status
+		attendance.Status = cleanStatus
+		attendance.MarkedAt = nowUTC
+
+		if err := tx.Save(&attendance).Error; err != nil {
+			return fmt.Errorf("failed to update attendance record: %w", err)
+		}
+
+		// 8. Insert immutable audit trail entry
+		audit := models.AttendanceAudit{
+			AttendanceID:   &attendance.ID,
+			SessionID:      attendance.SessionID,
+			StudentID:      attendance.StudentID,
+			ActorUserID:    actorUserID,
+			ActorRole:      cleanRole,
+			Action:         models.AuditActionCorrection,
+			PreviousStatus: &oldStatus,
+			NewStatus:      cleanStatus,
+			Reason:         cleanReason,
+			CreatedAt:      nowUTC,
+		}
+		if err := tx.Create(&audit).Error; err != nil {
+			return fmt.Errorf("failed to create attendance audit log: %w", err)
+		}
+
+		response = &models.ManualAttendanceResponse{
+			AttendanceID: attendance.ID,
+			SessionID:    attendance.SessionID,
+			StudentID:    attendance.StudentID,
+			Status:       attendance.Status,
+			MarkedAt:     attendance.MarkedAt,
+			Action:       models.AuditActionCorrection,
+			Reason:       cleanReason,
+		}
+		return nil
+	})
+
+	if txErr != nil {
+		return nil, txErr
+	}
+
+	return response, nil
+}
+
+// GetAttendanceAuditHistory retrieves the complete audit history timeline for an attendance record
+func GetAttendanceAuditHistory(
+	db *gorm.DB,
+	actorUserID string,
+	actorRole string,
+	attendanceID string,
+) ([]models.AttendanceAuditItem, error) {
+	cleanRole := strings.ToUpper(strings.TrimSpace(actorRole))
+	if cleanRole != models.RoleTeacher && cleanRole != models.RoleAdmin {
+		return nil, errors.New("Access denied to attendance audit history.")
+	}
+
+	cleanAttID := strings.TrimSpace(attendanceID)
+	if cleanAttID == "" {
+		return nil, errors.New("Attendance ID is required.")
+	}
+
+	// 1. Fetch attendance record and associated session
+	var attendance models.Attendance
+	if err := db.Preload("Session").Where("id = ?", cleanAttID).First(&attendance).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrAttendanceNotFound
+		}
+		return nil, err
+	}
+
+	// 2. Verify authorization for teacher
+	if cleanRole == models.RoleTeacher {
+		var teacher models.Teacher
+		if err := db.Where("user_id = ?", actorUserID).First(&teacher).Error; err != nil {
+			return nil, errors.New("Teacher profile not found.")
+		}
+
+		var count int64
+		if err := db.Model(&models.TeacherSubjectClass{}).
+			Where("teacher_id = ? AND subject_id = ? AND class_id = ?", teacher.ID, attendance.Session.SubjectID, attendance.Session.ClassID).
+			Count(&count).Error; err != nil {
+			return nil, fmt.Errorf("failed to verify teacher authorization: %w", err)
+		}
+		if count == 0 {
+			return nil, ErrUnauthorizedTeacher
+		}
+	}
+
+	// 3. Query audit items joined with user name
+	type auditRow struct {
+		ID             string
+		CollegeID      *string
+		AttendanceID   *string
+		SessionID      string
+		StudentID      string
+		ActorUserID    string
+		ActorName      string
+		ActorRole      string
+		Action         string
+		PreviousStatus *string
+		NewStatus      string
+		Reason         string
+		CreatedAt      time.Time
+	}
+
+	var rows []auditRow
+	query := `
+		SELECT 
+			a.id,
+			a.college_id,
+			a.attendance_id,
+			a.session_id,
+			a.student_id,
+			a.actor_user_id,
+			u.name AS actor_name,
+			a.actor_role,
+			a.action,
+			a.previous_status,
+			a.new_status,
+			a.reason,
+			a.created_at
+		FROM attendance_audit a
+		JOIN users u ON a.actor_user_id = u.id
+		WHERE a.attendance_id = ? OR (a.session_id = ? AND a.student_id = ?)
+		ORDER BY a.created_at ASC
+	`
+	if err := db.Raw(query, attendance.ID, attendance.SessionID, attendance.StudentID).Scan(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch audit history: %w", err)
+	}
+
+	results := make([]models.AttendanceAuditItem, len(rows))
+	for i, r := range rows {
+		results[i] = models.AttendanceAuditItem{
+			ID:             r.ID,
+			CollegeID:      r.CollegeID,
+			AttendanceID:   r.AttendanceID,
+			SessionID:      r.SessionID,
+			StudentID:      r.StudentID,
+			ActorUserID:    r.ActorUserID,
+			ActorName:      r.ActorName,
+			ActorRole:      r.ActorRole,
+			Action:         r.Action,
+			PreviousStatus: r.PreviousStatus,
+			NewStatus:      r.NewStatus,
+			Reason:         r.Reason,
+			CreatedAt:      r.CreatedAt,
+		}
+	}
+
+	return results, nil
+}
+
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"qr-attendance-backend/internal/models"
 	"qr-attendance-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -789,3 +790,205 @@ func GetTeacherStudentAttendanceDetailHandler(db *gorm.DB) gin.HandlerFunc {
 		})
 	}
 }
+
+// ==============================================================================
+// MANUAL ATTENDANCE & CORRECTION HANDLERS (Feature #11)
+// ==============================================================================
+
+// MarkAttendanceManuallyHandler handles POST /api/teacher/attendance/manual
+func MarkAttendanceManuallyHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		userRole := c.GetString("user_role")
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Authentication required"})
+			return
+		}
+
+		var req models.ManualAttendanceRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"message": "Invalid request payload. Session ID, Student ID, Status (PRESENT/ABSENT), and Reason are required.",
+			})
+			return
+		}
+
+		resp, err := services.MarkAttendanceManually(db, userID, userRole, &req)
+		if err != nil {
+			errMsg := err.Error()
+
+			if errors.Is(err, services.ErrReasonRequired) ||
+				errors.Is(err, services.ErrReasonTooShort) ||
+				errors.Is(err, services.ErrReasonTooLong) ||
+				errors.Is(err, services.ErrInvalidAttendanceStatus) ||
+				errors.Is(err, services.ErrStudentClassMismatch) ||
+				errors.Is(err, services.ErrStudentNotAssignedClass) ||
+				strings.Contains(errMsg, "Reason") ||
+				strings.Contains(errMsg, "reason") ||
+				strings.Contains(errMsg, "Invalid attendance status") ||
+				strings.Contains(errMsg, "does not belong to the class") {
+				c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			if errors.Is(err, services.ErrUnauthorizedTeacher) ||
+				errors.Is(err, services.ErrStudentAccountInactive) ||
+				strings.Contains(errMsg, "not authorized") ||
+				strings.Contains(errMsg, "inactive") ||
+				strings.Contains(errMsg, "Access denied") {
+				c.JSON(http.StatusForbidden, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			if errors.Is(err, services.ErrStudentNotFound) ||
+				errors.Is(err, services.ErrSessionNotFound) ||
+				strings.Contains(errMsg, "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			if strings.Contains(errMsg, "already marked") ||
+				strings.Contains(errMsg, "modified by another user") {
+				c.JSON(http.StatusConflict, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to mark attendance manually. Please try again.",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "Attendance marked successfully",
+			"data":    resp,
+		})
+	}
+}
+
+// CorrectAttendanceHandler handles PATCH /api/teacher/attendance/:attendance_id/correct
+func CorrectAttendanceHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		userRole := c.GetString("user_role")
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Authentication required"})
+			return
+		}
+
+		attendanceID := strings.TrimSpace(c.Param("attendance_id"))
+		if attendanceID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Attendance ID is required"})
+			return
+		}
+
+		var req models.CorrectAttendanceRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"message": "Invalid request payload. Status (PRESENT/ABSENT) and Reason are required.",
+			})
+			return
+		}
+
+		resp, err := services.CorrectAttendance(db, userID, userRole, attendanceID, &req)
+		if err != nil {
+			errMsg := err.Error()
+
+			if errors.Is(err, services.ErrReasonRequired) ||
+				errors.Is(err, services.ErrReasonTooShort) ||
+				errors.Is(err, services.ErrReasonTooLong) ||
+				errors.Is(err, services.ErrInvalidAttendanceStatus) ||
+				errors.Is(err, services.ErrSameStatusCorrection) ||
+				strings.Contains(errMsg, "Reason") ||
+				strings.Contains(errMsg, "reason") ||
+				strings.Contains(errMsg, "different from current status") ||
+				strings.Contains(errMsg, "Invalid attendance status") {
+				c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			if errors.Is(err, services.ErrUnauthorizedTeacher) ||
+				strings.Contains(errMsg, "not authorized") ||
+				strings.Contains(errMsg, "inactive") ||
+				strings.Contains(errMsg, "Access denied") {
+				c.JSON(http.StatusForbidden, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			if errors.Is(err, services.ErrAttendanceNotFound) ||
+				strings.Contains(errMsg, "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			if strings.Contains(errMsg, "modified by another user") || strings.Contains(errMsg, "conflict") {
+				c.JSON(http.StatusConflict, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to correct attendance. Please try again.",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "Attendance corrected successfully",
+			"data":    resp,
+		})
+	}
+}
+
+// GetAttendanceAuditHandler handles GET /api/teacher/attendance/:attendance_id/audit
+func GetAttendanceAuditHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		userRole := c.GetString("user_role")
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Authentication required"})
+			return
+		}
+
+		attendanceID := strings.TrimSpace(c.Param("attendance_id"))
+		if attendanceID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Attendance ID is required"})
+			return
+		}
+
+		auditHistory, err := services.GetAttendanceAuditHistory(db, userID, userRole, attendanceID)
+		if err != nil {
+			errMsg := err.Error()
+
+			if errors.Is(err, services.ErrUnauthorizedTeacher) ||
+				strings.Contains(errMsg, "not authorized") ||
+				strings.Contains(errMsg, "Access denied") {
+				c.JSON(http.StatusForbidden, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			if errors.Is(err, services.ErrAttendanceNotFound) ||
+				strings.Contains(errMsg, "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to retrieve attendance audit history",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    auditHistory,
+		})
+	}
+}
+

@@ -319,14 +319,89 @@ type AttendanceSessionResponse struct {
 	CreatedAt         time.Time `json:"created_at"`
 }
 
+// AttendanceAudit Action Constants (Feature #11)
+const (
+	AuditActionManualMark = "MANUAL_MARK"
+	AuditActionCorrection = "CORRECTION"
+	StatusPresent         = "PRESENT"
+	StatusAbsent          = "ABSENT"
+)
+
+// AttendanceAudit represents an immutable change record in the attendance audit trail
+type AttendanceAudit struct {
+	ID             string            `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	CollegeID      *string           `gorm:"type:uuid" json:"college_id,omitempty"`
+	AttendanceID   *string           `gorm:"type:uuid" json:"attendance_id,omitempty"`
+	Attendance     *Attendance       `gorm:"foreignKey:AttendanceID" json:"attendance,omitempty"`
+	SessionID      string            `gorm:"type:uuid;not null" json:"session_id"`
+	Session        AttendanceSession `gorm:"foreignKey:SessionID" json:"session,omitempty"`
+	StudentID      string            `gorm:"type:uuid;not null" json:"student_id"`
+	Student        Student           `gorm:"foreignKey:StudentID" json:"student,omitempty"`
+	ActorUserID    string            `gorm:"type:uuid;not null" json:"actor_user_id"`
+	ActorUser      User              `gorm:"foreignKey:ActorUserID" json:"actor_user,omitempty"`
+	ActorRole      string            `gorm:"type:varchar(20);not null" json:"actor_role"`
+	Action         string            `gorm:"type:varchar(50);not null" json:"action"`
+	PreviousStatus *string           `gorm:"type:varchar(20)" json:"previous_status,omitempty"`
+	NewStatus      string            `gorm:"type:varchar(20);not null" json:"new_status"`
+	Reason         string            `gorm:"type:text;not null" json:"reason"`
+	CreatedAt      time.Time         `json:"created_at"`
+}
+
+func (AttendanceAudit) TableName() string {
+	return "attendance_audit"
+}
+
+// ManualAttendanceRequest represents input to mark attendance manually for a student
+type ManualAttendanceRequest struct {
+	SessionID string `json:"session_id" binding:"required"`
+	StudentID string `json:"student_id" binding:"required"`
+	Status    string `json:"status" binding:"required"`
+	Reason    string `json:"reason" binding:"required"`
+}
+
+// CorrectAttendanceRequest represents input to correct an existing attendance record
+type CorrectAttendanceRequest struct {
+	Status string `json:"status" binding:"required"`
+	Reason string `json:"reason" binding:"required"`
+}
+
+// AttendanceAuditItem represents sanitized audit trail record returned by API
+type AttendanceAuditItem struct {
+	ID             string    `json:"id"`
+	CollegeID      *string   `json:"college_id,omitempty"`
+	AttendanceID   *string   `json:"attendance_id,omitempty"`
+	SessionID      string    `json:"session_id"`
+	StudentID      string    `json:"student_id"`
+	ActorUserID    string    `json:"actor_user_id"`
+	ActorName      string    `json:"actor_name"`
+	ActorRole      string    `json:"actor_role"`
+	Action         string    `json:"action"`
+	PreviousStatus *string   `json:"previous_status"`
+	NewStatus      string    `json:"new_status"`
+	Reason         string    `json:"reason"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+// ManualAttendanceResponse represents safe response after manual mark or correction
+type ManualAttendanceResponse struct {
+	AttendanceID string    `json:"attendance_id"`
+	SessionID    string    `json:"session_id"`
+	StudentID    string    `json:"student_id"`
+	Status       string    `json:"status"`
+	MarkedAt     time.Time `json:"marked_at"`
+	Action       string    `json:"action"`
+	Reason       string    `json:"reason"`
+}
+
 // AttendanceStudentRecord represents individual student attendance status in a session
 type AttendanceStudentRecord struct {
-	StudentID  string     `json:"student_id"`
-	RollNumber string     `json:"roll_number"`
-	Name       string     `json:"name"`
-	Email      string     `json:"email"`
-	Status     string     `json:"status"` // PRESENT or ABSENT
-	MarkedAt   *time.Time `json:"marked_at,omitempty"`
+	AttendanceID *string    `json:"attendance_id,omitempty"`
+	StudentID    string     `json:"student_id"`
+	RollNumber   string     `json:"roll_number"`
+	Name         string     `json:"name"`
+	Email        string     `json:"email"`
+	Status       string     `json:"status"` // PRESENT or ABSENT
+	MarkedAt     *time.Time `json:"marked_at,omitempty"`
 }
 
 // SessionAttendanceDetailsResponse represents complete session summary and full roster
@@ -643,14 +718,15 @@ type TeacherStudentAttendanceDetailSummary struct {
 
 // TeacherStudentAttendanceDetailHistoryRecord represents a verified attendance session in history
 type TeacherStudentAttendanceDetailHistoryRecord struct {
-	SessionID   string     `json:"session_id"`
-	SubjectID   string     `json:"subject_id"`
-	SubjectName string     `json:"subject_name"`
-	SubjectCode string     `json:"subject_code"`
-	StartedAt   time.Time  `json:"started_at"`
-	EndedAt     time.Time  `json:"ended_at"`
-	Status      string     `json:"status"` // "PRESENT" or "ABSENT"
-	MarkedAt    *time.Time `json:"marked_at"`
+	AttendanceID *string    `json:"attendance_id,omitempty"`
+	SessionID    string     `json:"session_id"`
+	SubjectID    string     `json:"subject_id"`
+	SubjectName  string     `json:"subject_name"`
+	SubjectCode  string     `json:"subject_code"`
+	StartedAt    time.Time  `json:"started_at"`
+	EndedAt      time.Time  `json:"ended_at"`
+	Status       string     `json:"status"` // "PRESENT" or "ABSENT"
+	MarkedAt     *time.Time `json:"marked_at"`
 }
 
 // TeacherStudentAttendanceDetailHistory represents paginated history records

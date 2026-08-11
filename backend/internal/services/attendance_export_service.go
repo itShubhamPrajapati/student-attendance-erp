@@ -315,7 +315,12 @@ func GetTeacherAttendanceExportData(
 	for _, st := range students {
 		classSessList := classSessionsMap[st.ClassID]
 		totalSess := int64(len(classSessList))
-		presentCount := int64(len(studentAttendanceMap[st.ID]))
+		presentCount := int64(0)
+		for _, att := range studentAttendanceMap[st.ID] {
+			if att.Status == "PRESENT" {
+				presentCount++
+			}
+		}
 		absentCount := int64(0)
 		if totalSess > presentCount {
 			absentCount = totalSess - presentCount
@@ -403,7 +408,7 @@ func GetTeacherAttendanceExportData(
 			statusStr := "ABSENT"
 			markedAtStr := "—"
 
-			if att, attended := studentAttendanceMap[st.ID][s.ID]; attended {
+			if att, attended := studentAttendanceMap[st.ID][s.ID]; attended && att.Status == "PRESENT" {
 				statusStr = "PRESENT"
 				if !att.MarkedAt.IsZero() {
 					markedAtStr = att.MarkedAt.Format("15:04:05")

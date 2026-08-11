@@ -157,6 +157,11 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			teacherGroup.GET("/students/:student_id/attendance/export/csv", handlers.ExportTeacherStudentAttendanceCSVHandler(database.DB))
 			teacherGroup.GET("/students/:student_id/attendance/export/excel", handlers.ExportTeacherStudentAttendanceExcelHandler(database.DB))
 			teacherGroup.GET("/students/:student_id/attendance/export/pdf", handlers.ExportTeacherStudentAttendancePDFHandler(database.DB))
+
+			// Manual Attendance & Correction with Mandatory Audit Trail (Feature #11)
+			teacherGroup.POST("/attendance/manual", handlers.MarkAttendanceManuallyHandler(database.DB))
+			teacherGroup.PATCH("/attendance/:attendance_id/correct", handlers.CorrectAttendanceHandler(database.DB))
+			teacherGroup.GET("/attendance/:attendance_id/audit", handlers.GetAttendanceAuditHandler(database.DB))
 		}
 
 		// ==============================================================================
