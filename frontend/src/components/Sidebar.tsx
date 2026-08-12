@@ -16,6 +16,7 @@ import {
   History,
   TrendingUp,
   User,
+  Search,
 } from 'lucide-react';
 import { UserRole } from '../types';
 import { Badge } from './Badge';
@@ -44,9 +45,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = 'ADMIN' }) => {
         ];
       case 'TEACHER':
         return [
-          { name: 'My Classes & QR', path: '/teacher', icon: <Layers className="w-4 h-4" /> },
-          { name: 'Student Search & Attendance', path: '/teacher/students/attendance', icon: <Users className="w-4 h-4" /> },
+          { name: 'My Classes & QR Sessions', path: '/teacher', icon: <Layers className="w-4 h-4" /> },
+          { name: 'Student Search & Attendance', path: '/teacher/students/attendance', icon: <Search className="w-4 h-4" /> },
           { name: 'Attendance History', path: '/teacher/attendance/history', icon: <Calendar className="w-4 h-4" /> },
+          { name: 'Analytics & Insights', path: '/teacher/attendance/analytics', icon: <TrendingUp className="w-4 h-4" /> },
+          { name: 'My Profile & Settings', path: '/teacher/profile', icon: <User className="w-4 h-4" /> },
         ];
       case 'STUDENT':
         return [

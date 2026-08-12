@@ -100,7 +100,58 @@ export interface TeacherProfile {
   email: string;
   employee_id: string;
   department: string;
+  phone?: string | null;
+  address?: string | null;
+  role?: string;
   is_active: boolean;
+  created_at?: string;
+}
+
+export interface TeacherSubjectAssignment {
+  subject_id: string;
+  name: string;
+  code: string;
+  department: string;
+  semester: number;
+  classes_count: number;
+  class_names: string[];
+}
+
+export interface TeacherClassAssignment {
+  class_id: string;
+  name: string;
+  department: string;
+  semester: number;
+  section: string;
+  academic_year: string;
+  student_count: number;
+}
+
+export interface TeacherAssignmentsPayload {
+  subjects: TeacherSubjectAssignment[];
+  classes: TeacherClassAssignment[];
+}
+
+export interface TeacherTeachingStats {
+  sessions_conducted: number;
+  finalized_sessions: number;
+  open_sessions: number;
+  students_count: number;
+  classes_count: number;
+  subjects_count: number;
+  overall_attendance_percentage: number;
+  late_percentage: number;
+}
+
+export interface TeacherFullProfile {
+  teacher: TeacherProfile;
+  assignments: TeacherAssignmentsPayload;
+  teaching_summary: TeacherTeachingStats;
+}
+
+export interface TeacherProfileUpdatePayload {
+  phone?: string | null;
+  address?: string | null;
 }
 
 export interface StudentProfile {

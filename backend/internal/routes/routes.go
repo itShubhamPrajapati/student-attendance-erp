@@ -144,7 +144,11 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		teacherGroup.Use(middleware.RequireAuth(cfg.JWTSecret))
 		teacherGroup.Use(middleware.RequireRole(models.RoleTeacher))
 		{
+			// Teacher Profile & Account Settings (Feature #19)
 			teacherGroup.GET("/profile", handlers.GetTeacherProfileHandler(database.DB))
+			teacherGroup.PATCH("/profile", handlers.UpdateTeacherProfileHandler(database.DB))
+			teacherGroup.PATCH("/account/password", handlers.ChangeTeacherPasswordHandler(database.DB))
+
 			teacherGroup.GET("/assignments", handlers.GetTeacherAssignmentsHandler(database.DB))
 
 			// Live Attendance Session Management (Phase 4 & Feature #12 Late Attendance)

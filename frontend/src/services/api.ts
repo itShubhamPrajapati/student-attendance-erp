@@ -8,6 +8,8 @@ import {
   TeachingAssignment,
   TeacherAssignmentItem,
   TeacherProfile,
+  TeacherFullProfile,
+  TeacherProfileUpdatePayload,
   StudentProfile,
   StudentProfileUpdatePayload,
   ChangePasswordPayload,
@@ -334,10 +336,50 @@ export async function apiDeleteAssignment(id: string): Promise<{ success: boolea
   });
 }
 
-// Teacher Portal APIs (Phase 3)
-export async function apiGetTeacherProfile(): Promise<{ success: boolean; profile: TeacherProfile }> {
-  return request<{ success: boolean; profile: TeacherProfile }>('/api/teacher/profile', {
+// Teacher Portal APIs (Phase 3 & Feature #19)
+export async function apiGetTeacherProfile(): Promise<{
+  success: boolean;
+  data: TeacherFullProfile;
+  profile?: TeacherProfile;
+  teacher?: TeacherProfile;
+}> {
+  return request<{
+    success: boolean;
+    data: TeacherFullProfile;
+    profile?: TeacherProfile;
+    teacher?: TeacherProfile;
+  }>('/api/teacher/profile', {
     method: 'GET',
+  });
+}
+
+export async function apiUpdateTeacherProfile(
+  payload: TeacherProfileUpdatePayload
+): Promise<{
+  success: boolean;
+  message: string;
+  data: TeacherFullProfile;
+  profile?: TeacherProfile;
+  teacher?: TeacherProfile;
+}> {
+  return request<{
+    success: boolean;
+    message: string;
+    data: TeacherFullProfile;
+    profile?: TeacherProfile;
+    teacher?: TeacherProfile;
+  }>('/api/teacher/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiChangeTeacherPassword(
+  payload: ChangePasswordPayload
+): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>('/api/teacher/account/password', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
   });
 }
 

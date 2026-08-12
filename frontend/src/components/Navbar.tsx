@@ -39,6 +39,7 @@ export const Navbar: React.FC = () => {
         { name: 'Sessions', path: '/teacher/attendance/history', icon: <Calendar className="w-4 h-4" /> },
         { name: 'Student Search', path: '/teacher/students/search', icon: <Search className="w-4 h-4" /> },
         { name: 'Analytics & Insights', path: '/teacher/attendance/analytics', icon: <TrendingUp className="w-4 h-4" /> },
+        { name: 'My Profile', path: '/teacher/profile', icon: <User className="w-4 h-4" /> },
       ];
     }
 

@@ -55,6 +55,8 @@ type Teacher struct {
 	User       User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
 	EmployeeID string    `gorm:"type:varchar(50);unique;not null" json:"employee_id"`
 	Department string    `gorm:"type:varchar(100);not null" json:"department"`
+	Phone      *string   `gorm:"type:varchar(20)" json:"phone,omitempty"`
+	Address    *string   `gorm:"type:varchar(255)" json:"address,omitempty"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
@@ -211,15 +213,72 @@ type TeacherAssignmentItem struct {
 	AcademicYear string `json:"academic_year"`
 }
 
-// TeacherProfileResponse represents teacher portal profile
+// TeacherProfileResponse represents basic teacher portal profile
 type TeacherProfileResponse struct {
-	ID         string `json:"id"`
-	UserID     string `json:"user_id"`
-	Name       string `json:"name"`
-	Email      string `json:"email"`
-	EmployeeID string `json:"employee_id"`
-	Department string `json:"department"`
-	IsActive   bool   `json:"is_active"`
+	ID         string    `json:"id"`
+	UserID     string    `json:"user_id"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email"`
+	EmployeeID string    `json:"employee_id"`
+	Department string    `json:"department"`
+	Phone      *string   `json:"phone,omitempty"`
+	Address    *string   `json:"address,omitempty"`
+	Role       string    `json:"role"`
+	IsActive   bool      `json:"is_active"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+// TeacherSubjectAssignment represents distinct subject assignment details
+type TeacherSubjectAssignment struct {
+	SubjectID    string   `json:"subject_id"`
+	Name         string   `json:"name"`
+	Code         string   `json:"code"`
+	Department   string   `json:"department"`
+	Semester     int      `json:"semester"`
+	ClassesCount int      `json:"classes_count"`
+	ClassNames   []string `json:"class_names"`
+}
+
+// TeacherClassAssignment represents distinct class assignment details
+type TeacherClassAssignment struct {
+	ClassID      string `json:"class_id"`
+	Name         string `json:"name"`
+	Department   string `json:"department"`
+	Semester     int    `json:"semester"`
+	Section      string `json:"section"`
+	AcademicYear string `json:"academic_year"`
+	StudentCount int64  `json:"student_count"`
+}
+
+// TeacherAssignmentsPayload aggregates distinct subjects and classes assigned to a teacher
+type TeacherAssignmentsPayload struct {
+	Subjects []TeacherSubjectAssignment `json:"subjects"`
+	Classes  []TeacherClassAssignment   `json:"classes"`
+}
+
+// TeacherTeachingStats represents authoritative teaching and attendance summary metrics
+type TeacherTeachingStats struct {
+	SessionsConducted           int64   `json:"sessions_conducted"`
+	FinalizedSessions           int64   `json:"finalized_sessions"`
+	OpenSessions                int64   `json:"open_sessions"`
+	StudentsCount               int64   `json:"students_count"`
+	ClassesCount                int     `json:"classes_count"`
+	SubjectsCount               int     `json:"subjects_count"`
+	OverallAttendancePercentage float64 `json:"overall_attendance_percentage"`
+	LatePercentage              float64 `json:"late_percentage"`
+}
+
+// TeacherFullProfileResponse represents the comprehensive teacher portal profile payload
+type TeacherFullProfileResponse struct {
+	Teacher         TeacherProfileResponse    `json:"teacher"`
+	Assignments     TeacherAssignmentsPayload `json:"assignments"`
+	TeachingSummary TeacherTeachingStats      `json:"teaching_summary"`
+}
+
+// TeacherProfileUpdateRequest represents payload for updating editable teacher personal fields
+type TeacherProfileUpdateRequest struct {
+	Phone   *string `json:"phone"`
+	Address *string `json:"address"`
 }
 
 // StudentProfileResponse represents student portal profile

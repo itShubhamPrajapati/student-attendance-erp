@@ -103,6 +103,9 @@ func TestTeacherSessionRoutesRegistered(t *testing.T) {
 		{"Student Profile Get", "GET", "/api/student/profile", studentToken},
 		{"Student Profile Patch", "PATCH", "/api/student/profile", studentToken},
 		{"Student Account Password Patch", "PATCH", "/api/student/account/password", studentToken},
+		{"Teacher Profile Get", "GET", "/api/teacher/profile", teacherToken},
+		{"Teacher Profile Patch", "PATCH", "/api/teacher/profile", teacherToken},
+		{"Teacher Account Password Patch", "PATCH", "/api/teacher/account/password", teacherToken},
 	}
 
 	for _, rt := range routesToTest {

@@ -3,6 +3,7 @@ import { Lock, Eye, EyeOff, AlertTriangle, CheckCircle2, X } from 'lucide-react'
 import { Card } from './Card';
 import { Button } from './Button';
 import { Input } from './Input';
+import { ChangePasswordPayload } from '../types';
 import { apiChangeStudentPassword } from '../services/api';
 import { apiErrorToUserMessage } from '../utils/apiError';
 
@@ -10,12 +11,18 @@ interface ChangePasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  changePasswordFn?: (payload: ChangePasswordPayload) => Promise<{ success: boolean; message: string }>;
+  title?: string;
+  subtitle?: string;
 }
 
 export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  changePasswordFn,
+  title = 'Change Account Password',
+  subtitle = 'Update your portal login credentials',
 }) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -92,7 +99,8 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const res = await apiChangeStudentPassword({
+      const executeChange = changePasswordFn || apiChangeStudentPassword;
+      const res = await executeChange({
         current_password: trimmedCurrent,
         new_password: trimmedNew,
       });
@@ -123,8 +131,8 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               <Lock className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold font-heading text-slate-900">Change Account Password</h3>
-              <p className="text-[11px] text-slate-500">Update your student portal login credentials</p>
+              <h3 className="text-sm font-bold font-heading text-slate-900">{title}</h3>
+              <p className="text-[11px] text-slate-500">{subtitle}</p>
             </div>
           </div>
           <button

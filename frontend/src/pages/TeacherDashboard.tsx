@@ -14,6 +14,7 @@ import {
   X,
   Users,
   TrendingUp,
+  User,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -61,8 +62,10 @@ export const TeacherDashboard: React.FC = () => {
         apiGetTeacherAssignments(),
         apiGetTeacherSessions().catch(() => ({ data: [] })),
       ]);
-      if (profileRes?.profile) {
-        setProfile(profileRes.profile);
+      if (profileRes) {
+        // Support both legacy { profile } and new { data: { teacher } } shapes
+        const teacherData = (profileRes as any).data?.teacher || (profileRes as any).profile || null;
+        setProfile(teacherData);
       }
       setAssignments(assignmentsRes.data || []);
       setSessions(sessionsRes.data || []);
@@ -117,6 +120,15 @@ export const TeacherDashboard: React.FC = () => {
         }
         actions={
           <div className="flex items-center gap-2">
+            <Link to="/teacher/profile">
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<User className="w-3.5 h-3.5" />}
+              >
+                My Profile
+              </Button>
+            </Link>
             <Link to="/teacher/attendance/analytics">
               <Button
                 variant="primary"
@@ -185,6 +197,11 @@ export const TeacherDashboard: React.FC = () => {
             <Badge variant="success" withDot className="text-xs">
               Active Instructor
             </Badge>
+            <Link to="/teacher/profile">
+              <Button variant="outline" size="sm" leftIcon={<User className="w-3.5 h-3.5" />} className="text-xs">
+                My Profile
+              </Button>
+            </Link>
           </div>
         </div>
       </Card>

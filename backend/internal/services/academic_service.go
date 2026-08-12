@@ -477,7 +477,11 @@ func GetTeacherProfileByUserID(db *gorm.DB, userID string) (*models.TeacherProfi
 		Email:      teacher.User.Email,
 		EmployeeID: teacher.EmployeeID,
 		Department: teacher.Department,
+		Phone:      teacher.Phone,
+		Address:    teacher.Address,
+		Role:       teacher.User.Role,
 		IsActive:   teacher.User.IsActive,
+		CreatedAt:  teacher.CreatedAt,
 	}, nil
 }
 
