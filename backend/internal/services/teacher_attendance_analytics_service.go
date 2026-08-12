@@ -254,10 +254,11 @@ func GetTeacherAttendanceAnalytics(
 		Department string
 	}
 	var enrolledStudents []studentMeta
-	if err := db.Table("students").
-		Select("id, user_id, name, roll_number, email, class_id, department").
-		Where("class_id IN (?)", targetClassIDs).
-		Order("roll_number ASC").
+	if err := db.Table("students s").
+		Select("s.id, s.user_id, u.name as name, s.roll_number, u.email as email, s.class_id, s.department").
+		Joins("JOIN users u ON u.id = s.user_id").
+		Where("s.class_id IN (?)", targetClassIDs).
+		Order("s.roll_number ASC").
 		Scan(&enrolledStudents).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch enrolled students: %w", err)
 	}

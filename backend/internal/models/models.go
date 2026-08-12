@@ -268,7 +268,7 @@ type AttendanceSession struct {
 	LateThresholdMinutes int        `gorm:"default:10;not null" json:"late_threshold_minutes"`
 	FinalizationStatus   string     `gorm:"type:varchar(20);default:'OPEN';not null" json:"finalization_status"`
 	FinalizedAt          *time.Time `gorm:"type:timestamp with time zone" json:"finalized_at,omitempty"`
-	FinalizedByID        *string    `gorm:"type:uuid" json:"finalized_by_id,omitempty"`
+	FinalizedByID        *string    `gorm:"column:finalized_by;type:uuid" json:"finalized_by_id,omitempty"`
 	FinalizedBy          *User      `gorm:"foreignKey:FinalizedByID" json:"finalized_by,omitempty"`
 	IsActive             bool       `gorm:"default:true;not null" json:"is_active"`
 	CreatedAt            time.Time  `json:"created_at"`

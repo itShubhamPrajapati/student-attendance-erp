@@ -497,11 +497,12 @@ func getTeacherRecentActivity(
 	}
 	var auditRows []teacherAuditRow
 	auditQuery := db.Table("attendance_audit au").
-		Select("au.id, au.attendance_id, au.session_id, au.action, au.previous_status, au.new_status, au.reason, au.created_at, sub.name as subject_name, sub.code as subject_code, cls.name as class_name, st.name as student_name, st.roll_number as student_roll_no, au.actor_role, u.name as actor_name").
+		Select("au.id, au.attendance_id, au.session_id, au.action, au.previous_status, au.new_status, au.reason, au.created_at, sub.name as subject_name, sub.code as subject_code, cls.name as class_name, stu.name as student_name, st.roll_number as student_roll_no, au.actor_role, u.name as actor_name").
 		Joins("JOIN attendance_sessions ses ON ses.id = au.session_id").
 		Joins("JOIN subjects sub ON sub.id = ses.subject_id").
 		Joins("JOIN classes cls ON cls.id = ses.class_id").
 		Joins("JOIN students st ON st.id = au.student_id").
+		Joins("JOIN users stu ON stu.id = st.user_id").
 		Joins("LEFT JOIN users u ON u.id = au.actor_user_id").
 		Where("ses.teacher_id = ?", teacher.ID)
 
@@ -572,11 +573,12 @@ func getTeacherRecentActivity(
 	}
 	var attRows []teacherAttRow
 	attQuery := db.Table("attendance a").
-		Select("a.id, a.session_id, a.status, a.marked_at, sub.name as subject_name, sub.code as subject_code, cls.name as class_name, st.name as student_name, st.roll_number as student_roll_no").
+		Select("a.id, a.session_id, a.status, a.marked_at, sub.name as subject_name, sub.code as subject_code, cls.name as class_name, stu.name as student_name, st.roll_number as student_roll_no").
 		Joins("JOIN attendance_sessions ses ON ses.id = a.session_id").
 		Joins("JOIN subjects sub ON sub.id = ses.subject_id").
 		Joins("JOIN classes cls ON cls.id = ses.class_id").
 		Joins("JOIN students st ON st.id = a.student_id").
+		Joins("JOIN users stu ON stu.id = st.user_id").
 		Where("ses.teacher_id = ? AND a.status = 'LATE'", teacher.ID)
 
 	if startTime != nil {
@@ -630,12 +632,13 @@ func getTeacherRecentActivity(
 	}
 	var proofRows []teacherProofRow
 	proofQuery := db.Table("attendance_proofs pr").
-		Select("pr.id, pr.public_id, pr.attendance_id, pr.created_at, sub.name as subject_name, sub.code as subject_code, cls.name as class_name, st.name as student_name, st.roll_number as student_roll_no, ses.id as session_id").
+		Select("pr.id, pr.public_id, pr.attendance_id, pr.created_at, sub.name as subject_name, sub.code as subject_code, cls.name as class_name, stu.name as student_name, st.roll_number as student_roll_no, ses.id as session_id").
 		Joins("JOIN attendance a ON a.id = pr.attendance_id").
 		Joins("JOIN attendance_sessions ses ON ses.id = a.session_id").
 		Joins("JOIN subjects sub ON sub.id = ses.subject_id").
 		Joins("JOIN classes cls ON cls.id = ses.class_id").
 		Joins("JOIN students st ON st.id = a.student_id").
+		Joins("JOIN users stu ON stu.id = st.user_id").
 		Where("ses.teacher_id = ?", teacher.ID)
 
 	if startTime != nil {
@@ -781,11 +784,12 @@ func getAdminRecentActivity(
 	}
 	var auditRows []adminAuditRow
 	auditQuery := db.Table("attendance_audit au").
-		Select("au.id, au.attendance_id, au.session_id, au.action, au.previous_status, au.new_status, au.reason, au.created_at, sub.name as subject_name, sub.code as subject_code, cls.name as class_name, st.name as student_name, st.roll_number as student_roll_no, au.actor_role, u.name as actor_name").
+		Select("au.id, au.attendance_id, au.session_id, au.action, au.previous_status, au.new_status, au.reason, au.created_at, sub.name as subject_name, sub.code as subject_code, cls.name as class_name, stu.name as student_name, st.roll_number as student_roll_no, au.actor_role, u.name as actor_name").
 		Joins("JOIN attendance_sessions ses ON ses.id = au.session_id").
 		Joins("JOIN subjects sub ON sub.id = ses.subject_id").
 		Joins("JOIN classes cls ON cls.id = ses.class_id").
 		Joins("JOIN students st ON st.id = au.student_id").
+		Joins("JOIN users stu ON stu.id = st.user_id").
 		Joins("LEFT JOIN users u ON u.id = au.actor_user_id")
 
 	if startTime != nil {
@@ -910,11 +914,12 @@ func getAdminRecentActivity(
 	}
 	var attRows []adminAttRow
 	attQuery := db.Table("attendance a").
-		Select("a.id, a.session_id, a.status, a.marked_at, sub.name as subject_name, sub.code as subject_code, cls.name as class_name, st.name as student_name, st.roll_number as student_roll_no").
+		Select("a.id, a.session_id, a.status, a.marked_at, sub.name as subject_name, sub.code as subject_code, cls.name as class_name, stu.name as student_name, st.roll_number as student_roll_no").
 		Joins("JOIN attendance_sessions ses ON ses.id = a.session_id").
 		Joins("JOIN subjects sub ON sub.id = ses.subject_id").
 		Joins("JOIN classes cls ON cls.id = ses.class_id").
 		Joins("JOIN students st ON st.id = a.student_id").
+		Joins("JOIN users stu ON stu.id = st.user_id").
 		Where("a.status = 'LATE'")
 
 	if startTime != nil {
@@ -968,12 +973,13 @@ func getAdminRecentActivity(
 	}
 	var proofRows []adminProofRow
 	proofQuery := db.Table("attendance_proofs pr").
-		Select("pr.id, pr.public_id, pr.attendance_id, pr.created_at, sub.name as subject_name, sub.code as subject_code, cls.name as class_name, st.name as student_name, st.roll_number as student_roll_no, ses.id as session_id").
+		Select("pr.id, pr.public_id, pr.attendance_id, pr.created_at, sub.name as subject_name, sub.code as subject_code, cls.name as class_name, stu.name as student_name, st.roll_number as student_roll_no, ses.id as session_id").
 		Joins("JOIN attendance a ON a.id = pr.attendance_id").
 		Joins("JOIN attendance_sessions ses ON ses.id = a.session_id").
 		Joins("JOIN subjects sub ON sub.id = ses.subject_id").
 		Joins("JOIN classes cls ON cls.id = ses.class_id").
-		Joins("JOIN students st ON st.id = a.student_id")
+		Joins("JOIN students st ON st.id = a.student_id").
+		Joins("JOIN users stu ON stu.id = st.user_id")
 
 	if startTime != nil {
 		proofQuery = proofQuery.Where("pr.created_at >= ?", *startTime)
