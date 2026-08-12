@@ -3,9 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   TrendingUp,
   Calendar,
-  Filter,
   RefreshCw,
-  AlertCircle,
   CheckCircle2,
   AlertTriangle,
   BookOpen,
@@ -21,7 +19,8 @@ import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { LoadingState } from '../components/LoadingState';
+import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import {
   StudentAttendanceAnalyticsResponse,
@@ -212,35 +211,31 @@ export const StudentAttendanceAnalyticsPage: React.FC = () => {
 
       {/* Error Alert */}
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between shadow-xs animate-in fade-in">
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-            <div>
-              <p className="font-bold">Unable to load attendance analytics</p>
-              <p className="text-rose-600">{error}</p>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" onClick={fetchAnalytics} className="bg-white">
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          variant="banner"
+          title="Unable to Load Attendance Analytics"
+          error={error}
+          onRetry={fetchAnalytics}
+          retryLabel="Retry Analytics"
+        />
       )}
 
-      {/* Loading Spinner */}
+      {/* Loading Skeletons */}
       {loading ? (
-        <div className="min-h-[40vh] flex flex-col items-center justify-center p-8">
-          <LoadingSpinner size="lg" label="Computing authoritative analytics & trends..." />
+        <div className="space-y-6">
+          <LoadingState variant="kpi" cards={4} message="Computing attendance analytics..." />
+          <LoadingState variant="chart" message="Generating attendance trends..." />
         </div>
       ) : !analytics || totalSessions === 0 ? (
         /* Empty State */
         <EmptyState
-          title="No Attendance Analytics Available"
+          preset={hasActiveFilters ? 'FILTERED_EMPTY' : 'NO_ANALYTICS'}
+          title={hasActiveFilters ? 'No Matching Analytics Available' : 'No Attendance Analytics Available'}
           description={
             hasActiveFilters
               ? 'No lecture sessions were found matching your selected subject or date range filters. Try adjusting your filter criteria.'
               : 'Attendance analytics and trends will appear here once lecture sessions are conducted and recorded for your academic class.'
           }
-          icon={<Filter className="w-8 h-8 text-slate-400" />}
           action={
             hasActiveFilters ? (
               <Button size="sm" variant="outline" onClick={handleClearFilters}>

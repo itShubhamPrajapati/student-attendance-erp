@@ -6,7 +6,6 @@ import {
   Building2,
   Calendar,
   Clock,
-  AlertTriangle,
   ShieldAlert,
   Search,
   Filter,
@@ -16,14 +15,15 @@ import {
   Lock,
   History,
   ChevronRight,
-  BarChart3,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { LoadingState } from '../components/LoadingState';
+import { ErrorState } from '../components/ErrorState';
+import { EmptyState } from '../components/EmptyState';
 import {
   TeacherAttendanceAnalyticsResponse,
   TeacherAttendanceAnalyticsParams,
@@ -270,41 +270,41 @@ export const TeacherAttendanceAnalyticsPage: React.FC = () => {
 
       {/* Main Content Area */}
       {loading ? (
-        <Card className="p-16 bg-white border-slate-200/80 shadow-xs flex flex-col items-center justify-center">
-          <LoadingSpinner size="lg" label="Computing authoritative attendance metrics and performance insights..." />
-        </Card>
+        <div className="space-y-6">
+          <LoadingState variant="kpi" cards={4} message="Computing attendance KPIs..." />
+          <LoadingState variant="chart" message="Generating class analytics charts..." />
+        </div>
       ) : error ? (
-        <Card className="p-8 text-center bg-rose-50 border-rose-200 text-rose-800 space-y-3">
-          <AlertTriangle className="w-8 h-8 mx-auto text-rose-600" />
-          <h3 className="text-sm font-bold font-heading">Unable to Load Analytics</h3>
-          <p className="text-xs text-rose-600 max-w-md mx-auto">{error}</p>
-          <Button variant="primary" size="sm" onClick={fetchAnalytics} className="mt-2">
-            Retry Loading
-          </Button>
-        </Card>
+        <ErrorState
+          variant="card"
+          title="Unable to Load Attendance Analytics"
+          error={error}
+          onRetry={fetchAnalytics}
+          retryLabel="Retry Analytics"
+        />
       ) : summary?.total_sessions === 0 ? (
-        <Card className="p-12 text-center bg-white border-slate-200/80 shadow-xs space-y-3">
-          <BarChart3 className="w-10 h-10 mx-auto text-slate-300" />
-          <h3 className="text-base font-bold font-heading text-slate-800">
-            No Attendance Analytics Available Yet
-          </h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            {hasActiveFilters
+        <EmptyState
+          preset={hasActiveFilters ? 'FILTERED_EMPTY' : 'NO_ANALYTICS'}
+          title={hasActiveFilters ? 'No Matching Analytics Found' : 'No Attendance Analytics Available Yet'}
+          description={
+            hasActiveFilters
               ? 'No attendance sessions matched your selected filter criteria. Try clearing filters or broadening the date range.'
-              : 'You have not conducted any attendance sessions yet. Start an attendance session to begin generating class performance analytics.'}
-          </p>
-          {hasActiveFilters ? (
-            <Button variant="outline" size="sm" onClick={handleClearFilters}>
-              Clear Filters
-            </Button>
-          ) : (
-            <Link to="/teacher/attendance/sessions">
-              <Button variant="primary" size="sm">
-                Start an Attendance Session
+              : 'You have not conducted any attendance sessions yet. Start an attendance session to begin generating class performance analytics.'
+          }
+          action={
+            hasActiveFilters ? (
+              <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                Clear Filters
               </Button>
-            </Link>
-          )}
-        </Card>
+            ) : (
+              <Link to="/teacher">
+                <Button variant="primary" size="sm">
+                  Conduct Attendance Session
+                </Button>
+              </Link>
+            )
+          }
+        />
       ) : (
         <>
           {/* ========================================================================= */}
@@ -1063,8 +1063,8 @@ export const TeacherAttendanceAnalyticsPage: React.FC = () => {
 
             <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4">
               {detailLoading ? (
-                <div className="py-12 flex justify-center">
-                  <LoadingSpinner size="md" label="Loading student attendance history..." />
+                <div className="py-6">
+                  <LoadingState variant="table" rows={4} columns={4} message="Loading student attendance history..." />
                 </div>
               ) : inspectingDetail ? (
                 <div className="space-y-4 text-xs">

@@ -6,7 +6,6 @@ import {
   BookOpen,
   LogOut,
   RefreshCw,
-  AlertCircle,
   Camera,
   CheckCircle2,
   Clock,
@@ -25,7 +24,8 @@ import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { LoadingState } from '../components/LoadingState';
+import { ErrorState } from '../components/ErrorState';
 import { AttendanceProofModal } from '../components/AttendanceProofModal';
 import { ActivityFeedCard } from '../components/ActivityFeedCard';
 import {
@@ -195,23 +195,19 @@ export const StudentDashboard: React.FC = () => {
 
       {/* Error Banner with Retry */}
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-            <div>
-              <p className="font-bold">Unable to load attendance</p>
-              <p className="text-rose-600">{error || "We couldn't retrieve your attendance data."}</p>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" onClick={fetchStudentData} className="bg-white">
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          variant="banner"
+          title="Unable to Load Attendance Dashboard"
+          error={error}
+          onRetry={fetchStudentData}
+          retryLabel="Retry"
+        />
       )}
 
       {loading ? (
-        <div className="min-h-[40vh] flex flex-col items-center justify-center p-8">
-          <LoadingSpinner size="lg" label="Computing your attendance metrics and subject records..." />
+        <div className="space-y-6">
+          <LoadingState variant="kpi" cards={4} message="Computing student attendance totals..." />
+          <LoadingState variant="table" rows={4} columns={4} message="Retrieving course subject roster..." />
         </div>
       ) : (
         <>

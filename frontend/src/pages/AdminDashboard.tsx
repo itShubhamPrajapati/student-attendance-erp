@@ -14,7 +14,8 @@ import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { LoadingState } from '../components/LoadingState';
+import { ErrorState } from '../components/ErrorState';
 import { ActivityFeedCard } from '../components/ActivityFeedCard';
 import { DashboardStats } from '../types';
 import { apiGetAdminDashboard } from '../services/api';
@@ -73,17 +74,19 @@ export const AdminDashboard: React.FC = () => {
       />
 
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between">
-          <span>{error}</span>
-          <Button variant="outline" size="sm" onClick={fetchStats}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          variant="banner"
+          title="Unable to Load Dashboard Statistics"
+          error={error}
+          onRetry={fetchStats}
+          retryLabel="Retry"
+        />
       )}
 
       {loading ? (
-        <div className="min-h-[30vh] flex flex-col items-center justify-center p-8">
-          <LoadingSpinner size="lg" label="Loading live academic metrics..." />
+        <div className="space-y-6">
+          <LoadingState variant="kpi" cards={4} message="Loading academic KPIs..." />
+          <LoadingState variant="table" rows={4} columns={4} message="Loading recent teaching assignments..." />
         </div>
       ) : (
         <>

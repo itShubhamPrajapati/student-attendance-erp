@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Activity,
   Filter,
   RefreshCw,
   ExternalLink,
-  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   Shield,
@@ -17,7 +15,9 @@ import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { LoadingState } from '../components/LoadingState';
+import { ErrorState } from '../components/ErrorState';
+import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../auth/AuthContext';
 import {
   ActivityItem,
@@ -199,35 +199,33 @@ export const ActivityPage: React.FC = () => {
 
       {/* Main Timeline List */}
       {loading ? (
-        <Card className="p-16 bg-white border-slate-200/80 shadow-xs flex flex-col items-center justify-center">
-          <LoadingSpinner size="lg" label="Retrieving live activity records..." />
+        <Card className="p-6 bg-white border-slate-200/80 shadow-xs">
+          <LoadingState variant="activity" rows={6} message="Retrieving live activity records..." />
         </Card>
       ) : error ? (
-        <Card className="p-8 text-center bg-rose-50 border-rose-200 text-rose-800 space-y-3">
-          <AlertTriangle className="w-8 h-8 mx-auto text-rose-600" />
-          <h3 className="text-sm font-bold font-heading">Unable to Load Activity Timeline</h3>
-          <p className="text-xs text-rose-600 max-w-md mx-auto">{error}</p>
-          <Button variant="primary" size="sm" onClick={fetchActivities} className="mt-2">
-            Retry Loading
-          </Button>
-        </Card>
+        <ErrorState
+          variant="card"
+          title="Unable to Load Activity Timeline"
+          error={error}
+          onRetry={fetchActivities}
+          retryLabel="Retry Loading"
+        />
       ) : activities.length === 0 ? (
-        <Card className="p-12 text-center bg-white border-slate-200/80 shadow-xs space-y-3">
-          <Activity className="w-10 h-10 mx-auto text-slate-300" />
-          <h3 className="text-base font-bold font-heading text-slate-800">
-            No Activity Records Found
-          </h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            {hasActiveFilters
+        <EmptyState
+          preset={hasActiveFilters ? 'FILTERED_EMPTY' : 'NO_ACTIVITY'}
+          description={
+            hasActiveFilters
               ? 'No activity matched your selected filter criteria. Try clearing filters or broadening the date range.'
-              : 'Activity will appear here as attendance sessions are conducted and verified check-ins occur.'}
-          </p>
-          {hasActiveFilters && (
-            <Button variant="outline" size="sm" onClick={handleClearFilters}>
-              Clear Filters
-            </Button>
-          )}
-        </Card>
+              : 'Activity will appear here as attendance sessions are conducted and verified check-ins occur.'
+          }
+          action={
+            hasActiveFilters ? (
+              <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                Clear Filters
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1 text-xs text-slate-500">

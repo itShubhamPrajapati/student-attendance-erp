@@ -5,6 +5,7 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { AuthLayout } from './layouts/AuthLayout';
 import { AuthProvider } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
@@ -46,9 +47,10 @@ const PublicLayout: React.FC = () => (
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
           {/* Public & Landing Pages */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<LandingPage />} />
@@ -316,9 +318,10 @@ export const App: React.FC = () => {
               </AuthLayout>
             }
           />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 

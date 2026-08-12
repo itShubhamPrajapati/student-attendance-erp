@@ -7,7 +7,6 @@ import {
   Camera,
   Layers,
   RefreshCw,
-  AlertCircle,
   Clock,
   Filter,
   Check,
@@ -18,7 +17,8 @@ import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { LoadingState } from '../components/LoadingState';
+import { ErrorState } from '../components/ErrorState';
 import {
   StudentCalendarResponse,
   StudentCalendarDay,
@@ -206,18 +206,13 @@ export const StudentAttendanceCalendarPage: React.FC = () => {
 
       {/* Error Banner */}
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-            <div>
-              <p className="font-bold">⚠️ Unable to load attendance calendar</p>
-              <p className="text-rose-600">{error || "We couldn't retrieve your attendance records."}</p>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" onClick={fetchCalendar} className="bg-white">
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          variant="banner"
+          title="Unable to Load Attendance Calendar"
+          error={error}
+          onRetry={fetchCalendar}
+          retryLabel="Retry"
+        />
       )}
 
       {/* 2. Month Controls & Subject Filter */}
@@ -352,8 +347,11 @@ export const StudentAttendanceCalendarPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="min-h-[40vh] flex flex-col items-center justify-center p-8">
-          <LoadingSpinner size="lg" label={`Loading attendance records for ${formattedMonthLabel}...`} />
+        <div className="space-y-6">
+          <LoadingState variant="kpi" cards={4} message="Calculating month totals..." />
+          <Card className="p-8 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <LoadingState variant="page" message={`Loading attendance records for ${formattedMonthLabel}...`} />
+          </Card>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">

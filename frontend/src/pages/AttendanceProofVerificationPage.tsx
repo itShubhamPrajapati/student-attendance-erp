@@ -12,7 +12,7 @@ import {
 import { Card } from '../components/Card';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { LoadingState } from '../components/LoadingState';
 import { AttendanceProofVerification } from '../types';
 import { apiVerifyAttendanceProof } from '../services/api';
 
@@ -78,8 +78,8 @@ export const AttendanceProofVerificationPage: React.FC = () => {
 
       {/* Main Verification Card */}
       {loading ? (
-        <Card className="p-12 bg-white border-slate-200 shadow-sm flex flex-col items-center justify-center">
-          <LoadingSpinner size="lg" label="Verifying attendance record against authoritative institutional ledger..." />
+        <Card className="p-8 bg-white border-slate-200 shadow-sm">
+          <LoadingState variant="page" message="Verifying attendance record against authoritative institutional ledger..." />
         </Card>
       ) : data?.valid ? (
         /* VALID PROOF STATE */

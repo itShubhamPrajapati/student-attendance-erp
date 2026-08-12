@@ -50,6 +50,7 @@ import {
   RecentActivityResponse,
 } from '../types';
 import { getToken } from '../auth/authService';
+import { ApiError } from '../utils/apiError';
 
 export function getBackendBaseUrl(): string {
   const envUrl =
@@ -107,7 +108,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   if (!response.ok) {
     const errorMsg = data?.message || `Request failed with status ${response.status}`;
-    throw new Error(errorMsg);
+    throw new ApiError(errorMsg, response.status, data ? JSON.stringify(data) : undefined);
   }
 
   return data as T;

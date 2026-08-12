@@ -11,7 +11,6 @@ import {
   Layers,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   X,
   Building2,
   BookOpen,
@@ -25,7 +24,8 @@ import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { LoadingState } from '../components/LoadingState';
+import { ErrorState } from '../components/ErrorState';
 import { AttendanceProofModal } from '../components/AttendanceProofModal';
 import {
   StudentAttendanceHistoryRecord,
@@ -398,25 +398,21 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
 
       {/* Error Banner with Retry */}
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>Unable to load attendance history: {error}</span>
-          </div>
-          <Button variant="outline" size="sm" onClick={fetchHistory}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          variant="banner"
+          title="Unable to Load Attendance History"
+          error={error}
+          onRetry={fetchHistory}
+          retryLabel="Retry"
+        />
       )}
 
       {/* 4. Attendance Table / Cards */}
       {loading ? (
-        <div className="flex justify-center items-center py-24">
-          <LoadingSpinner />
-        </div>
+        <LoadingState variant="table" rows={6} columns={5} message="Loading attendance history..." />
       ) : records.length === 0 ? (
         <EmptyState
-          icon={<Calendar className="w-10 h-10 text-slate-400" />}
+          preset={hasActiveFilters ? 'FILTERED_EMPTY' : 'NO_ATTENDANCE'}
           title={hasActiveFilters ? 'No matching attendance records' : 'No attendance records yet'}
           description={
             hasActiveFilters

@@ -62,8 +62,14 @@ export const LoginPage: React.FC = () => {
         navigate('/student', { replace: true });
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unable to connect to the server. Please try again.';
-      setErrorMessage(msg);
+      const rawMsg = err instanceof Error ? err.message : '';
+      if (rawMsg.toLowerCase().includes('invalid') || rawMsg.toLowerCase().includes('unauthorized') || rawMsg.includes('401')) {
+        setErrorMessage('Email or password is incorrect. Please verify your credentials and try again.');
+      } else if (rawMsg.toLowerCase().includes('fetch') || rawMsg.toLowerCase().includes('network')) {
+        setErrorMessage('Unable to connect to the authentication server. Please check your network connection.');
+      } else {
+        setErrorMessage('Unable to sign in. Please verify your credentials or try again in a few moments.');
+      }
     } finally {
       setIsSubmitting(false);
     }

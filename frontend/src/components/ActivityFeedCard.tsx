@@ -10,14 +10,14 @@ import {
   Unlock,
   FileCheck,
   Activity,
-  AlertTriangle,
   RefreshCw,
   ChevronRight,
   ExternalLink,
 } from 'lucide-react';
 import { Card } from './Card';
-import { Button } from './Button';
-import { LoadingSpinner } from './LoadingSpinner';
+import { LoadingState } from './LoadingState';
+import { ErrorState } from './ErrorState';
+import { EmptyState } from './EmptyState';
 import { ActivityItem, ActivityType } from '../types';
 import { apiGetRecentActivity } from '../services/api';
 
@@ -171,27 +171,21 @@ export const ActivityFeedCard: React.FC<ActivityFeedCardProps> = ({
 
       {/* Content Feed */}
       {loading ? (
-        <div className="py-8 flex flex-col items-center justify-center">
-          <LoadingSpinner size="sm" label="Loading activity..." />
-        </div>
+        <LoadingState variant="activity" rows={Math.min(limit, 4)} message="Loading recent activity..." />
       ) : error ? (
-        <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-100 text-rose-800 text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-          <Button variant="outline" size="sm" onClick={fetchActivity}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          variant="banner"
+          title="Unable to Load Activity"
+          error={error}
+          onRetry={fetchActivity}
+          retryLabel="Retry"
+        />
       ) : activities.length === 0 ? (
-        <div className="py-8 text-center space-y-1">
-          <Activity className="w-7 h-7 mx-auto text-slate-300" />
-          <p className="text-xs font-semibold text-slate-700">No recent activity yet</p>
-          <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
-            Live attendance markings, session lifecycle updates, and audit records will appear here.
-          </p>
-        </div>
+        <EmptyState
+          preset="NO_ACTIVITY"
+          compact
+          description="Live attendance markings, session lifecycle updates, and audit records will appear here."
+        />
       ) : (
         <div className="space-y-2.5">
           {activities.map((item) => {

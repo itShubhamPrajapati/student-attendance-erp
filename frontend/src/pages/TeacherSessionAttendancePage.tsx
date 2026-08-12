@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Users,
-  XCircle,
   ArrowLeft,
   RefreshCw,
   Printer,
@@ -20,7 +19,8 @@ import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { LoadingState } from '../components/LoadingState';
+import { ErrorState } from '../components/ErrorState';
 import { ManualAttendanceModal } from '../components/ManualAttendanceModal';
 import { CorrectAttendanceModal } from '../components/CorrectAttendanceModal';
 import { AttendanceAuditHistoryModal } from '../components/AttendanceAuditHistoryModal';
@@ -100,8 +100,9 @@ export const TeacherSessionAttendancePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[50vh] flex flex-col items-center justify-center p-8">
-        <LoadingSpinner size="lg" label="Loading classroom attendance roster..." />
+      <div className="max-w-6xl mx-auto space-y-6">
+        <LoadingState variant="kpi" cards={5} message="Loading session attendance summary..." />
+        <LoadingState variant="table" rows={8} columns={5} message="Loading classroom attendance roster..." />
       </div>
     );
   }
@@ -109,27 +110,25 @@ export const TeacherSessionAttendancePage: React.FC = () => {
   if (error || !data) {
     return (
       <div className="max-w-xl mx-auto p-6 text-center space-y-4">
-        <Card className="p-8 space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 mx-auto flex items-center justify-center">
-            <XCircle className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-slate-900 font-heading">Attendance Record Error</h3>
-            <p className="text-xs text-slate-500 mt-1">{error || 'Session records not found.'}</p>
-          </div>
-          <div className="pt-2 flex items-center justify-center gap-2">
-            <Link to="/teacher/attendance/history">
-              <Button size="sm" variant="outline" leftIcon={<ArrowLeft className="w-3.5 h-3.5" />}>
-                All Sessions
-              </Button>
-            </Link>
-            <Link to="/teacher">
-              <Button size="sm" variant="primary">
-                Teacher Dashboard
-              </Button>
-            </Link>
-          </div>
-        </Card>
+        <ErrorState
+          variant="card"
+          title="Attendance Roster Error"
+          error={error || 'Session records could not be found.'}
+          onRetry={fetchRecords}
+          retryLabel="Retry"
+        />
+        <div className="pt-2 flex items-center justify-center gap-2">
+          <Link to="/teacher/attendance/history">
+            <Button size="sm" variant="outline" leftIcon={<ArrowLeft className="w-3.5 h-3.5" />}>
+              All Sessions
+            </Button>
+          </Link>
+          <Link to="/teacher">
+            <Button size="sm" variant="primary">
+              Teacher Dashboard
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }

@@ -28,7 +28,8 @@ import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { LoadingState } from '../components/LoadingState';
+import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { ManualAttendanceModal } from '../components/ManualAttendanceModal';
 import { CorrectAttendanceModal } from '../components/CorrectAttendanceModal';
@@ -691,34 +692,27 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
 
       {/* Error Alert */}
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between shadow-xs animate-in fade-in">
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-            <div>
-              <p className="font-bold">Unable to perform search</p>
-              <p className="text-rose-600">{error}</p>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" onClick={fetchStudents} className="bg-white">
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          variant="banner"
+          title="Unable to Perform Student Search"
+          error={error}
+          onRetry={fetchStudents}
+          retryLabel="Retry Search"
+        />
       )}
 
       {/* 4. Results List / Table */}
       {loading ? (
-        <div className="min-h-[35vh] flex flex-col items-center justify-center p-8">
-          <LoadingSpinner size="lg" label="Searching and computing student attendance records..." />
-        </div>
+        <LoadingState variant="table" rows={6} columns={6} message="Searching and computing student attendance records..." />
       ) : items.length === 0 ? (
         <EmptyState
-          title="No Students Found"
+          preset={hasActiveFilters ? 'SEARCH_EMPTY' : 'NO_STUDENTS'}
+          title={hasActiveFilters ? 'No Students Found' : 'No Enrolled Students'}
           description={
             hasActiveFilters
-              ? 'No students matching your active search query or filter criteria were found in your assigned classes. Try adjusting your filters.'
+              ? 'No students matching your active search query or filter criteria were found in your assigned classes. Try adjusting your search query or clearing filters.'
               : 'You currently do not have any students enrolled in your assigned classes.'
           }
-          icon={<Search className="w-8 h-8 text-slate-400" />}
           action={
             hasActiveFilters ? (
               <Button size="sm" variant="outline" onClick={handleClearFilters}>
@@ -991,21 +985,17 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
             {/* Modal Body */}
             <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
               {detailLoading && !detailData ? (
-                <div className="py-12 flex flex-col items-center justify-center">
-                  <LoadingSpinner size="lg" label="Loading student attendance details..." />
+                <div className="py-6">
+                  <LoadingState variant="table" rows={4} columns={4} message="Loading student attendance details..." />
                 </div>
               ) : detailError ? (
-                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between">
-                  <span>{detailError}</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => fetchStudentDetail(inspectingStudentId)}
-                    className="bg-white"
-                  >
-                    Retry
-                  </Button>
-                </div>
+                <ErrorState
+                  variant="banner"
+                  title="Unable to Load Student Details"
+                  error={detailError}
+                  onRetry={() => fetchStudentDetail(inspectingStudentId)}
+                  retryLabel="Retry"
+                />
               ) : detailData ? (
                 <>
                   {/* Overall Attendance Summary Banner */}

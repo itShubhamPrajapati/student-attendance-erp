@@ -19,8 +19,9 @@ import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
+import { LoadingState } from '../components/LoadingState';
+import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
-import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ActivityFeedCard } from '../components/ActivityFeedCard';
 import {
   TeacherAssignmentItem,
@@ -151,15 +152,13 @@ export const TeacherDashboard: React.FC = () => {
       />
 
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-600" />
-            <span>{error}</span>
-          </div>
-          <Button variant="outline" size="sm" onClick={fetchTeacherData}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          variant="banner"
+          title="Unable to Load Faculty Dashboard"
+          error={error}
+          onRetry={fetchTeacherData}
+          retryLabel="Retry"
+        />
       )}
 
       {/* Teacher Profile Summary Card */}
@@ -207,15 +206,13 @@ export const TeacherDashboard: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="min-h-[20vh] flex flex-col items-center justify-center p-8">
-            <LoadingSpinner size="lg" label="Loading your assigned courses..." />
-          </div>
+          <LoadingState variant="kpi" cards={3} message="Loading your assigned courses..." />
         ) : assignments.length === 0 ? (
           <EmptyState
-            icon={<BookOpen className="w-8 h-8" />}
-            title="No classes assigned yet"
+            preset="NO_DATA"
+            icon={<BookOpen className="w-8 h-8 text-indigo-400" />}
+            title="No Classes Assigned Yet"
             description="You do not have any teaching allocations assigned by the administrator yet. Once assigned, you can start live QR attendance sessions here."
-            badgeText="Assignments Pending"
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
