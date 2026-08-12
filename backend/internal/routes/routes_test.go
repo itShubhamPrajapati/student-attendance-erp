@@ -98,6 +98,9 @@ func TestTeacherSessionRoutesRegistered(t *testing.T) {
 		{"Admin Attendance Proof", "GET", "/api/admin/attendance/12345/proof", adminToken},
 		{"Admin Attendance Proof PDF", "GET", "/api/admin/attendance/12345/proof/pdf", adminToken},
 		{"Public Attendance Proof Verification", "GET", "/api/attendance/proof/verify/ATT-2026-TESTCODE", ""},
+		{"Recent Activity Student", "GET", "/api/activity/recent", studentToken},
+		{"Recent Activity Teacher", "GET", "/api/activity/recent", teacherToken},
+		{"Recent Activity Admin", "GET", "/api/activity/recent", adminToken},
 	}
 
 	for _, rt := range routesToTest {

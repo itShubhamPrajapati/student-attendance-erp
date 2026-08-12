@@ -15,6 +15,7 @@ import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ActivityFeedCard } from '../components/ActivityFeedCard';
 import { DashboardStats } from '../types';
 import { apiGetAdminDashboard } from '../services/api';
 
@@ -255,6 +256,14 @@ export const AdminDashboard: React.FC = () => {
               </Card>
             )}
           </div>
+
+          {/* Recent Activity Feed (Feature #16) */}
+          <ActivityFeedCard
+            role="ADMIN"
+            limit={5}
+            title="Recent College Attendance Activity"
+            subtitle="Authoritative log of lecture sessions, check-ins, manual modifications, and proof receipts across your college"
+          />
         </>
       )}
     </div>

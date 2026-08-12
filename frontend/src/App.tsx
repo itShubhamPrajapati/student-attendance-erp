@@ -28,6 +28,7 @@ import { StudentAttendanceHistoryPage } from './pages/StudentAttendanceHistoryPa
 import { StudentAttendanceAnalyticsPage } from './pages/StudentAttendanceAnalyticsPage';
 import { StudentScanAttendancePage } from './pages/StudentScanAttendancePage';
 import { AttendanceProofVerificationPage } from './pages/AttendanceProofVerificationPage';
+import { ActivityPage } from './pages/ActivityPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Root layout for public pages
@@ -289,6 +290,18 @@ export const App: React.FC = () => {
               <ProtectedRoute allowedRoles={['STUDENT']}>
                 <DashboardLayout role="STUDENT">
                   <StudentScanAttendancePage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Universal Authenticated Activity Route (Feature #16) */}
+          <Route
+            path="/activity"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'TEACHER', 'STUDENT']}>
+                <DashboardLayout>
+                  <ActivityPage />
                 </DashboardLayout>
               </ProtectedRoute>
             }

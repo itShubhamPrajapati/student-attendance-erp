@@ -27,6 +27,7 @@ import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { AttendanceProofModal } from '../components/AttendanceProofModal';
+import { ActivityFeedCard } from '../components/ActivityFeedCard';
 import {
   StudentProfile,
   Subject,
@@ -969,6 +970,14 @@ export const StudentDashboard: React.FC = () => {
               </Card>
             )}
           </div>
+
+          {/* Personal Activity Feed (Feature #16) */}
+          <ActivityFeedCard
+            role="STUDENT"
+            limit={5}
+            title="Recent Attendance Activity"
+            subtitle="Your verified lecture attendance markings, late logs, corrections, and receipts"
+          />
         </>
       )}
 

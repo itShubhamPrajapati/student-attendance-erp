@@ -46,6 +46,8 @@ import {
   AttendanceProofVerification,
   TeacherAttendanceAnalyticsParams,
   TeacherAttendanceAnalyticsResponse,
+  RecentActivityParams,
+  RecentActivityResponse,
 } from '../types';
 import { getToken } from '../auth/authService';
 
@@ -1009,6 +1011,39 @@ export async function apiGetTeacherAttendanceAnalytics(
   const qs = query.toString();
   const endpoint = qs ? `/api/teacher/attendance/analytics?${qs}` : '/api/teacher/attendance/analytics';
   return request<{ success: boolean; data: TeacherAttendanceAnalyticsResponse }>(endpoint, {
+    method: 'GET',
+  });
+}
+
+// ==============================================================================
+// Feature #16: Recent Activity API
+// ==============================================================================
+
+export async function apiGetRecentActivity(
+  params?: RecentActivityParams
+): Promise<{ success: boolean; data: RecentActivityResponse }> {
+  const query = new URLSearchParams();
+  if (params) {
+    if (params.limit && params.limit > 0) {
+      query.append('limit', params.limit.toString());
+    }
+    if (params.page && params.page > 0) {
+      query.append('page', params.page.toString());
+    }
+    if (params.type && params.type.trim() !== '') {
+      query.append('type', params.type.trim());
+    }
+    if (params.from && params.from.trim() !== '') {
+      query.append('from', params.from.trim());
+    }
+    if (params.to && params.to.trim() !== '') {
+      query.append('to', params.to.trim());
+    }
+  }
+
+  const qs = query.toString();
+  const endpoint = qs ? `/api/activity/recent?${qs}` : '/api/activity/recent';
+  return request<{ success: boolean; data: RecentActivityResponse }>(endpoint, {
     method: 'GET',
   });
 }

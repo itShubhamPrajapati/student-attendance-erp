@@ -21,6 +21,7 @@ import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ActivityFeedCard } from '../components/ActivityFeedCard';
 import {
   TeacherAssignmentItem,
   TeacherProfile,
@@ -358,6 +359,14 @@ export const TeacherDashboard: React.FC = () => {
           </Card>
         )}
       </div>
+
+      {/* Recent Activity Feed (Feature #16) */}
+      <ActivityFeedCard
+        role="TEACHER"
+        limit={5}
+        title="Recent Course Attendance Activity"
+        subtitle="Live check-ins, late recordings, manual edits, and finalized sessions across your curriculum"
+      />
 
       {/* Start Attendance Setup Modal */}
       {selectedAssignment && (

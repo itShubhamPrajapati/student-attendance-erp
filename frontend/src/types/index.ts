@@ -943,3 +943,55 @@ export interface TeacherAttendanceAnalyticsResponse {
   corrections: TeacherAttendanceCorrectionSummary;
   filters: TeacherAttendanceAnalyticsFilterInfo;
 }
+
+// ==============================================================================
+// RECENT ACTIVITY & ATTENDANCE ACTIVITY FEED (Feature #16)
+// ==============================================================================
+
+export type ActivityType =
+  | 'ATTENDANCE_MARKED'
+  | 'ATTENDANCE_LATE'
+  | 'ATTENDANCE_CORRECTED'
+  | 'MANUAL_ATTENDANCE'
+  | 'SESSION_STARTED'
+  | 'SESSION_FINALIZED'
+  | 'SESSION_REOPENED'
+  | 'ATTENDANCE_PROOF_GENERATED'
+  | 'ATTENDANCE_SESSION_COMPLETED'
+  | string;
+
+export type ActivitySeverity = 'SUCCESS' | 'WARNING' | 'IMPORTANT' | 'INFO';
+
+export interface ActivityItem {
+  id: string;
+  type: ActivityType;
+  severity: ActivitySeverity;
+  title: string;
+  description: string;
+  actor_name?: string | null;
+  actor_role?: string | null;
+  student_name?: string | null;
+  student_roll_number?: string | null;
+  subject_name?: string | null;
+  subject_code?: string | null;
+  class_name?: string | null;
+  session_id?: string | null;
+  attendance_id?: string | null;
+  proof_public_id?: string | null;
+  created_at: string;
+}
+
+export interface RecentActivityParams {
+  limit?: number;
+  page?: number;
+  type?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface RecentActivityResponse {
+  activities: ActivityItem[];
+  total: number;
+  limit: number;
+  page: number;
+}

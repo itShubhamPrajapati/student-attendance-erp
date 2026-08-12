@@ -1131,3 +1131,68 @@ type TeacherAttendanceAnalyticsResponse struct {
 	Corrections       TeacherAttendanceCorrectionSummary    `json:"corrections"`
 	Filters           TeacherAttendanceAnalyticsFilterInfo  `json:"filters"`
 }
+
+// ==============================================================================
+// RECENT ACTIVITY & ATTENDANCE ACTIVITY FEED (Feature #16)
+// ==============================================================================
+
+type ActivityType string
+
+const (
+	ActivityTypeAttendanceMarked    ActivityType = "ATTENDANCE_MARKED"
+	ActivityTypeAttendanceLate      ActivityType = "ATTENDANCE_LATE"
+	ActivityTypeAttendanceCorrected ActivityType = "ATTENDANCE_CORRECTED"
+	ActivityTypeManualAttendance    ActivityType = "MANUAL_ATTENDANCE"
+	ActivityTypeSessionStarted      ActivityType = "SESSION_STARTED"
+	ActivityTypeSessionFinalized    ActivityType = "SESSION_FINALIZED"
+	ActivityTypeSessionReopened     ActivityType = "SESSION_REOPENED"
+	ActivityTypeProofGenerated      ActivityType = "ATTENDANCE_PROOF_GENERATED"
+	ActivityTypeSessionCompleted    ActivityType = "ATTENDANCE_SESSION_COMPLETED"
+)
+
+type ActivitySeverity string
+
+const (
+	ActivitySeveritySuccess   ActivitySeverity = "SUCCESS"
+	ActivitySeverityWarning   ActivitySeverity = "WARNING"
+	ActivitySeverityImportant ActivitySeverity = "IMPORTANT"
+	ActivitySeverityInfo      ActivitySeverity = "INFO"
+)
+
+// ActivityItem represents a normalized read-only event in the unified activity feed
+type ActivityItem struct {
+	ID            string           `json:"id"`
+	Type          ActivityType     `json:"type"`
+	Severity      ActivitySeverity `json:"severity"`
+	Title         string           `json:"title"`
+	Description   string           `json:"description"`
+	ActorName     *string          `json:"actor_name,omitempty"`
+	ActorRole     *string          `json:"actor_role,omitempty"`
+	StudentName   *string          `json:"student_name,omitempty"`
+	StudentRollNo *string          `json:"student_roll_number,omitempty"`
+	SubjectName   *string          `json:"subject_name,omitempty"`
+	SubjectCode   *string          `json:"subject_code,omitempty"`
+	ClassName     *string          `json:"class_name,omitempty"`
+	SessionID     *string          `json:"session_id,omitempty"`
+	AttendanceID  *string          `json:"attendance_id,omitempty"`
+	ProofPublicID *string          `json:"proof_public_id,omitempty"`
+	CreatedAt     time.Time        `json:"created_at"`
+}
+
+// RecentActivityRequest represents query parameters for GET /api/activity/recent
+type RecentActivityRequest struct {
+	Limit *int    `form:"limit"`
+	Page  *int    `form:"page"`
+	Type  *string `form:"type"`
+	From  *string `form:"from"`
+	To    *string `form:"to"`
+}
+
+// RecentActivityResponse represents the response payload for GET /api/activity/recent
+type RecentActivityResponse struct {
+	Activities []ActivityItem `json:"activities"`
+	Total      int64          `json:"total"`
+	Limit      int            `json:"limit"`
+	Page       int            `json:"page"`
+}
+

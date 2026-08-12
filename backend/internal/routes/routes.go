@@ -219,6 +219,11 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		}
 
 		// ==============================================================================
+		// RECENT ACTIVITY & ACTIVITY FEED (Protected: RequireAuth - Feature #16)
+		// ==============================================================================
+		api.GET("/activity/recent", middleware.RequireAuth(cfg.JWTSecret), handlers.GetRecentActivityHandler(database.DB))
+
+		// ==============================================================================
 		// PUBLIC ATTENDANCE PROOF VERIFICATION (Unauthenticated - Feature #14)
 		// ==============================================================================
 		api.GET("/attendance/proof/verify/:public_id", handlers.VerifyAttendanceProofPublicHandler(database.DB))

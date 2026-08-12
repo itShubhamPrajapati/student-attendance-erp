@@ -2,19 +2,23 @@ import React from 'react';
 import { Navbar } from '../components/Navbar';
 import { Sidebar } from '../components/Sidebar';
 import { UserRole } from '../types';
+import { useAuth } from '../auth/AuthContext';
 
 export interface DashboardLayoutProps {
   children: React.ReactNode;
-  role: UserRole;
+  role?: UserRole;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, role }) => {
+  const { user } = useAuth();
+  const effectiveRole = role || (user?.role as UserRole) || 'STUDENT';
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/70">
       <Navbar />
 
       <div className="flex-1 flex max-w-7xl w-full mx-auto">
-        <Sidebar role={role} />
+        <Sidebar role={effectiveRole} />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
           {children}
