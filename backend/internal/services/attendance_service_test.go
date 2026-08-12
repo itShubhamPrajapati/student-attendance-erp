@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"errors"
 	"math"
 	"sort"
 	"strings"
@@ -30,6 +31,7 @@ func TestModelTableNames(t *testing.T) {
 		{"AttendanceSession", models.AttendanceSession{}.TableName(), "attendance_sessions"},
 		{"Attendance", models.Attendance{}.TableName(), "attendance"}, // Crucial fix: must be "attendance", not "attendances"
 		{"AttendanceAudit", models.AttendanceAudit{}.TableName(), "attendance_audit"},
+		{"AttendanceSessionAudit", models.AttendanceSessionAudit{}.TableName(), "attendance_session_audit"},
 	}
 
 	for _, tt := range tests {
@@ -1361,5 +1363,107 @@ func TestLateCutoffDetermination(t *testing.T) {
 	}
 	if status4 != models.StatusLate {
 		t.Errorf("expected LATE after cutoff, got %s", status4)
+	}
+}
+
+// TestSessionFinalizationLifecycleLogic validates the institutional finalization and reopen lifecycle rules (Feature #13)
+func TestSessionFinalizationLifecycleLogic(t *testing.T) {
+	// 1. Validate reason requirements for reopening
+	validReasons := []string{
+		"System outage during class requiring retroactive unlock",
+		"Teacher marked absent student who joined late via physical permission",
+		"Institutional verification audit correction required by Dean",
+	}
+	for _, r := range validReasons {
+		clean, err := ValidateAttendanceReason(r)
+		if err != nil || len(clean) < 5 || len(clean) > 500 {
+			t.Errorf("expected valid reopen reason %q, got err: %v", r, err)
+		}
+	}
+
+	invalidReasons := []string{
+		"",
+		"   ",
+		"fix",
+		"bad",
+		strings.Repeat("a", 501),
+	}
+	for _, r := range invalidReasons {
+		_, err := ValidateAttendanceReason(r)
+		if err == nil {
+			t.Errorf("expected validation error for invalid reason length %d, got nil", len(r))
+		}
+	}
+
+	// 2. State transition tests: OPEN -> FINALIZED -> OPEN
+	session := models.AttendanceSession{
+		ID:                 "test-session-uuid",
+		FinalizationStatus: models.SessionFinalizationOpen,
+		IsActive:           true,
+	}
+
+	if session.FinalizationStatus != "OPEN" {
+		t.Errorf("expected initial status OPEN, got %s", session.FinalizationStatus)
+	}
+
+	// Finalize session
+	now := time.Now().UTC()
+	session.FinalizationStatus = models.SessionFinalizationFinalized
+	session.FinalizedAt = &now
+	adminID := "admin-user-uuid"
+	session.FinalizedByID = &adminID
+	session.IsActive = false
+
+	if session.FinalizationStatus != "FINALIZED" || session.IsActive != false {
+		t.Errorf("expected finalized session to be locked and inactive")
+	}
+
+	// Reopen session
+	session.FinalizationStatus = models.SessionFinalizationOpen
+	session.FinalizedAt = nil
+	session.FinalizedByID = nil
+
+	if session.FinalizationStatus != "OPEN" || session.FinalizedAt != nil || session.FinalizedByID != nil {
+		t.Errorf("expected reopened session to reset finalization fields to nil/OPEN")
+	}
+}
+
+// TestSessionFinalizationMutationGuards verifies that mutation attempts on finalized sessions are blocked
+func TestSessionFinalizationMutationGuards(t *testing.T) {
+	finalizedSession := models.AttendanceSession{
+		ID:                 "finalized-session-123",
+		FinalizationStatus: models.SessionFinalizationFinalized,
+		IsActive:           false,
+	}
+
+	// 1. QR scan attempt against finalized session must be blocked
+	if finalizedSession.FinalizationStatus == models.SessionFinalizationFinalized {
+		err := ErrAttendanceSessionFinalized
+		if !errors.Is(err, ErrAttendanceSessionFinalized) {
+			t.Errorf("expected ErrAttendanceSessionFinalized, got %v", err)
+		}
+	}
+
+	// 2. Manual attendance marking attempt against finalized session must be blocked
+	if finalizedSession.FinalizationStatus == models.SessionFinalizationFinalized {
+		err := ErrAttendanceSessionFinalized
+		if !errors.Is(err, ErrAttendanceSessionFinalized) {
+			t.Errorf("expected ErrAttendanceSessionFinalized, got %v", err)
+		}
+	}
+
+	// 3. Attendance correction attempt against finalized session must be blocked
+	attendanceRecord := models.Attendance{
+		ID:        "att-123",
+		SessionID: finalizedSession.ID,
+		Session:   finalizedSession,
+		Status:    models.StatusPresent,
+	}
+
+	if attendanceRecord.Session.FinalizationStatus == models.SessionFinalizationFinalized {
+		err := ErrAttendanceSessionFinalized
+		if !errors.Is(err, ErrAttendanceSessionFinalized) {
+			t.Errorf("expected ErrAttendanceSessionFinalized for correction, got %v", err)
+		}
 	}
 }

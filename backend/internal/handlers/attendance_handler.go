@@ -236,6 +236,16 @@ func MarkAttendanceHandler(db *gorm.DB) gin.HandlerFunc {
 		if err != nil {
 			errMsg := err.Error()
 
+			// 0. Finalized session (409 Conflict)
+			if errors.Is(err, services.ErrAttendanceSessionFinalized) || strings.Contains(errMsg, "finalized") {
+				c.JSON(http.StatusConflict, gin.H{
+					"success":    false,
+					"error_code": "SESSION_FINALIZED",
+					"message":    "Attendance for this session has been finalized and locked.",
+				})
+				return
+			}
+
 			// 1. Duplicate attendance (409 Conflict)
 			if errors.Is(err, services.ErrDuplicateAttendance) || strings.Contains(errMsg, "already been marked") || strings.Contains(errMsg, "duplicate") {
 				c.JSON(http.StatusConflict, gin.H{
@@ -841,6 +851,16 @@ func MarkAttendanceManuallyHandler(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
+			if errors.Is(err, services.ErrAttendanceSessionFinalized) ||
+				strings.Contains(errMsg, "finalized") {
+				c.JSON(http.StatusConflict, gin.H{
+					"success":    false,
+					"error_code": "SESSION_FINALIZED",
+					"message":    errMsg,
+				})
+				return
+			}
+
 			if errors.Is(err, services.ErrStudentNotFound) ||
 				errors.Is(err, services.ErrSessionNotFound) ||
 				strings.Contains(errMsg, "not found") {
@@ -897,6 +917,16 @@ func CorrectAttendanceHandler(db *gorm.DB) gin.HandlerFunc {
 		resp, err := services.CorrectAttendance(db, userID, userRole, attendanceID, &req)
 		if err != nil {
 			errMsg := err.Error()
+
+			if errors.Is(err, services.ErrAttendanceSessionFinalized) ||
+				strings.Contains(errMsg, "finalized") {
+				c.JSON(http.StatusConflict, gin.H{
+					"success":    false,
+					"error_code": "SESSION_FINALIZED",
+					"message":    errMsg,
+				})
+				return
+			}
 
 			if errors.Is(err, services.ErrReasonRequired) ||
 				errors.Is(err, services.ErrReasonTooShort) ||
@@ -1058,6 +1088,206 @@ func UpdateSessionLateSettingsHandler(db *gorm.DB) gin.HandlerFunc {
 			"success": true,
 			"message": "Late attendance threshold updated successfully",
 			"data":    resp,
+		})
+	}
+}
+
+// ==============================================================================
+// ATTENDANCE SESSION FINALIZATION & REOPENING HANDLERS (Feature #13)
+// ==============================================================================
+
+// FinalizeAttendanceSessionHandler handles POST /api/teacher/attendance/sessions/:id/finalize and POST /api/admin/attendance/sessions/:id/finalize
+func FinalizeAttendanceSessionHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		userRole := c.GetString("user_role")
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Authentication required"})
+			return
+		}
+
+		sessionID := strings.TrimSpace(c.Param("id"))
+		if sessionID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Session ID is required"})
+			return
+		}
+
+		var req models.FinalizeSessionRequest
+		// Optional body binding
+		_ = c.ShouldBindJSON(&req)
+
+		resp, err := services.FinalizeAttendanceSession(db, userID, userRole, sessionID, req.Reason)
+		if err != nil {
+			errMsg := err.Error()
+
+			if errors.Is(err, services.ErrSessionAlreadyFinalized) || strings.Contains(errMsg, "already finalized") {
+				c.JSON(http.StatusConflict, gin.H{
+					"success": false,
+					"message": "Attendance session is already finalized.",
+				})
+				return
+			}
+
+			if errors.Is(err, services.ErrReasonTooLong) || strings.Contains(errMsg, "exceed 500 characters") {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"message": errMsg,
+				})
+				return
+			}
+
+			if errors.Is(err, services.ErrUnauthorizedTeacher) || strings.Contains(errMsg, "not authorized") || strings.Contains(errMsg, "Access denied") {
+				c.JSON(http.StatusForbidden, gin.H{
+					"success": false,
+					"message": errMsg,
+				})
+				return
+			}
+
+			if errors.Is(err, services.ErrSessionNotFound) || strings.Contains(errMsg, "not found") {
+				c.JSON(http.StatusNotFound, gin.H{
+					"success": false,
+					"message": errMsg,
+				})
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to finalize attendance session: " + errMsg,
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "Attendance session finalized and locked successfully",
+			"data":    resp,
+		})
+	}
+}
+
+// ReopenAttendanceSessionHandler handles POST /api/admin/attendance/sessions/:id/reopen
+func ReopenAttendanceSessionHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		userRole := c.GetString("user_role")
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Authentication required"})
+			return
+		}
+
+		sessionID := strings.TrimSpace(c.Param("id"))
+		if sessionID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Session ID is required"})
+			return
+		}
+
+		var req models.ReopenSessionRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"message": "A reason is mandatory for reopening a finalized session (5-500 characters).",
+			})
+			return
+		}
+
+		resp, err := services.ReopenAttendanceSession(db, userID, userRole, sessionID, req.Reason)
+		if err != nil {
+			errMsg := err.Error()
+
+			if errors.Is(err, services.ErrReopenReasonRequired) ||
+				errors.Is(err, services.ErrReopenReasonTooShort) ||
+				errors.Is(err, services.ErrReopenReasonTooLong) ||
+				strings.Contains(errMsg, "reason") || strings.Contains(errMsg, "Reason") {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"message": errMsg,
+				})
+				return
+			}
+
+			if errors.Is(err, services.ErrSessionNotFinalized) || strings.Contains(errMsg, "not finalized") {
+				c.JSON(http.StatusConflict, gin.H{
+					"success": false,
+					"message": "Attendance session is not finalized.",
+				})
+				return
+			}
+
+			if strings.Contains(errMsg, "Only administrators") || strings.Contains(errMsg, "not authorized") || strings.Contains(errMsg, "inactive") {
+				c.JSON(http.StatusForbidden, gin.H{
+					"success": false,
+					"message": errMsg,
+				})
+				return
+			}
+
+			if errors.Is(err, services.ErrSessionNotFound) || strings.Contains(errMsg, "not found") {
+				c.JSON(http.StatusNotFound, gin.H{
+					"success": false,
+					"message": errMsg,
+				})
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to reopen attendance session: " + errMsg,
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "Attendance session reopened successfully",
+			"data":    resp,
+		})
+	}
+}
+
+// GetAttendanceSessionAuditHandler handles GET /api/teacher/attendance/sessions/:id/audit and GET /api/admin/attendance/sessions/:id/audit
+func GetAttendanceSessionAuditHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		userRole := c.GetString("user_role")
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Authentication required"})
+			return
+		}
+
+		sessionID := strings.TrimSpace(c.Param("id"))
+		if sessionID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Session ID is required"})
+			return
+		}
+
+		auditHistory, err := services.GetAttendanceSessionAuditHistory(db, userID, userRole, sessionID)
+		if err != nil {
+			errMsg := err.Error()
+
+			if errors.Is(err, services.ErrUnauthorizedTeacher) ||
+				strings.Contains(errMsg, "not authorized") ||
+				strings.Contains(errMsg, "Access denied") {
+				c.JSON(http.StatusForbidden, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			if errors.Is(err, services.ErrSessionNotFound) || strings.Contains(errMsg, "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"success": false, "message": errMsg})
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to retrieve session audit history: " + errMsg,
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    auditHistory,
 		})
 	}
 }

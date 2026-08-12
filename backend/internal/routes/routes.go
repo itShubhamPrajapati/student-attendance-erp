@@ -126,6 +126,15 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			// Attendance Audit Management (Phase 4)
 			adminGroup.GET("/attendance/sessions", handlers.GetAdminAttendanceSessionsHandler(database.DB))
 			adminGroup.GET("/attendance/sessions/:id/records", handlers.GetAdminSessionRecordsHandler(database.DB))
+
+			// Attendance Session Finalization, Reopening & Session Audit (Feature #13)
+			adminGroup.POST("/attendance/sessions/:id/finalize", handlers.FinalizeAttendanceSessionHandler(database.DB))
+			adminGroup.POST("/attendance/sessions/:id/reopen", handlers.ReopenAttendanceSessionHandler(database.DB))
+			adminGroup.GET("/attendance/sessions/:id/audit", handlers.GetAttendanceSessionAuditHandler(database.DB))
+
+			// Attendance Digital Proof & Receipt (Feature #14)
+			adminGroup.GET("/attendance/:attendance_id/proof", handlers.GetAdminAttendanceProofHandler(database.DB, cfg))
+			adminGroup.GET("/attendance/:attendance_id/proof/pdf", handlers.DownloadAdminAttendanceProofPDFHandler(database.DB, cfg))
 		}
 
 		// ==============================================================================
@@ -148,6 +157,10 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			teacherGroup.PATCH("/attendance/sessions/:id/late-settings", handlers.UpdateSessionLateSettingsHandler(database.DB))
 			teacherGroup.PATCH("/sessions/:id/late-settings", handlers.UpdateSessionLateSettingsHandler(database.DB))
 
+			// Attendance Session Finalization & Session Audit (Feature #13)
+			teacherGroup.POST("/attendance/sessions/:id/finalize", handlers.FinalizeAttendanceSessionHandler(database.DB))
+			teacherGroup.GET("/attendance/sessions/:id/audit", handlers.GetAttendanceSessionAuditHandler(database.DB))
+
 			// Student Attendance Search & Details (Feature #9)
 			teacherGroup.GET("/students/search", handlers.SearchTeacherStudentsHandler(database.DB))
 			teacherGroup.GET("/students/:student_id/attendance", handlers.GetTeacherStudentAttendanceDetailHandler(database.DB))
@@ -164,6 +177,10 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			teacherGroup.POST("/attendance/manual", handlers.MarkAttendanceManuallyHandler(database.DB))
 			teacherGroup.PATCH("/attendance/:attendance_id/correct", handlers.CorrectAttendanceHandler(database.DB))
 			teacherGroup.GET("/attendance/:attendance_id/audit", handlers.GetAttendanceAuditHandler(database.DB))
+
+			// Attendance Digital Proof & Receipt (Feature #14)
+			teacherGroup.GET("/attendance/:attendance_id/proof", handlers.GetTeacherAttendanceProofHandler(database.DB, cfg))
+			teacherGroup.GET("/attendance/:attendance_id/proof/pdf", handlers.DownloadTeacherAttendanceProofPDFHandler(database.DB, cfg))
 		}
 
 		// ==============================================================================
@@ -182,6 +199,10 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			studentGroup.GET("/attendance/calendar", handlers.GetStudentAttendanceCalendarHandler(database.DB))
 			studentGroup.GET("/attendance/history", handlers.GetStudentAttendanceHistoryHandler(database.DB))
 			studentGroup.GET("/attendance/analytics", handlers.GetStudentAttendanceAnalyticsHandler(database.DB))
+
+			// Attendance Digital Proof & Receipt (Feature #14)
+			studentGroup.GET("/attendance/:attendance_id/proof", handlers.GetStudentAttendanceProofHandler(database.DB, cfg))
+			studentGroup.GET("/attendance/:attendance_id/proof/pdf", handlers.DownloadStudentAttendanceProofPDFHandler(database.DB, cfg))
 		}
 
 		// ==============================================================================
@@ -193,6 +214,11 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		{
 			attendanceGroup.POST("/mark", handlers.MarkAttendanceHandler(database.DB))
 		}
+
+		// ==============================================================================
+		// PUBLIC ATTENDANCE PROOF VERIFICATION (Unauthenticated - Feature #14)
+		// ==============================================================================
+		api.GET("/attendance/proof/verify/:public_id", handlers.VerifyAttendanceProofPublicHandler(database.DB))
 	}
 
 	// Fallback 404 handler

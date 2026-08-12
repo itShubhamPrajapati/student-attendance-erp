@@ -26,6 +26,7 @@ import { StudentAttendanceCalendarPage } from './pages/StudentAttendanceCalendar
 import { StudentAttendanceHistoryPage } from './pages/StudentAttendanceHistoryPage';
 import { StudentAttendanceAnalyticsPage } from './pages/StudentAttendanceAnalyticsPage';
 import { StudentScanAttendancePage } from './pages/StudentScanAttendancePage';
+import { AttendanceProofVerificationPage } from './pages/AttendanceProofVerificationPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Root layout for public pages
@@ -49,6 +50,8 @@ export const App: React.FC = () => {
           {/* Public & Landing Pages */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/verify/attendance/:publicId" element={<AttendanceProofVerificationPage />} />
+            <Route path="/verify/attendance" element={<AttendanceProofVerificationPage />} />
           </Route>
 
           {/* Auth Route */}

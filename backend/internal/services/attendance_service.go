@@ -39,6 +39,14 @@ var (
 	ErrStudentNotFound         = errors.New("Student not found.")
 	ErrSessionNotFound         = errors.New("Attendance session not found.")
 	ErrStudentClassMismatch    = errors.New("Student does not belong to the class for this attendance session.")
+
+	// Feature #13 Sentinel Errors (Session Finalization & Controlled Reopening)
+	ErrAttendanceSessionFinalized = errors.New("Attendance for this session has been finalized and cannot be modified.")
+	ErrSessionAlreadyFinalized    = errors.New("Attendance session is already finalized.")
+	ErrSessionNotFinalized        = errors.New("Attendance session is not finalized.")
+	ErrReopenReasonRequired       = errors.New("A reason is mandatory for reopening a finalized session.")
+	ErrReopenReasonTooShort       = errors.New("Reason must be at least 5 characters long.")
+	ErrReopenReasonTooLong        = errors.New("Reason cannot exceed 500 characters.")
 )
 
 // ValidateAttendanceReason validates that the explanatory reason meets length and non-empty criteria
@@ -156,6 +164,7 @@ func CreateAttendanceSession(db *gorm.DB, teacherUserID string, input *CreateSes
 		StartedAt:            now,
 		ExpiresAt:            expiresAt,
 		LateThresholdMinutes: lateThreshold,
+		FinalizationStatus:   models.SessionFinalizationOpen,
 		IsActive:             true,
 	}
 
@@ -190,6 +199,10 @@ func CreateAttendanceSession(db *gorm.DB, teacherUserID string, input *CreateSes
 		DurationMinutes:      durationMins,
 		LateThresholdMinutes: lateThreshold,
 		LateAfter:            lateAfter,
+		FinalizationStatus:   models.SessionFinalizationOpen,
+		FinalizedAt:          nil,
+		FinalizedBy:          nil,
+		FinalizedByName:      nil,
 		IsActive:             session.IsActive,
 		IsExpired:            false,
 		PresentCount:         0,
@@ -271,7 +284,7 @@ func GetTeacherSessions(db *gorm.DB, teacherUserID string, subjectFilter, classF
 		return nil, errors.New("Teacher profile not found.")
 	}
 
-	query := db.Preload("Subject").Preload("Class").
+	query := db.Preload("Subject").Preload("Class").Preload("FinalizedBy").
 		Where("teacher_id = ?", teacher.ID)
 
 	if strings.TrimSpace(subjectFilter) != "" {
@@ -332,6 +345,16 @@ func GetTeacherSessions(db *gorm.DB, teacherUserID string, subjectFilter, classF
 		}
 		lateAfter := s.StartedAt.Add(time.Duration(lateThresh) * time.Minute)
 
+		finStatus := s.FinalizationStatus
+		if finStatus == "" {
+			finStatus = models.SessionFinalizationOpen
+		}
+		var finByName *string
+		if s.FinalizedBy != nil && s.FinalizedBy.Name != "" {
+			n := s.FinalizedBy.Name
+			finByName = &n
+		}
+
 		results[i] = models.AttendanceSessionResponse{
 			ID:                   s.ID,
 			TeacherID:            teacher.ID,
@@ -352,6 +375,10 @@ func GetTeacherSessions(db *gorm.DB, teacherUserID string, subjectFilter, classF
 			DurationMinutes:      duration,
 			LateThresholdMinutes: lateThresh,
 			LateAfter:            lateAfter,
+			FinalizationStatus:   finStatus,
+			FinalizedAt:          s.FinalizedAt,
+			FinalizedBy:          s.FinalizedByID,
+			FinalizedByName:      finByName,
 			IsActive:             s.IsActive,
 			IsExpired:            isExpired,
 			PresentCount:         presentCount,
@@ -376,7 +403,7 @@ func GetTeacherSessionByID(db *gorm.DB, teacherUserID string, sessionID string) 
 	}
 
 	var session models.AttendanceSession
-	if err := db.Preload("Subject").Preload("Class").
+	if err := db.Preload("Subject").Preload("Class").Preload("FinalizedBy").
 		Where("id = ? AND teacher_id = ?", sessionID, teacher.ID).
 		First(&session).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -416,6 +443,16 @@ func GetTeacherSessionByID(db *gorm.DB, teacherUserID string, sessionID string) 
 	}
 	lateAfter := session.StartedAt.Add(time.Duration(lateThresh) * time.Minute)
 
+	finStatus := session.FinalizationStatus
+	if finStatus == "" {
+		finStatus = models.SessionFinalizationOpen
+	}
+	var finByName *string
+	if session.FinalizedBy != nil && session.FinalizedBy.Name != "" {
+		n := session.FinalizedBy.Name
+		finByName = &n
+	}
+
 	return &models.AttendanceSessionResponse{
 		ID:                   session.ID,
 		TeacherID:            teacher.ID,
@@ -436,6 +473,10 @@ func GetTeacherSessionByID(db *gorm.DB, teacherUserID string, sessionID string) 
 		DurationMinutes:      duration,
 		LateThresholdMinutes: lateThresh,
 		LateAfter:            lateAfter,
+		FinalizationStatus:   finStatus,
+		FinalizedAt:          session.FinalizedAt,
+		FinalizedBy:          session.FinalizedByID,
+		FinalizedByName:      finByName,
 		IsActive:             session.IsActive,
 		IsExpired:            isExpired,
 		PresentCount:         presentCount,
@@ -457,7 +498,7 @@ func GetLiveSessionData(db *gorm.DB, teacherUserID string, sessionID string) (*m
 	}
 
 	var session models.AttendanceSession
-	if err := db.Preload("Subject").Preload("Class").
+	if err := db.Preload("Subject").Preload("Class").Preload("FinalizedBy").
 		Where("id = ? AND teacher_id = ?", sessionID, teacher.ID).
 		First(&session).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -524,6 +565,16 @@ func GetLiveSessionData(db *gorm.DB, teacherUserID string, sessionID string) (*m
 	}
 	lateAfter := session.StartedAt.Add(time.Duration(lateThresh) * time.Minute)
 
+	finStatus := session.FinalizationStatus
+	if finStatus == "" {
+		finStatus = models.SessionFinalizationOpen
+	}
+	var finByName *string
+	if session.FinalizedBy != nil && session.FinalizedBy.Name != "" {
+		n := session.FinalizedBy.Name
+		finByName = &n
+	}
+
 	students := make([]models.AttendanceStudentRecord, len(presentRows))
 	for i, r := range presentRows {
 		mTime := r.MarkedAt
@@ -548,6 +599,10 @@ func GetLiveSessionData(db *gorm.DB, teacherUserID string, sessionID string) (*m
 		LatePercentage:       latePct,
 		LateThresholdMinutes: lateThresh,
 		LateAfter:            lateAfter,
+		FinalizationStatus:   finStatus,
+		FinalizedAt:          session.FinalizedAt,
+		FinalizedBy:          session.FinalizedByID,
+		FinalizedByName:      finByName,
 		QRExpiresAt:          session.ExpiresAt,
 		StartedAt:            session.StartedAt,
 		DurationMinutes:      duration,
@@ -585,7 +640,7 @@ func EndAttendanceSession(db *gorm.DB, teacherUserID string, sessionID string) e
 // GetSessionAttendanceRecords returns the full class roster with PRESENT/LATE (marked time) and dynamically calculated ABSENT
 func GetSessionAttendanceRecords(db *gorm.DB, sessionID string, teacherUserID *string) (*models.SessionAttendanceDetailsResponse, error) {
 	var session models.AttendanceSession
-	query := db.Preload("Teacher.User").Preload("Subject").Preload("Class").Where("id = ?", sessionID)
+	query := db.Preload("Teacher.User").Preload("Subject").Preload("Class").Preload("FinalizedBy").Where("id = ?", sessionID)
 
 	if teacherUserID != nil {
 		var teacher models.Teacher
@@ -713,6 +768,16 @@ func GetSessionAttendanceRecords(db *gorm.DB, sessionID string, teacherUserID *s
 	}
 	lateAfter := session.StartedAt.Add(time.Duration(lateThresh) * time.Minute)
 
+	finStatus := session.FinalizationStatus
+	if finStatus == "" {
+		finStatus = models.SessionFinalizationOpen
+	}
+	var finByName *string
+	if session.FinalizedBy != nil && session.FinalizedBy.Name != "" {
+		n := session.FinalizedBy.Name
+		finByName = &n
+	}
+
 	return &models.SessionAttendanceDetailsResponse{
 		Session: models.AttendanceSessionResponse{
 			ID:                   session.ID,
@@ -734,6 +799,10 @@ func GetSessionAttendanceRecords(db *gorm.DB, sessionID string, teacherUserID *s
 			DurationMinutes:      duration,
 			LateThresholdMinutes: lateThresh,
 			LateAfter:            lateAfter,
+			FinalizationStatus:   finStatus,
+			FinalizedAt:          session.FinalizedAt,
+			FinalizedBy:          session.FinalizedByID,
+			FinalizedByName:      finByName,
 			IsActive:             session.IsActive,
 			IsExpired:            isExpired,
 			PresentCount:         presentCount,
@@ -792,7 +861,10 @@ func MarkStudentAttendance(db *gorm.DB, studentUserID string, sessionToken strin
 			return fmt.Errorf("failed to retrieve attendance session: %w", err)
 		}
 
-		// 3. Check if session was manually ended
+		// 3. Check if session was finalized or manually ended
+		if session.FinalizationStatus == models.SessionFinalizationFinalized {
+			return ErrAttendanceSessionFinalized
+		}
 		if !session.IsActive {
 			return ErrSessionEnded
 		}
@@ -850,8 +922,16 @@ func MarkStudentAttendance(db *gorm.DB, studentUserID string, sessionToken strin
 			return fmt.Errorf("failed to record attendance: %w", err)
 		}
 
+		// 9. Synchronously generate digital attendance proof inside transaction
+		proof, err := GetOrCreateAttendanceProof(tx, attendance.ID, nil)
+		if err != nil {
+			return fmt.Errorf("failed to generate attendance proof: %w", err)
+		}
+
 		response = &models.MarkAttendanceResponse{
 			AttendanceID:         attendance.ID,
+			ProofID:              proof.ID,
+			ProofPublicID:        proof.PublicID,
 			SessionID:            session.ID,
 			MarkedAt:             attendance.MarkedAt,
 			SubjectName:          session.Subject.Name,
@@ -1001,17 +1081,19 @@ func GetStudentRecentAttendance(db *gorm.DB, studentUserID string) ([]models.Stu
 	}
 
 	type recentRow struct {
-		SessionID   string
-		SubjectName string
-		SubjectCode string
-		ClassName   string
-		MarkedAt    time.Time
-		Status      string
+		AttendanceID string
+		SessionID    string
+		SubjectName  string
+		SubjectCode  string
+		ClassName    string
+		MarkedAt     time.Time
+		Status       string
 	}
 
 	var rows []recentRow
 	query := `
 		SELECT 
+			a.id AS attendance_id,
 			a.session_id,
 			s.name AS subject_name,
 			s.code AS subject_code,
@@ -1034,6 +1116,7 @@ func GetStudentRecentAttendance(db *gorm.DB, studentUserID string) ([]models.Stu
 	results := make([]models.StudentRecentAttendanceItem, len(rows))
 	for i, r := range rows {
 		results[i] = models.StudentRecentAttendanceItem{
+			AttendanceID: r.AttendanceID,
 			SessionID:   r.SessionID,
 			SubjectName: r.SubjectName,
 			SubjectCode: r.SubjectCode,
@@ -1402,6 +1485,7 @@ func GetStudentAttendanceHistory(
 	offset := (page - 1) * limit
 	selectSQL := `
 		SELECT 
+			a.id AS attendance_id,
 			ses.id AS session_id,
 			ses.subject_id,
 			s.name AS subject_name,
@@ -1423,16 +1507,17 @@ func GetStudentAttendanceHistory(
 	pagedArgs := append(args, limit, offset)
 
 	type rowItem struct {
-		SessionID   string
-		SubjectID   string
-		SubjectName string
-		SubjectCode string
-		ClassID     string
-		ClassName   string
-		StartedAt   time.Time
-		EndedAt     time.Time
-		Status      string
-		MarkedAt    *time.Time
+		AttendanceID *string
+		SessionID    string
+		SubjectID    string
+		SubjectName  string
+		SubjectCode  string
+		ClassID      string
+		ClassName    string
+		StartedAt    time.Time
+		EndedAt      time.Time
+		Status       string
+		MarkedAt     *time.Time
 	}
 
 	var rows []rowItem
@@ -1443,16 +1528,17 @@ func GetStudentAttendanceHistory(
 	records := make([]models.StudentAttendanceHistoryRecord, len(rows))
 	for i, r := range rows {
 		records[i] = models.StudentAttendanceHistoryRecord{
-			SessionID:   r.SessionID,
-			SubjectID:   r.SubjectID,
-			SubjectName: r.SubjectName,
-			SubjectCode: r.SubjectCode,
-			ClassID:     r.ClassID,
-			ClassName:   r.ClassName,
-			StartedAt:   r.StartedAt,
-			EndedAt:     r.EndedAt,
-			Status:      r.Status,
-			MarkedAt:    r.MarkedAt,
+			AttendanceID: r.AttendanceID,
+			SessionID:    r.SessionID,
+			SubjectID:    r.SubjectID,
+			SubjectName:  r.SubjectName,
+			SubjectCode:  r.SubjectCode,
+			ClassID:      r.ClassID,
+			ClassName:    r.ClassName,
+			StartedAt:    r.StartedAt,
+			EndedAt:      r.EndedAt,
+			Status:       r.Status,
+			MarkedAt:     r.MarkedAt,
 		}
 	}
 
@@ -1475,7 +1561,7 @@ func GetStudentAttendanceHistory(
 // GetAdminAttendanceSessions retrieves all college attendance sessions with optional filtering
 func GetAdminAttendanceSessions(db *gorm.DB, dateFilter, subjectFilter, classFilter string) ([]models.AttendanceSessionResponse, error) {
 	var sessions []models.AttendanceSession
-	query := db.Preload("Teacher.User").Preload("Subject").Preload("Class")
+	query := db.Preload("Teacher.User").Preload("Subject").Preload("Class").Preload("FinalizedBy")
 
 	if strings.TrimSpace(subjectFilter) != "" {
 		query = query.Where("subject_id = ?", strings.TrimSpace(subjectFilter))
@@ -1525,6 +1611,16 @@ func GetAdminAttendanceSessions(db *gorm.DB, dateFilter, subjectFilter, classFil
 		}
 		lateAfter := s.StartedAt.Add(time.Duration(lateThresh) * time.Minute)
 
+		finStatus := s.FinalizationStatus
+		if finStatus == "" {
+			finStatus = models.SessionFinalizationOpen
+		}
+		var finByName *string
+		if s.FinalizedBy != nil && s.FinalizedBy.Name != "" {
+			n := s.FinalizedBy.Name
+			finByName = &n
+		}
+
 		results[i] = models.AttendanceSessionResponse{
 			ID:                   s.ID,
 			TeacherID:            s.TeacherID,
@@ -1545,6 +1641,10 @@ func GetAdminAttendanceSessions(db *gorm.DB, dateFilter, subjectFilter, classFil
 			DurationMinutes:      duration,
 			LateThresholdMinutes: lateThresh,
 			LateAfter:            lateAfter,
+			FinalizationStatus:   finStatus,
+			FinalizedAt:          s.FinalizedAt,
+			FinalizedBy:          s.FinalizedByID,
+			FinalizedByName:      finByName,
 			IsActive:             s.IsActive,
 			IsExpired:            isExpired,
 			PresentCount:         presentCount,
@@ -2837,6 +2937,11 @@ func MarkAttendanceManually(
 		return nil, err
 	}
 
+	// 5a. Check if session has been finalized
+	if session.FinalizationStatus == models.SessionFinalizationFinalized {
+		return nil, ErrAttendanceSessionFinalized
+	}
+
 	// 6. Verify class alignment: Student must belong to the exact class of the session
 	if *student.ClassID != session.ClassID {
 		return nil, ErrStudentClassMismatch
@@ -2870,6 +2975,15 @@ func MarkAttendanceManually(
 	var response *models.ManualAttendanceResponse
 
 	txErr := db.Transaction(func(tx *gorm.DB) error {
+		// Verify and lock session row to ensure it wasn't finalized concurrently
+		var sessionLock models.AttendanceSession
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", session.ID).First(&sessionLock).Error; err != nil {
+			return fmt.Errorf("failed to lock session: %w", err)
+		}
+		if sessionLock.FinalizationStatus == models.SessionFinalizationFinalized {
+			return ErrAttendanceSessionFinalized
+		}
+
 		// Row-level lock check for existing attendance row
 		var existing models.Attendance
 		findErr := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
@@ -2959,6 +3073,11 @@ func MarkAttendanceManually(
 			return fmt.Errorf("failed to create attendance audit log: %w", err)
 		}
 
+		// 8b. Ensure proof exists for new attendance record
+		if _, err := GetOrCreateAttendanceProof(tx, newAttendance.ID, nil); err != nil {
+			return fmt.Errorf("failed to generate attendance proof: %w", err)
+		}
+
 		response = &models.ManualAttendanceResponse{
 			AttendanceID: newAttendance.ID,
 			SessionID:    session.ID,
@@ -3024,12 +3143,26 @@ func CorrectAttendance(
 			return fmt.Errorf("failed to lock attendance record: %w", err)
 		}
 
-		// 5. Reject same status correction
+		// 5. Reject if session is finalized
+		if attendance.Session.FinalizationStatus == models.SessionFinalizationFinalized {
+			return ErrAttendanceSessionFinalized
+		}
+
+		// Lock session row to ensure no concurrent finalization
+		var sessionLock models.AttendanceSession
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", attendance.SessionID).First(&sessionLock).Error; err != nil {
+			return fmt.Errorf("failed to lock session: %w", err)
+		}
+		if sessionLock.FinalizationStatus == models.SessionFinalizationFinalized {
+			return ErrAttendanceSessionFinalized
+		}
+
+		// 6. Reject same status correction
 		if attendance.Status == cleanStatus {
 			return ErrSameStatusCorrection
 		}
 
-		// 6. Verify teacher assignment if actor is TEACHER
+		// 7. Verify teacher assignment if actor is TEACHER
 		if cleanRole == models.RoleTeacher {
 			var teacher models.Teacher
 			if err := tx.Preload("User").Where("user_id = ?", actorUserID).First(&teacher).Error; err != nil {
@@ -3053,7 +3186,7 @@ func CorrectAttendance(
 			}
 		}
 
-		// 7. Update attendance status atomically
+		// 8. Update attendance status atomically
 		nowUTC := time.Now().UTC()
 		oldStatus := attendance.Status
 		attendance.Status = cleanStatus
@@ -3063,7 +3196,7 @@ func CorrectAttendance(
 			return fmt.Errorf("failed to update attendance record: %w", err)
 		}
 
-		// 8. Insert immutable audit trail entry
+		// 9. Insert immutable audit trail entry
 		audit := models.AttendanceAudit{
 			AttendanceID:   &attendance.ID,
 			SessionID:      attendance.SessionID,
@@ -3099,7 +3232,7 @@ func CorrectAttendance(
 	return response, nil
 }
 
-// GetAttendanceAuditHistory retrieves the complete audit history timeline for an attendance record
+// GetAttendanceAuditHistory returns the chronological list of all audit records for a student's attendance in a session
 func GetAttendanceAuditHistory(
 	db *gorm.DB,
 	actorUserID string,
@@ -3108,7 +3241,7 @@ func GetAttendanceAuditHistory(
 ) ([]models.AttendanceAuditItem, error) {
 	cleanRole := strings.ToUpper(strings.TrimSpace(actorRole))
 	if cleanRole != models.RoleTeacher && cleanRole != models.RoleAdmin {
-		return nil, errors.New("Access denied to attendance audit history.")
+		return nil, errors.New("Only teachers and administrators can view attendance audit logs.")
 	}
 
 	cleanAttID := strings.TrimSpace(attendanceID)
@@ -3207,4 +3340,351 @@ func GetAttendanceAuditHistory(
 	return results, nil
 }
 
+// ==============================================================================
+// ATTENDANCE SESSION FINALIZATION & REOPENING SERVICES (Feature #13)
+// ==============================================================================
 
+// FinalizeAttendanceSession marks an attendance session as FINALIZED/LOCKED with optional audit reason
+func FinalizeAttendanceSession(
+	db *gorm.DB,
+	actorUserID string,
+	actorRole string,
+	sessionID string,
+	reason string,
+) (*models.FinalizeSessionResponse, error) {
+	cleanRole := strings.ToUpper(strings.TrimSpace(actorRole))
+	if cleanRole != models.RoleTeacher && cleanRole != models.RoleAdmin {
+		return nil, errors.New("Only teachers and administrators can finalize attendance sessions.")
+	}
+
+	cleanSessionID := strings.TrimSpace(sessionID)
+	if cleanSessionID == "" {
+		return nil, errors.New("Session ID is required.")
+	}
+
+	// Verify actor user exists and is active
+	var actorUser models.User
+	if err := db.Where("id = ?", actorUserID).First(&actorUser).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("Actor user profile not found.")
+		}
+		return nil, err
+	}
+	if !actorUser.IsActive {
+		return nil, errors.New("Actor account is inactive.")
+	}
+
+	// If TEACHER, verify teacher is authorized for this session
+	if cleanRole == models.RoleTeacher {
+		var teacher models.Teacher
+		if err := db.Where("user_id = ?", actorUserID).First(&teacher).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, errors.New("Teacher profile not found.")
+			}
+			return nil, err
+		}
+
+		var session models.AttendanceSession
+		if err := db.Where("id = ?", cleanSessionID).First(&session).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, ErrSessionNotFound
+			}
+			return nil, err
+		}
+
+		// Verify teacher is assigned to subject + class
+		var count int64
+		if err := db.Model(&models.TeacherSubjectClass{}).
+			Where("teacher_id = ? AND subject_id = ? AND class_id = ?", teacher.ID, session.SubjectID, session.ClassID).
+			Count(&count).Error; err != nil {
+			return nil, fmt.Errorf("failed to verify teacher authorization: %w", err)
+		}
+		if count == 0 && session.TeacherID != teacher.ID {
+			return nil, ErrUnauthorizedTeacher
+		}
+	}
+
+	// Validate optional reason length if provided
+	trimmedReason := strings.TrimSpace(reason)
+	if len(trimmedReason) > 500 {
+		return nil, ErrReasonTooLong
+	}
+
+	var response *models.FinalizeSessionResponse
+
+	txErr := db.Transaction(func(tx *gorm.DB) error {
+		// Row-lock session to prevent concurrent status modifications
+		var session models.AttendanceSession
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ?", cleanSessionID).
+			First(&session).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrSessionNotFound
+			}
+			return fmt.Errorf("failed to lock attendance session: %w", err)
+		}
+
+		if session.FinalizationStatus == models.SessionFinalizationFinalized {
+			return ErrSessionAlreadyFinalized
+		}
+
+		nowUTC := time.Now().UTC()
+		prevStatus := session.FinalizationStatus
+		if prevStatus == "" {
+			prevStatus = models.SessionFinalizationOpen
+		}
+
+		session.FinalizationStatus = models.SessionFinalizationFinalized
+		session.FinalizedAt = &nowUTC
+		session.FinalizedByID = &actorUserID
+		session.IsActive = false // Deactivate QR code live status on finalize
+
+		if err := tx.Save(&session).Error; err != nil {
+			return fmt.Errorf("failed to finalize session: %w", err)
+		}
+
+		// Insert session audit log
+		var reasonPtr *string
+		if trimmedReason != "" {
+			reasonPtr = &trimmedReason
+		}
+
+		audit := models.AttendanceSessionAudit{
+			SessionID:      session.ID,
+			ActorUserID:    actorUserID,
+			ActorRole:      cleanRole,
+			Action:         models.SessionAuditActionFinalize,
+			PreviousStatus: &prevStatus,
+			NewStatus:      models.SessionFinalizationFinalized,
+			Reason:         reasonPtr,
+			CreatedAt:      nowUTC,
+		}
+		if err := tx.Create(&audit).Error; err != nil {
+			return fmt.Errorf("failed to record session finalization audit: %w", err)
+		}
+
+		userName := actorUser.Name
+		response = &models.FinalizeSessionResponse{
+			SessionID:          session.ID,
+			FinalizationStatus: models.SessionFinalizationFinalized,
+			FinalizedAt:        &nowUTC,
+			FinalizedBy:        &actorUserID,
+			FinalizedByName:    &userName,
+		}
+		return nil
+	})
+
+	if txErr != nil {
+		return nil, txErr
+	}
+
+	return response, nil
+}
+
+// ReopenAttendanceSession allows an authorized administrator to reopen a finalized session with a mandatory reason
+func ReopenAttendanceSession(
+	db *gorm.DB,
+	actorUserID string,
+	actorRole string,
+	sessionID string,
+	reason string,
+) (*models.ReopenSessionResponse, error) {
+	cleanRole := strings.ToUpper(strings.TrimSpace(actorRole))
+	if cleanRole != models.RoleAdmin {
+		return nil, errors.New("Only administrators can reopen a finalized attendance session.")
+	}
+
+	cleanReason, err := ValidateAttendanceReason(reason)
+	if err != nil {
+		if errors.Is(err, ErrReasonRequired) {
+			return nil, ErrReopenReasonRequired
+		}
+		if errors.Is(err, ErrReasonTooShort) {
+			return nil, ErrReopenReasonTooShort
+		}
+		if errors.Is(err, ErrReasonTooLong) {
+			return nil, ErrReopenReasonTooLong
+		}
+		return nil, err
+	}
+
+	cleanSessionID := strings.TrimSpace(sessionID)
+	if cleanSessionID == "" {
+		return nil, errors.New("Session ID is required.")
+	}
+
+	// Verify admin user exists and is active
+	var actorUser models.User
+	if err := db.Where("id = ?", actorUserID).First(&actorUser).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("Admin user profile not found.")
+		}
+		return nil, err
+	}
+	if !actorUser.IsActive {
+		return nil, errors.New("Admin account is inactive.")
+	}
+
+	var response *models.ReopenSessionResponse
+
+	txErr := db.Transaction(func(tx *gorm.DB) error {
+		// Row-lock session to prevent concurrent status modifications
+		var session models.AttendanceSession
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ?", cleanSessionID).
+			First(&session).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrSessionNotFound
+			}
+			return fmt.Errorf("failed to lock attendance session: %w", err)
+		}
+
+		if session.FinalizationStatus != models.SessionFinalizationFinalized {
+			return ErrSessionNotFinalized
+		}
+
+		nowUTC := time.Now().UTC()
+		prevStatus := session.FinalizationStatus
+
+		session.FinalizationStatus = models.SessionFinalizationOpen
+		session.FinalizedAt = nil
+		session.FinalizedByID = nil
+
+		if err := tx.Save(&session).Error; err != nil {
+			return fmt.Errorf("failed to reopen session: %w", err)
+		}
+
+		// Insert session audit log
+		audit := models.AttendanceSessionAudit{
+			SessionID:      session.ID,
+			ActorUserID:    actorUserID,
+			ActorRole:      models.RoleAdmin,
+			Action:         models.SessionAuditActionReopen,
+			PreviousStatus: &prevStatus,
+			NewStatus:      models.SessionFinalizationOpen,
+			Reason:         &cleanReason,
+			CreatedAt:      nowUTC,
+		}
+		if err := tx.Create(&audit).Error; err != nil {
+			return fmt.Errorf("failed to record session reopen audit: %w", err)
+		}
+
+		response = &models.ReopenSessionResponse{
+			SessionID:          session.ID,
+			FinalizationStatus: models.SessionFinalizationOpen,
+			ReopenedAt:         nowUTC,
+			ReopenedBy:         actorUserID,
+			ReopenedByName:     actorUser.Name,
+			Reason:             cleanReason,
+		}
+		return nil
+	})
+
+	if txErr != nil {
+		return nil, txErr
+	}
+
+	return response, nil
+}
+
+// GetAttendanceSessionAuditHistory returns chronological session-level lifecycle audit records (FINALIZE, REOPEN)
+func GetAttendanceSessionAuditHistory(
+	db *gorm.DB,
+	actorUserID string,
+	actorRole string,
+	sessionID string,
+) ([]models.SessionAuditItem, error) {
+	cleanRole := strings.ToUpper(strings.TrimSpace(actorRole))
+	if cleanRole != models.RoleTeacher && cleanRole != models.RoleAdmin {
+		return nil, errors.New("Only teachers and administrators can view session audit logs.")
+	}
+
+	cleanSessionID := strings.TrimSpace(sessionID)
+	if cleanSessionID == "" {
+		return nil, errors.New("Session ID is required.")
+	}
+
+	// 1. Fetch session
+	var session models.AttendanceSession
+	if err := db.Where("id = ?", cleanSessionID).First(&session).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrSessionNotFound
+		}
+		return nil, err
+	}
+
+	// 2. Verify authorization for teacher
+	if cleanRole == models.RoleTeacher {
+		var teacher models.Teacher
+		if err := db.Where("user_id = ?", actorUserID).First(&teacher).Error; err != nil {
+			return nil, errors.New("Teacher profile not found.")
+		}
+
+		var count int64
+		if err := db.Model(&models.TeacherSubjectClass{}).
+			Where("teacher_id = ? AND subject_id = ? AND class_id = ?", teacher.ID, session.SubjectID, session.ClassID).
+			Count(&count).Error; err != nil {
+			return nil, fmt.Errorf("failed to verify teacher authorization: %w", err)
+		}
+		if count == 0 && session.TeacherID != teacher.ID {
+			return nil, ErrUnauthorizedTeacher
+		}
+	}
+
+	// 3. Query session audit items joined with user name
+	type sessionAuditRow struct {
+		ID             string
+		CollegeID      *string
+		SessionID      string
+		ActorUserID    string
+		ActorName      string
+		ActorRole      string
+		Action         string
+		PreviousStatus *string
+		NewStatus      string
+		Reason         *string
+		CreatedAt      time.Time
+	}
+
+	var rows []sessionAuditRow
+	query := `
+		SELECT 
+			a.id,
+			a.college_id,
+			a.session_id,
+			a.actor_user_id,
+			u.name AS actor_name,
+			a.actor_role,
+			a.action,
+			a.previous_status,
+			a.new_status,
+			a.reason,
+			a.created_at
+		FROM attendance_session_audit a
+		JOIN users u ON a.actor_user_id = u.id
+		WHERE a.session_id = ?
+		ORDER BY a.created_at DESC
+	`
+	if err := db.Raw(query, session.ID).Scan(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch session audit history: %w", err)
+	}
+
+	results := make([]models.SessionAuditItem, len(rows))
+	for i, r := range rows {
+		results[i] = models.SessionAuditItem{
+			ID:             r.ID,
+			CollegeID:      r.CollegeID,
+			SessionID:      r.SessionID,
+			ActorUserID:    r.ActorUserID,
+			ActorName:      r.ActorName,
+			ActorRole:      r.ActorRole,
+			Action:         r.Action,
+			PreviousStatus: r.PreviousStatus,
+			NewStatus:      r.NewStatus,
+			Reason:         r.Reason,
+			CreatedAt:      r.CreatedAt,
+		}
+	}
+
+	return results, nil
+}

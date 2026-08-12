@@ -45,6 +45,17 @@ func TestTeacherSessionRoutesRegistered(t *testing.T) {
 		t.Fatalf("failed to generate student token: %v", err)
 	}
 
+	// Generate a valid admin JWT token
+	adminToken, err := services.GenerateJWT(&models.User{
+		ID:    "user-789",
+		Role:  models.RoleAdmin,
+		Email: "admin@test.com",
+		Name:  "Test Admin",
+	}, cfg.JWTSecret, 2)
+	if err != nil {
+		t.Fatalf("failed to generate admin token: %v", err)
+	}
+
 	routesToTest := []struct {
 		name   string
 		method string
@@ -56,6 +67,8 @@ func TestTeacherSessionRoutesRegistered(t *testing.T) {
 		{"Teacher Live Session Telemetry Polling", "GET", "/api/teacher/attendance/sessions/12345/live", teacherToken},
 		{"Teacher Session Records", "GET", "/api/teacher/attendance/sessions/12345/records", teacherToken},
 		{"Teacher End Session", "POST", "/api/teacher/attendance/sessions/12345/end", teacherToken},
+		{"Teacher Finalize Session", "POST", "/api/teacher/attendance/sessions/12345/finalize", teacherToken},
+		{"Teacher Session Audit History", "GET", "/api/teacher/attendance/sessions/12345/audit", teacherToken},
 		{"Teacher Student Search", "GET", "/api/teacher/students/search", teacherToken},
 		{"Teacher Student Attendance Detail", "GET", "/api/teacher/students/12345/attendance", teacherToken},
 		{"Teacher Attendance Export CSV", "GET", "/api/teacher/attendance/export/csv", teacherToken},
@@ -68,12 +81,22 @@ func TestTeacherSessionRoutesRegistered(t *testing.T) {
 		{"Teacher Attendance Correction", "PATCH", "/api/teacher/attendance/12345/correct", teacherToken},
 		{"Teacher Attendance Audit History", "GET", "/api/teacher/attendance/12345/audit", teacherToken},
 		{"Teacher Update Late Settings", "PATCH", "/api/teacher/attendance/sessions/12345/late-settings", teacherToken},
+		{"Admin Finalize Session", "POST", "/api/admin/attendance/sessions/12345/finalize", adminToken},
+		{"Admin Reopen Session", "POST", "/api/admin/attendance/sessions/12345/reopen", adminToken},
+		{"Admin Session Audit History", "GET", "/api/admin/attendance/sessions/12345/audit", adminToken},
 		{"Student Mark Attendance", "POST", "/api/attendance/mark", studentToken},
 		{"Student Attendance Summary", "GET", "/api/student/attendance/summary", studentToken},
 		{"Student Attendance Calendar", "GET", "/api/student/attendance/calendar", studentToken},
 		{"Student Attendance History", "GET", "/api/student/attendance/history", studentToken},
 		{"Student Attendance Analytics", "GET", "/api/student/attendance/analytics", studentToken},
 		{"Student Recent Attendance", "GET", "/api/student/attendance/recent", studentToken},
+		{"Student Attendance Proof", "GET", "/api/student/attendance/12345/proof", studentToken},
+		{"Student Attendance Proof PDF", "GET", "/api/student/attendance/12345/proof/pdf", studentToken},
+		{"Teacher Attendance Proof", "GET", "/api/teacher/attendance/12345/proof", teacherToken},
+		{"Teacher Attendance Proof PDF", "GET", "/api/teacher/attendance/12345/proof/pdf", teacherToken},
+		{"Admin Attendance Proof", "GET", "/api/admin/attendance/12345/proof", adminToken},
+		{"Admin Attendance Proof PDF", "GET", "/api/admin/attendance/12345/proof/pdf", adminToken},
+		{"Public Attendance Proof Verification", "GET", "/api/attendance/proof/verify/ATT-2026-TESTCODE", ""},
 	}
 
 	for _, rt := range routesToTest {

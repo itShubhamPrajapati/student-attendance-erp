@@ -12,18 +12,22 @@ import {
   Lock,
   FileText,
   AlertCircle,
+  History,
+  ShieldCheck,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { AttendanceSessionAuditHistoryModal } from '../components/AttendanceSessionAuditHistoryModal';
 import { AttendanceSession, LiveAttendanceSessionData } from '../types';
 import {
   apiGetTeacherSessionDetails,
   apiGetTeacherLiveSessionData,
   apiEndAttendanceSession,
   apiUpdateLateAttendanceSettings,
+  apiFinalizeTeacherSession,
 } from '../services/api';
 
 export const TeacherAttendanceSessionPage: React.FC = () => {
@@ -41,6 +45,12 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showEndModal, setShowEndModal] = useState(false);
   const [ending, setEnding] = useState(false);
+
+  // Session Finalization & Audit State (Feature #13)
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [finalizeReason, setFinalizeReason] = useState('');
+  const [finalizing, setFinalizing] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
 
   // Late Threshold Management State (Feature #12)
   const [lateThresholdInput, setLateThresholdInput] = useState<number>(10);
@@ -271,6 +281,26 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
     }
   };
 
+  // Handle Session Finalization (Feature #13)
+  const handleFinalizeSession = async () => {
+    if (!sessionId) return;
+    setFinalizing(true);
+    try {
+      await apiFinalizeTeacherSession(sessionId, { reason: finalizeReason.trim() });
+      setShowFinalizeModal(false);
+      setFinalizeReason('');
+      setIsExpiredOrEnded(true);
+      if (session) {
+        setSession({ ...session, finalization_status: 'FINALIZED', is_active: false });
+      }
+      await fetchLiveData(true);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to finalize attendance session');
+    } finally {
+      setFinalizing(false);
+    }
+  };
+
   // Format seconds into MM:SS
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -327,7 +357,8 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
     );
   }
 
-  const isLive = session.is_active && !isExpiredOrEnded;
+  const isFinalized = session.finalization_status === 'FINALIZED' || sessionData?.finalization_status === 'FINALIZED';
+  const isLive = !isFinalized && session.is_active && !isExpiredOrEnded;
   const presentCount = sessionData?.present_count ?? session.present_count ?? 0;
   const lateCount = sessionData?.late_count ?? session.late_count ?? 0;
   const totalStudents = sessionData?.total_students ?? session.total_students ?? 0;
@@ -362,7 +393,11 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
         title="Live QR Attendance Session"
         description={`Display this dynamic QR code on screen. Students scan with mobile camera to log real-time attendance for ${session.class_name}.`}
         badge={
-          isLive ? (
+          isFinalized ? (
+            <Badge variant="neutral" className="bg-purple-100 text-purple-800 border-purple-300">
+              🔒 ATTENDANCE FINALIZED
+            </Badge>
+          ) : isLive ? (
             <Badge variant="success" withDot>
               ● ATTENDANCE ACTIVE
             </Badge>
@@ -377,12 +412,20 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
           )
         }
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link to="/teacher/attendance/history">
               <Button variant="outline" size="sm" leftIcon={<ArrowLeft className="w-3.5 h-3.5" />}>
                 All Sessions
               </Button>
             </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAuditModal(true)}
+              leftIcon={<History className="w-3.5 h-3.5 text-indigo-600" />}
+            >
+              Session Audit
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -392,7 +435,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
             >
               Refresh
             </Button>
-            {isLive ? (
+            {isLive && (
               <Button
                 variant="danger"
                 size="sm"
@@ -401,16 +444,57 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
               >
                 End Attendance
               </Button>
-            ) : (
-              <Link to={`/teacher/attendance/${session.id}/records`}>
-                <Button variant="primary" size="sm" leftIcon={<FileText className="w-3.5 h-3.5" />}>
-                  View Attendance Records
-                </Button>
-              </Link>
             )}
+            {!isFinalized ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFinalizeModal(true)}
+                leftIcon={<Lock className="w-3.5 h-3.5 text-purple-600" />}
+                className="border-purple-200 text-purple-700 hover:bg-purple-50"
+              >
+                Finalize Session
+              </Button>
+            ) : null}
+            <Link to={`/teacher/attendance/${session.id}/records`}>
+              <Button variant="primary" size="sm" leftIcon={<FileText className="w-3.5 h-3.5" />}>
+                View Roster Records
+              </Button>
+            </Link>
           </div>
         }
       />
+
+      {/* Finalized Session Lock Banner */}
+      {isFinalized && (
+        <div className="p-4.5 rounded-2xl bg-purple-50/80 border border-purple-200 text-purple-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 border border-purple-300 text-purple-700 flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-purple-950">Session Finalized & Operationally Locked</h4>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-200/80 text-purple-800 border border-purple-300">
+                  FROZEN
+                </span>
+              </div>
+              <p className="text-xs text-purple-800 mt-0.5">
+                Attendance records are locked against normal modifications. Exports and analytics remain available.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAuditModal(true)}
+            leftIcon={<History className="w-3.5 h-3.5 text-purple-700" />}
+            className="border-purple-300 text-purple-900 hover:bg-purple-100 shrink-0"
+          >
+            Lifecycle Audit Trail
+          </Button>
+        </div>
+      )}
 
       {/* Main Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -916,6 +1000,85 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
           </Card>
         </div>
       )}
+
+      {/* Confirmation Modal for Finalizing Session (Feature #13) */}
+      {showFinalizeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
+          <Card className="max-w-lg w-full p-6 space-y-4 bg-white shadow-2xl border-slate-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center flex-shrink-0 text-purple-600">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 font-heading">Finalize Attendance Session?</h3>
+                <p className="text-xs text-slate-500">{session.subject_name} &bull; {session.class_name}</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed space-y-1.5">
+              <p className="font-semibold">Once finalized, teachers will no longer be able to:</p>
+              <ul className="list-disc list-inside space-y-0.5 text-amber-800">
+                <li>Mark attendance (QR or manual)</li>
+                <li>Correct existing attendance records</li>
+                <li>Modify any attendance data</li>
+              </ul>
+              <p className="text-amber-700 mt-1.5">Reports, history, and analytics remain fully accessible.</p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs font-mono">
+              <span className="text-slate-500">Current Attendance:</span>
+              <span className="font-bold text-slate-900">
+                {attendedCount} attended / {totalStudents} total ({attendancePercentage}%)
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="finalize-reason" className="block text-xs font-medium text-slate-600">
+                Reason for finalization <span className="text-slate-400">(optional)</span>
+              </label>
+              <textarea
+                id="finalize-reason"
+                rows={2}
+                value={finalizeReason}
+                onChange={(e) => setFinalizeReason(e.target.value)}
+                placeholder="E.g., End of class session — attendance complete."
+                disabled={finalizing}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none resize-none transition bg-slate-50/50 placeholder:text-slate-400"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setShowFinalizeModal(false); setFinalizeReason(''); }}
+                disabled={finalizing}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleFinalizeSession}
+                isLoading={finalizing}
+                leftIcon={<ShieldCheck className="w-4 h-4" />}
+                className="bg-purple-600 hover:bg-purple-700 text-white border-transparent shadow-sm"
+              >
+                Confirm Finalization
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Session Lifecycle Audit History Modal (Feature #13) */}
+      <AttendanceSessionAuditHistoryModal
+        isOpen={showAuditModal}
+        onClose={() => setShowAuditModal(false)}
+        sessionId={session.id}
+        subjectName={session.subject_name}
+        classNameStr={session.class_name}
+        role="TEACHER"
+      />
     </div>
   );
 };

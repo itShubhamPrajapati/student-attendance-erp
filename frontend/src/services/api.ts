@@ -37,6 +37,13 @@ import {
   ManualAttendanceResponse,
   UpdateLateSettingsPayload,
   UpdateLateSettingsResponse,
+  FinalizeSessionPayload,
+  FinalizeSessionResponse,
+  ReopenSessionPayload,
+  ReopenSessionResponse,
+  SessionAuditItem,
+  AttendanceProof,
+  AttendanceProofVerification,
 } from '../types';
 import { getToken } from '../auth/authService';
 
@@ -839,6 +846,131 @@ export async function apiUpdateLateAttendanceSettings(
   );
 }
 
+// ==============================================================================
+// Feature #13: Attendance Session Finalization, Locking & Reopening APIs
+// ==============================================================================
 
+export async function apiFinalizeTeacherSession(
+  sessionId: string,
+  payload?: FinalizeSessionPayload
+): Promise<{ success: boolean; message: string; data: FinalizeSessionResponse }> {
+  return request<{ success: boolean; message: string; data: FinalizeSessionResponse }>(
+    `/api/teacher/attendance/sessions/${sessionId}/finalize`,
+    {
+      method: 'POST',
+      body: payload ? JSON.stringify(payload) : JSON.stringify({}),
+    }
+  );
+}
 
+export async function apiGetTeacherSessionAudit(
+  sessionId: string
+): Promise<{ success: boolean; data: SessionAuditItem[] }> {
+  return request<{ success: boolean; data: SessionAuditItem[] }>(
+    `/api/teacher/attendance/sessions/${sessionId}/audit`,
+    {
+      method: 'GET',
+    }
+  );
+}
 
+export async function apiFinalizeAdminSession(
+  sessionId: string,
+  payload?: FinalizeSessionPayload
+): Promise<{ success: boolean; message: string; data: FinalizeSessionResponse }> {
+  return request<{ success: boolean; message: string; data: FinalizeSessionResponse }>(
+    `/api/admin/attendance/sessions/${sessionId}/finalize`,
+    {
+      method: 'POST',
+      body: payload ? JSON.stringify(payload) : JSON.stringify({}),
+    }
+  );
+}
+
+export async function apiReopenAdminSession(
+  sessionId: string,
+  payload: ReopenSessionPayload
+): Promise<{ success: boolean; message: string; data: ReopenSessionResponse }> {
+  return request<{ success: boolean; message: string; data: ReopenSessionResponse }>(
+    `/api/admin/attendance/sessions/${sessionId}/reopen`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function apiGetAdminSessionAudit(
+  sessionId: string
+): Promise<{ success: boolean; data: SessionAuditItem[] }> {
+  return request<{ success: boolean; data: SessionAuditItem[] }>(
+    `/api/admin/attendance/sessions/${sessionId}/audit`,
+    {
+      method: 'GET',
+    }
+  );
+}
+
+// ==============================================================================
+// Feature #14: Attendance Digital Proof & Verification APIs
+// ==============================================================================
+
+export async function apiGetStudentAttendanceProof(
+  attendanceId: string
+): Promise<{ success: boolean; data: AttendanceProof }> {
+  return request<{ success: boolean; data: AttendanceProof }>(
+    `/api/student/attendance/${attendanceId}/proof`,
+    { method: 'GET' }
+  );
+}
+
+export async function apiDownloadStudentAttendanceProofPDF(
+  attendanceId: string,
+  publicId?: string
+): Promise<void> {
+  const filename = `attendance-receipt-${publicId || attendanceId}.pdf`;
+  return downloadFileRequest(`/api/student/attendance/${attendanceId}/proof/pdf`, filename);
+}
+
+export async function apiGetTeacherAttendanceProof(
+  attendanceId: string
+): Promise<{ success: boolean; data: AttendanceProof }> {
+  return request<{ success: boolean; data: AttendanceProof }>(
+    `/api/teacher/attendance/${attendanceId}/proof`,
+    { method: 'GET' }
+  );
+}
+
+export async function apiDownloadTeacherAttendanceProofPDF(
+  attendanceId: string,
+  publicId?: string
+): Promise<void> {
+  const filename = `attendance-receipt-${publicId || attendanceId}.pdf`;
+  return downloadFileRequest(`/api/teacher/attendance/${attendanceId}/proof/pdf`, filename);
+}
+
+export async function apiGetAdminAttendanceProof(
+  attendanceId: string
+): Promise<{ success: boolean; data: AttendanceProof }> {
+  return request<{ success: boolean; data: AttendanceProof }>(
+    `/api/admin/attendance/${attendanceId}/proof`,
+    { method: 'GET' }
+  );
+}
+
+export async function apiDownloadAdminAttendanceProofPDF(
+  attendanceId: string,
+  publicId?: string
+): Promise<void> {
+  const filename = `attendance-receipt-${publicId || attendanceId}.pdf`;
+  return downloadFileRequest(`/api/admin/attendance/${attendanceId}/proof/pdf`, filename);
+}
+
+export async function apiVerifyAttendanceProof(
+  publicId: string
+): Promise<{ success: boolean; message: string; data: AttendanceProofVerification }> {
+  return request<{ success: boolean; message: string; data: AttendanceProofVerification }>(
+    `/api/attendance/proof/verify/${publicId}`,
+    { method: 'GET' }
+  );
+}

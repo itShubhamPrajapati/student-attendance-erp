@@ -12,6 +12,8 @@ import {
   FileDown,
   ChevronDown,
   UserCheck,
+  Lock,
+  History,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -22,6 +24,8 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ManualAttendanceModal } from '../components/ManualAttendanceModal';
 import { CorrectAttendanceModal } from '../components/CorrectAttendanceModal';
 import { AttendanceAuditHistoryModal } from '../components/AttendanceAuditHistoryModal';
+import { AttendanceSessionAuditHistoryModal } from '../components/AttendanceSessionAuditHistoryModal';
+import { AttendanceProofModal } from '../components/AttendanceProofModal';
 import { SessionAttendanceDetails, AttendanceExportFormat } from '../types';
 import { apiGetSessionAttendanceRecords, apiExportTeacherAttendance } from '../services/api';
 
@@ -52,6 +56,10 @@ export const TeacherSessionAttendancePage: React.FC = () => {
     rollNumber: string;
     subjectName: string;
   } | null>(null);
+
+  // Feature #13 — Session Audit modal state
+  const [sessionAuditModalOpen, setSessionAuditModalOpen] = useState<boolean>(false);
+  const [proofAttendanceId, setProofAttendanceId] = useState<string | null>(null);
 
   const fetchRecords = useCallback(async () => {
     if (!sessionId) return;
@@ -131,6 +139,7 @@ export const TeacherSessionAttendancePage: React.FC = () => {
   const attendedCount = data.present_count + lateCount;
   const absentCount = Math.max(0, data.total_students - attendedCount);
   const duration = session.duration_minutes || Math.max(1, Math.round((new Date(session.expires_at).getTime() - new Date(session.started_at).getTime()) / 60000));
+  const isFinalized = session.finalization_status === 'FINALIZED';
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -145,7 +154,11 @@ export const TeacherSessionAttendancePage: React.FC = () => {
         </Link>
 
         <div className="flex items-center gap-2">
-          {session.is_active && !session.is_expired ? (
+          {isFinalized ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
+              <Lock className="w-3 h-3" /> FINALIZED
+            </span>
+          ) : session.is_active && !session.is_expired ? (
             <Link to={`/teacher/attendance/live/${session.id}`}>
               <Button size="sm" variant="primary" className="text-xs">
                 Open Live QR Projector
@@ -159,11 +172,37 @@ export const TeacherSessionAttendancePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Finalization Lock Banner */}
+      {isFinalized && (
+        <div className="p-3.5 rounded-xl bg-purple-50/80 border border-purple-200 text-purple-900 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+            <span>
+              <strong>Session Finalized & Locked</strong> — Attendance records cannot be modified.
+              {session.finalized_by_name && (
+                <> Finalized by <strong>{session.finalized_by_name}</strong>{session.finalized_at ? ` on ${new Date(session.finalized_at).toLocaleString()}` : ''}.</>  
+              )}
+            </span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSessionAuditModalOpen(true)}
+            leftIcon={<History className="w-3.5 h-3.5 text-purple-700" />}
+            className="border-purple-300 text-purple-900 hover:bg-purple-100 shrink-0 text-xs"
+          >
+            Lifecycle Audit
+          </Button>
+        </div>
+      )}
+
       <PageHeader
         title={`${session.subject_name} — Attendance Roster`}
         description={`${session.class_name} (${session.department}, Sem ${session.semester}) • Subject Code: ${session.subject_code} • Duration: ${duration}m • Late Threshold: ${session.late_threshold_minutes ?? 10}m`}
         badge={
-          session.is_active && !session.is_expired ? (
+          isFinalized ? (
+            <Badge variant="neutral" className="bg-purple-100 text-purple-800 border-purple-300">🔒 FINALIZED</Badge>
+          ) : session.is_active && !session.is_expired ? (
             <Badge variant="success" withDot>LIVE SESSION</Badge>
           ) : session.is_expired ? (
             <Badge variant="neutral">EXPIRED</Badge>
@@ -173,7 +212,17 @@ export const TeacherSessionAttendancePage: React.FC = () => {
         }
         actions={
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Manual Attendance Trigger */}
+            {/* Session Lifecycle Audit */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSessionAuditModalOpen(true)}
+              leftIcon={<History className="w-3.5 h-3.5 text-indigo-600" />}
+            >
+              Session Audit
+            </Button>
+
+            {/* Manual Attendance Trigger - disabled if finalized */}
             <Button
               variant="primary"
               size="sm"
@@ -182,6 +231,8 @@ export const TeacherSessionAttendancePage: React.FC = () => {
                 setManualModalOpen(true);
               }}
               leftIcon={<UserCheck className="w-3.5 h-3.5" />}
+              disabled={isFinalized}
+              title={isFinalized ? 'Session is finalized — attendance modifications are locked' : undefined}
             >
               Manual Mark
             </Button>
@@ -411,20 +462,34 @@ export const TeacherSessionAttendancePage: React.FC = () => {
                   <td className="py-3 px-4 text-right space-x-2">
                     {st.attendance_id ? (
                       <>
-                        <button onClick={() => {
-                          setCorrectingStudent({ student: { name: st.name, roll_number: st.roll_number }, attendanceId: st.attendance_id!, status: st.status });
-                          setCorrectModalOpen(true);
-                        }} className="text-amber-600 font-bold hover:underline">Correct</button>
+                        <button
+                          onClick={() => setProofAttendanceId(st.attendance_id!)}
+                          className="text-blue-600 font-bold hover:underline"
+                        >
+                          Proof
+                        </button>
+                        {isFinalized ? (
+                          <span className="text-slate-400 text-[11px] font-medium cursor-not-allowed" title="Session finalized — corrections locked">Correct</span>
+                        ) : (
+                          <button onClick={() => {
+                            setCorrectingStudent({ student: { name: st.name, roll_number: st.roll_number }, attendanceId: st.attendance_id!, status: st.status });
+                            setCorrectModalOpen(true);
+                          }} className="text-amber-600 font-bold hover:underline">Correct</button>
+                        )}
                         <button onClick={() => {
                           setAuditStudent({ attendanceId: st.attendance_id!, studentName: st.name, rollNumber: st.roll_number, subjectName: session.subject_name });
                           setAuditModalOpen(true);
                         }} className="text-indigo-600 font-bold hover:underline">Audit</button>
                       </>
                     ) : (
-                      <button onClick={() => {
-                        setSelectedStudentForManual(st.student_id);
-                        setManualModalOpen(true);
-                      }} className="text-emerald-600 font-bold hover:underline">Mark Manual</button>
+                      isFinalized ? (
+                        <span className="text-slate-400 text-[11px] font-medium cursor-not-allowed" title="Session finalized — modifications locked">Mark Manual</span>
+                      ) : (
+                        <button onClick={() => {
+                          setSelectedStudentForManual(st.student_id);
+                          setManualModalOpen(true);
+                        }} className="text-emerald-600 font-bold hover:underline">Mark Manual</button>
+                      )
                     )}
                   </td>
                 </tr>
@@ -466,6 +531,24 @@ export const TeacherSessionAttendancePage: React.FC = () => {
           subjectName={auditStudent.subjectName}
         />
       )}
+
+      {/* Session Lifecycle Audit Modal (Feature #13) */}
+      <AttendanceSessionAuditHistoryModal
+        isOpen={sessionAuditModalOpen}
+        onClose={() => setSessionAuditModalOpen(false)}
+        sessionId={session.id}
+        subjectName={session.subject_name}
+        classNameStr={session.class_name}
+        role="TEACHER"
+      />
+
+      {/* Digital Attendance Proof Modal (Feature #14) */}
+      <AttendanceProofModal
+        isOpen={!!proofAttendanceId}
+        onClose={() => setProofAttendanceId(null)}
+        attendanceId={proofAttendanceId}
+        role="TEACHER"
+      />
     </div>
   );
 };

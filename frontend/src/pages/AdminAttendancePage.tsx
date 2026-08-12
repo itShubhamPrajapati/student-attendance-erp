@@ -5,6 +5,9 @@ import {
   Eye,
   RefreshCw,
   X,
+  Lock,
+  Unlock,
+  History,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -12,6 +15,8 @@ import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ReopenAttendanceSessionModal } from '../components/ReopenAttendanceSessionModal';
+import { AttendanceSessionAuditHistoryModal } from '../components/AttendanceSessionAuditHistoryModal';
 import {
   AttendanceSession,
   Subject,
@@ -23,6 +28,7 @@ import {
   apiGetAdminSessionRecords,
   apiGetSubjects,
   apiGetClasses,
+  apiFinalizeAdminSession,
 } from '../services/api';
 
 export const AdminAttendancePage: React.FC = () => {
@@ -40,6 +46,11 @@ export const AdminAttendancePage: React.FC = () => {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [rosterDetails, setRosterDetails] = useState<SessionAttendanceDetails | null>(null);
   const [loadingRoster, setLoadingRoster] = useState(false);
+
+  // Feature #13 - Reopen & Audit modal state
+  const [reopenModalSession, setReopenModalSession] = useState<AttendanceSession | null>(null);
+  const [sessionAuditSession, setSessionAuditSession] = useState<AttendanceSession | null>(null);
+  const [finalizingSessionId, setFinalizingSessionId] = useState<string | null>(null);
 
   const fetchFiltersAndSessions = useCallback(async () => {
     setLoading(true);
@@ -80,6 +91,20 @@ export const AdminAttendancePage: React.FC = () => {
       setSelectedSessionId(null);
     } finally {
       setLoadingRoster(false);
+    }
+  };
+
+  // Feature #13: Finalize session (admin)
+  const handleAdminFinalizeSession = async (sessionId: string) => {
+    if (!confirm('Finalize this attendance session? Teachers will no longer be able to mark or correct attendance.')) return;
+    setFinalizingSessionId(sessionId);
+    try {
+      await apiFinalizeAdminSession(sessionId);
+      await fetchFiltersAndSessions();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to finalize session');
+    } finally {
+      setFinalizingSessionId(null);
     }
   };
 
@@ -237,7 +262,11 @@ export const AdminAttendancePage: React.FC = () => {
                       <span className="ml-1 text-[11px] font-bold text-indigo-600">({s.percentage}%)</span>
                     </td>
                     <td className="py-3 px-4">
-                      {s.is_active && !s.is_expired ? (
+                      {s.finalization_status === 'FINALIZED' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
+                          <Lock className="w-2.5 h-2.5" /> FINALIZED
+                        </span>
+                      ) : s.is_active && !s.is_expired ? (
                         <Badge variant="success" withDot>
                           Active
                         </Badge>
@@ -248,15 +277,48 @@ export const AdminAttendancePage: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenRoster(s.id)}
-                        leftIcon={<Eye className="w-3 h-3" />}
-                        className="text-xs"
-                      >
-                        View Roster
-                      </Button>
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenRoster(s.id)}
+                          leftIcon={<Eye className="w-3 h-3" />}
+                          className="text-xs"
+                        >
+                          View Roster
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSessionAuditSession(s)}
+                          leftIcon={<History className="w-3 h-3 text-indigo-500" />}
+                          className="text-xs"
+                        >
+                          Audit
+                        </Button>
+                        {s.finalization_status === 'FINALIZED' ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setReopenModalSession(s)}
+                            leftIcon={<Unlock className="w-3 h-3 text-amber-600" />}
+                            className="text-xs border-amber-200 text-amber-700 hover:bg-amber-50"
+                          >
+                            Reopen
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAdminFinalizeSession(s.id)}
+                            isLoading={finalizingSessionId === s.id}
+                            leftIcon={<Lock className="w-3 h-3 text-purple-600" />}
+                            className="text-xs border-purple-200 text-purple-700 hover:bg-purple-50"
+                          >
+                            Finalize
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -358,6 +420,33 @@ export const AdminAttendancePage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Reopen Finalized Session Modal (Feature #13) */}
+      {reopenModalSession && (
+        <ReopenAttendanceSessionModal
+          isOpen={!!reopenModalSession}
+          onClose={() => setReopenModalSession(null)}
+          sessionId={reopenModalSession.id}
+          subjectName={reopenModalSession.subject_name}
+          classNameStr={reopenModalSession.class_name}
+          onSuccess={() => {
+            setReopenModalSession(null);
+            fetchFiltersAndSessions();
+          }}
+        />
+      )}
+
+      {/* Session Audit Modal (Feature #13) */}
+      {sessionAuditSession && (
+        <AttendanceSessionAuditHistoryModal
+          isOpen={!!sessionAuditSession}
+          onClose={() => setSessionAuditSession(null)}
+          sessionId={sessionAuditSession.id}
+          subjectName={sessionAuditSession.subject_name}
+          classNameStr={sessionAuditSession.class_name}
+          role="ADMIN"
+        />
       )}
     </div>
   );

@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
+  FileText,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -25,6 +26,7 @@ import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { AttendanceProofModal } from '../components/AttendanceProofModal';
 import {
   StudentAttendanceHistoryRecord,
   StudentAttendanceHistoryResponse,
@@ -40,6 +42,7 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [proofAttendanceId, setProofAttendanceId] = useState<string | null>(null);
 
   // Filter & Pagination States
   const [searchQuery, setSearchQuery] = useState('');
@@ -535,14 +538,26 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
 
                     {/* Action */}
                     <td className="px-5 py-4 whitespace-nowrap text-right text-xs">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedSession(rec)}
-                        leftIcon={<Eye className="w-3.5 h-3.5 text-slate-500" />}
-                      >
-                        View
-                      </Button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {rec.attendance_id && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setProofAttendanceId(rec.attendance_id!)}
+                            leftIcon={<FileText className="w-3.5 h-3.5 text-indigo-600" />}
+                          >
+                            Proof
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedSession(rec)}
+                          leftIcon={<Eye className="w-3.5 h-3.5 text-slate-500" />}
+                        >
+                          View
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -587,14 +602,26 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
                     <span className="mx-1">•</span>
                     <span>{formatTime(rec.started_at)}</span>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedSession(rec)}
-                    leftIcon={<Eye className="w-3 h-3" />}
-                  >
-                    Details
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    {rec.attendance_id && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setProofAttendanceId(rec.attendance_id!)}
+                        leftIcon={<FileText className="w-3 h-3 text-indigo-600" />}
+                      >
+                        Proof
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedSession(rec)}
+                      leftIcon={<Eye className="w-3 h-3" />}
+                    >
+                      Details
+                    </Button>
+                  </div>
                 </div>
               </Card>
             ))}
@@ -796,7 +823,23 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex justify-end">
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+              {selectedSession.attendance_id ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    const attId = selectedSession.attendance_id!;
+                    setSelectedSession(null);
+                    setProofAttendanceId(attId);
+                  }}
+                  leftIcon={<FileText className="w-3.5 h-3.5" />}
+                >
+                  View Attendance Proof
+                </Button>
+              ) : (
+                <div />
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -808,6 +851,14 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Digital Attendance Proof Modal */}
+      <AttendanceProofModal
+        isOpen={!!proofAttendanceId}
+        onClose={() => setProofAttendanceId(null)}
+        attendanceId={proofAttendanceId}
+        role="STUDENT"
+      />
     </div>
   );
 };

@@ -12,20 +12,23 @@ import {
   Zap,
   Clock,
   WifiOff,
+  FileText,
 } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { AttendanceProofModal } from '../components/AttendanceProofModal';
 import { MarkAttendanceResponse } from '../types';
 import { apiMarkAttendance } from '../services/api';
 
 interface ErrorStateDetails {
   title: string;
   message: string;
-  type: 'duplicate' | 'expired' | 'ended' | 'wrong_class' | 'invalid' | 'network' | 'generic';
+  type: 'duplicate' | 'expired' | 'ended' | 'wrong_class' | 'invalid' | 'network' | 'finalized' | 'generic';
 }
 
 export const StudentScanAttendancePage: React.FC = () => {
@@ -37,6 +40,7 @@ export const StudentScanAttendancePage: React.FC = () => {
   const [verifying, setVerifying] = useState(false);
   const [successData, setSuccessData] = useState<MarkAttendanceResponse | null>(null);
   const [errorDetails, setErrorDetails] = useState<ErrorStateDetails | null>(null);
+  const [showProofModal, setShowProofModal] = useState(false);
   const [manualToken, setManualToken] = useState('');
 
   const qrReaderRef = useRef<Html5Qrcode | null>(null);
@@ -137,10 +141,19 @@ export const StudentScanAttendancePage: React.FC = () => {
       const res = await apiMarkAttendance(clean);
       setSuccessData(res.data);
     } catch (err: unknown) {
-      const rawMsg = err instanceof Error ? err.message : 'Failed to verify attendance';
+      // Check for structured error_code (Feature #13 SESSION_FINALIZED)
+      const errObj = err as { error_code?: string; message?: string };
+      const rawMsg = errObj.message || (err instanceof Error ? err.message : 'Failed to verify attendance');
+      const errorCode = errObj.error_code || '';
       const lower = rawMsg.toLowerCase();
 
-      if (lower.includes('already been marked') || lower.includes('duplicate')) {
+      if (errorCode === 'SESSION_FINALIZED' || lower.includes('finalized') || lower.includes('locked')) {
+        setErrorDetails({
+          type: 'finalized',
+          title: 'Attendance Closed',
+          message: 'This attendance session has already been finalized. No further check-ins are accepted.',
+        });
+      } else if (lower.includes('already been marked') || lower.includes('duplicate')) {
         setErrorDetails({
           type: 'duplicate',
           title: 'Attendance Already Marked',
@@ -307,8 +320,19 @@ export const StudentScanAttendancePage: React.FC = () => {
           </div>
 
           <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            {successData.attendance_id && (
+              <Button
+                size="md"
+                variant="primary"
+                onClick={() => setShowProofModal(true)}
+                className="w-full sm:w-auto shadow-sm"
+                leftIcon={<FileText className="w-4 h-4" />}
+              >
+                View Attendance Proof
+              </Button>
+            )}
             <Link to="/student" className="w-full sm:w-auto">
-              <Button size="md" variant="primary" className="w-full sm:w-auto" leftIcon={<ArrowLeft className="w-4 h-4" />}>
+              <Button size="md" variant="outline" className="w-full sm:w-auto" leftIcon={<ArrowLeft className="w-4 h-4" />}>
                 Back to Dashboard
               </Button>
             </Link>
@@ -326,11 +350,23 @@ export const StudentScanAttendancePage: React.FC = () => {
         </Card>
       )}
 
+      {/* Proof Modal */}
+      {successData?.attendance_id && (
+        <AttendanceProofModal
+          isOpen={showProofModal}
+          onClose={() => setShowProofModal(false)}
+          attendanceId={successData.attendance_id}
+          role="STUDENT"
+        />
+      )}
+
       {/* Categorized Error Card */}
       {errorDetails && !verifying && (
         <Card
           className={`p-6 text-center space-y-3 shadow-sm animate-in fade-in ${
-            errorDetails.type === 'duplicate'
+            errorDetails.type === 'finalized'
+              ? 'bg-purple-50/70 border-purple-300'
+              : errorDetails.type === 'duplicate'
               ? 'bg-amber-50/60 border-amber-200'
               : errorDetails.type === 'expired'
               ? 'bg-amber-50/60 border-amber-200'
@@ -339,14 +375,18 @@ export const StudentScanAttendancePage: React.FC = () => {
         >
           <div
             className={`w-12 h-12 rounded-2xl mx-auto flex items-center justify-center ${
-              errorDetails.type === 'duplicate' || errorDetails.type === 'expired'
+              errorDetails.type === 'finalized'
+                ? 'bg-purple-100 text-purple-700'
+                : errorDetails.type === 'duplicate' || errorDetails.type === 'expired'
                 ? 'bg-amber-100 text-amber-700'
                 : errorDetails.type === 'network'
                 ? 'bg-rose-100 text-rose-700'
                 : 'bg-rose-100 text-rose-700'
             }`}
           >
-            {errorDetails.type === 'expired' ? (
+            {errorDetails.type === 'finalized' ? (
+              <Lock className="w-6 h-6" />
+            ) : errorDetails.type === 'expired' ? (
               <Clock className="w-6 h-6" />
             ) : errorDetails.type === 'network' ? (
               <WifiOff className="w-6 h-6" />
@@ -357,7 +397,9 @@ export const StudentScanAttendancePage: React.FC = () => {
           <div>
             <h3
               className={`text-sm font-bold font-heading ${
-                errorDetails.type === 'duplicate' || errorDetails.type === 'expired'
+                errorDetails.type === 'finalized'
+                  ? 'text-purple-900'
+                  : errorDetails.type === 'duplicate' || errorDetails.type === 'expired'
                   ? 'text-amber-900'
                   : 'text-rose-900'
               }`}
@@ -366,7 +408,9 @@ export const StudentScanAttendancePage: React.FC = () => {
             </h3>
             <p
               className={`text-xs mt-1 ${
-                errorDetails.type === 'duplicate' || errorDetails.type === 'expired'
+                errorDetails.type === 'finalized'
+                  ? 'text-purple-700'
+                  : errorDetails.type === 'duplicate' || errorDetails.type === 'expired'
                   ? 'text-amber-700'
                   : 'text-rose-700'
               }`}
@@ -375,17 +419,19 @@ export const StudentScanAttendancePage: React.FC = () => {
             </p>
           </div>
           <div className="pt-2 flex items-center justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setErrorDetails(null);
-                startCamera();
-              }}
-              leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-            >
-              Try Again
-            </Button>
+            {errorDetails.type !== 'finalized' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setErrorDetails(null);
+                  startCamera();
+                }}
+                leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+              >
+                Try Again
+              </Button>
+            )}
             <Link to="/student">
               <Button variant="outline" size="sm">
                 Dashboard

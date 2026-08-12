@@ -220,6 +220,7 @@ export interface CreateAssignmentPayload {
 }
 
 export type AttendanceStatus = 'PRESENT' | 'LATE' | 'ABSENT';
+export type AttendanceSessionFinalizationStatus = 'OPEN' | 'FINALIZED';
 
 export interface AttendanceSession {
   id: string;
@@ -241,6 +242,10 @@ export interface AttendanceSession {
   late_threshold_minutes: number;
   late_after?: string;
   duration_minutes?: number;
+  finalization_status?: AttendanceSessionFinalizationStatus;
+  finalized_at?: string | null;
+  finalized_by?: string | null;
+  finalized_by_name?: string | null;
   is_active: boolean;
   is_expired: boolean;
   present_count: number;
@@ -284,6 +289,10 @@ export interface LiveAttendanceSessionData {
   late_percentage: number;
   late_threshold_minutes: number;
   late_after?: string;
+  finalization_status?: AttendanceSessionFinalizationStatus;
+  finalized_at?: string | null;
+  finalized_by?: string | null;
+  finalized_by_name?: string | null;
   qr_expires_at: string;
   started_at: string;
   duration_minutes: number;
@@ -298,6 +307,9 @@ export interface LiveAttendanceSessionData {
 }
 
 export interface MarkAttendanceResponse {
+  attendance_id?: string;
+  proof_id?: string;
+  proof_public_id?: string;
   session_id?: string;
   marked_at: string;
   subject_name: string;
@@ -332,6 +344,7 @@ export interface StudentAttendanceSummary {
 }
 
 export interface StudentRecentAttendanceItem {
+  attendance_id?: string;
   session_id: string;
   subject_name: string;
   subject_code: string;
@@ -372,6 +385,7 @@ export interface StudentCalendarResponse {
 }
 
 export interface StudentAttendanceHistoryRecord {
+  attendance_id?: string | null;
   session_id: string;
   subject_id: string;
   subject_name: string;
@@ -661,6 +675,99 @@ export interface ManualAttendanceResponse {
   reason: string;
 }
 
+// ==============================================================================
+// Feature #13: Attendance Session Finalization, Locking & Reopening Types
+// ==============================================================================
 
+export interface FinalizeSessionPayload {
+  reason?: string;
+}
 
+export interface FinalizeSessionResponse {
+  session_id: string;
+  finalization_status: AttendanceSessionFinalizationStatus;
+  finalized_at: string;
+  finalized_by: string;
+  finalized_by_name?: string;
+}
 
+export interface ReopenSessionPayload {
+  reason: string;
+}
+
+export interface ReopenSessionResponse {
+  session_id: string;
+  finalization_status: AttendanceSessionFinalizationStatus;
+  reopened_at: string;
+  reopened_by: string;
+  reopened_by_name: string;
+  reason: string;
+}
+
+export interface SessionAuditItem {
+  id: string;
+  college_id?: string | null;
+  session_id: string;
+  actor_user_id: string;
+  actor_name: string;
+  actor_role: string;
+  action: 'FINALIZE' | 'REOPEN';
+  previous_status?: string | null;
+  new_status: string;
+  reason?: string | null;
+  created_at: string;
+}
+
+// ==============================================================================
+// ATTENDANCE PROOF & DIGITAL RECEIPT TYPES (Feature #14)
+// ==============================================================================
+
+export interface AttendanceProof {
+  proof_id: string;
+  public_id: string;
+  verification_url: string;
+  verification_status: 'VALID' | 'INVALID';
+  attendance_id: string;
+  student_id: string;
+  student_name: string;
+  roll_number: string;
+  email: string;
+  department: string;
+  semester: number;
+  section: string;
+  class_name: string;
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  teacher_name: string;
+  teacher_department: string;
+  session_id: string;
+  session_date: string;
+  session_start_time: string;
+  session_end_time: string;
+  attendance_marked_at: string;
+  attendance_status: AttendanceStatus | string;
+  status_label: string;
+  late_threshold_minutes: number;
+  college_name: string;
+  generated_at: string;
+}
+
+export interface AttendanceProofVerification {
+  valid: boolean;
+  verification_status: 'VALID' | 'INVALID';
+  public_id?: string;
+  student_name?: string;
+  roll_number?: string;
+  department?: string;
+  class_name?: string;
+  subject_name?: string;
+  subject_code?: string;
+  session_date?: string;
+  attendance_marked_at?: string;
+  attendance_status?: string;
+  status_label?: string;
+  college_name?: string;
+  verified_at: string;
+  message: string;
+}

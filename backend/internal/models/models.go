@@ -255,19 +255,23 @@ type DashboardStatsResponse struct {
 
 // AttendanceSession represents a live or past QR attendance session initiated by a teacher
 type AttendanceSession struct {
-	ID                   string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TeacherID            string    `gorm:"type:uuid;not null" json:"teacher_id"`
-	Teacher              Teacher   `gorm:"foreignKey:TeacherID" json:"teacher,omitempty"`
-	SubjectID            string    `gorm:"type:uuid;not null" json:"subject_id"`
-	Subject              Subject   `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
-	ClassID              string    `gorm:"type:uuid;not null" json:"class_id"`
-	Class                Class     `gorm:"foreignKey:ClassID" json:"class,omitempty"`
-	SessionToken         string    `gorm:"type:text;unique;not null" json:"session_token"`
-	StartedAt            time.Time `gorm:"not null" json:"started_at"`
-	ExpiresAt            time.Time `gorm:"not null" json:"expires_at"`
-	LateThresholdMinutes int       `gorm:"default:10;not null" json:"late_threshold_minutes"`
-	IsActive             bool      `gorm:"default:true;not null" json:"is_active"`
-	CreatedAt            time.Time `json:"created_at"`
+	ID                   string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TeacherID            string     `gorm:"type:uuid;not null" json:"teacher_id"`
+	Teacher              Teacher    `gorm:"foreignKey:TeacherID" json:"teacher,omitempty"`
+	SubjectID            string     `gorm:"type:uuid;not null" json:"subject_id"`
+	Subject              Subject    `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
+	ClassID              string     `gorm:"type:uuid;not null" json:"class_id"`
+	Class                Class      `gorm:"foreignKey:ClassID" json:"class,omitempty"`
+	SessionToken         string     `gorm:"type:text;unique;not null" json:"session_token"`
+	StartedAt            time.Time  `gorm:"not null" json:"started_at"`
+	ExpiresAt            time.Time  `gorm:"not null" json:"expires_at"`
+	LateThresholdMinutes int        `gorm:"default:10;not null" json:"late_threshold_minutes"`
+	FinalizationStatus   string     `gorm:"type:varchar(20);default:'OPEN';not null" json:"finalization_status"`
+	FinalizedAt          *time.Time `gorm:"type:timestamp with time zone" json:"finalized_at,omitempty"`
+	FinalizedByID        *string    `gorm:"type:uuid" json:"finalized_by_id,omitempty"`
+	FinalizedBy          *User      `gorm:"foreignKey:FinalizedByID" json:"finalized_by,omitempty"`
+	IsActive             bool       `gorm:"default:true;not null" json:"is_active"`
+	CreatedAt            time.Time  `json:"created_at"`
 }
 
 func (AttendanceSession) TableName() string {
@@ -293,45 +297,119 @@ func (Attendance) TableName() string {
 
 // AttendanceSessionResponse represents formatted attendance session for UI
 type AttendanceSessionResponse struct {
-	ID                   string    `json:"id"`
-	TeacherID            string    `json:"teacher_id"`
-	TeacherName          string    `json:"teacher_name"`
-	TeacherEmployeeID    string    `json:"teacher_employee_id"`
-	SubjectID            string    `json:"subject_id"`
-	SubjectName          string    `json:"subject_name"`
-	SubjectCode          string    `json:"subject_code"`
-	ClassID              string    `json:"class_id"`
-	ClassName            string    `json:"class_name"`
-	Department           string    `json:"department"`
-	Semester             int       `json:"semester"`
-	Section              string    `json:"section"`
-	AcademicYear         string    `json:"academic_year"`
-	SessionToken         string    `json:"session_token"`
-	StartedAt            time.Time `json:"started_at"`
-	ExpiresAt            time.Time `json:"expires_at"`
-	DurationMinutes      int       `json:"duration_minutes"`
-	LateThresholdMinutes int       `json:"late_threshold_minutes"`
-	LateAfter            time.Time `json:"late_after"`
-	IsActive             bool      `json:"is_active"`
-	IsExpired            bool      `json:"is_expired"`
-	PresentCount         int64     `json:"present_count"`
-	LateCount            int64     `json:"late_count"`
-	AbsentCount          int64     `json:"absent_count"`
-	TotalStudents        int64     `json:"total_students"`
-	Percentage           float64   `json:"percentage"`
-	LatePercentage       float64   `json:"late_percentage"`
-	Status               string    `json:"status"` // "ACTIVE", "COMPLETED", "EXPIRED"
-	CreatedAt            time.Time `json:"created_at"`
+	ID                   string     `json:"id"`
+	TeacherID            string     `json:"teacher_id"`
+	TeacherName          string     `json:"teacher_name"`
+	TeacherEmployeeID    string     `json:"teacher_employee_id"`
+	SubjectID            string     `json:"subject_id"`
+	SubjectName          string     `json:"subject_name"`
+	SubjectCode          string     `json:"subject_code"`
+	ClassID              string     `json:"class_id"`
+	ClassName            string     `json:"class_name"`
+	Department           string     `json:"department"`
+	Semester             int        `json:"semester"`
+	Section              string     `json:"section"`
+	AcademicYear         string     `json:"academic_year"`
+	SessionToken         string     `json:"session_token"`
+	StartedAt            time.Time  `json:"started_at"`
+	ExpiresAt            time.Time  `json:"expires_at"`
+	DurationMinutes      int        `json:"duration_minutes"`
+	LateThresholdMinutes int        `json:"late_threshold_minutes"`
+	LateAfter            time.Time  `json:"late_after"`
+	FinalizationStatus   string     `json:"finalization_status"`
+	FinalizedAt          *time.Time `json:"finalized_at,omitempty"`
+	FinalizedBy          *string    `json:"finalized_by,omitempty"`
+	FinalizedByName      *string    `json:"finalized_by_name,omitempty"`
+	IsActive             bool       `json:"is_active"`
+	IsExpired            bool       `json:"is_expired"`
+	PresentCount         int64      `json:"present_count"`
+	LateCount            int64      `json:"late_count"`
+	AbsentCount          int64      `json:"absent_count"`
+	TotalStudents        int64      `json:"total_students"`
+	Percentage           float64    `json:"percentage"`
+	LatePercentage       float64    `json:"late_percentage"`
+	Status               string     `json:"status"` // "ACTIVE", "COMPLETED", "EXPIRED"
+	CreatedAt            time.Time  `json:"created_at"`
 }
 
-// Attendance Status & Action Constants (Features #11 & #12)
+// Attendance Status, Lifecycle & Action Constants (Features #11, #12 & #13)
 const (
-	AuditActionManualMark = "MANUAL_MARK"
-	AuditActionCorrection = "CORRECTION"
-	StatusPresent         = "PRESENT"
-	StatusLate            = "LATE"
-	StatusAbsent          = "ABSENT"
+	AuditActionManualMark        = "MANUAL_MARK"
+	AuditActionCorrection        = "CORRECTION"
+	StatusPresent                = "PRESENT"
+	StatusLate                   = "LATE"
+	StatusAbsent                 = "ABSENT"
+	SessionStatusOpen            = "OPEN"
+	SessionStatusFinalized       = "FINALIZED"
+	SessionFinalizationOpen      = "OPEN"
+	SessionFinalizationFinalized = "FINALIZED"
+	SessionAuditActionFinalize   = "FINALIZE"
+	SessionAuditActionReopen     = "REOPEN"
 )
+
+// FinalizeSessionRequest represents optional reason input when finalizing an attendance session
+type FinalizeSessionRequest struct {
+	Reason string `json:"reason,omitempty"`
+}
+
+// FinalizeSessionResponse represents output after finalizing an attendance session
+type FinalizeSessionResponse struct {
+	SessionID          string     `json:"session_id"`
+	FinalizationStatus string     `json:"finalization_status"`
+	FinalizedAt        *time.Time `json:"finalized_at"`
+	FinalizedBy        *string    `json:"finalized_by"`
+	FinalizedByName    *string    `json:"finalized_by_name,omitempty"`
+}
+
+// ReopenSessionRequest represents mandatory reason input when reopening a finalized attendance session
+type ReopenSessionRequest struct {
+	Reason string `json:"reason" binding:"required"`
+}
+
+// ReopenSessionResponse represents output after reopening an attendance session
+type ReopenSessionResponse struct {
+	SessionID          string    `json:"session_id"`
+	FinalizationStatus string    `json:"finalization_status"`
+	ReopenedAt         time.Time `json:"reopened_at"`
+	ReopenedBy         string    `json:"reopened_by"`
+	ReopenedByName     string    `json:"reopened_by_name"`
+	Reason             string    `json:"reason"`
+}
+
+// SessionAuditItem represents sanitized session lifecycle audit item returned by API
+type SessionAuditItem struct {
+	ID             string    `json:"id"`
+	CollegeID      *string   `json:"college_id,omitempty"`
+	SessionID      string    `json:"session_id"`
+	ActorUserID    string    `json:"actor_user_id"`
+	ActorName      string    `json:"actor_name"`
+	ActorRole      string    `json:"actor_role"`
+	Action         string    `json:"action"` // "FINALIZE" or "REOPEN"
+	PreviousStatus *string   `json:"previous_status,omitempty"`
+	NewStatus      string    `json:"new_status"`
+	Reason         *string   `json:"reason,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+// AttendanceSessionAudit represents an immutable session lifecycle event in the database
+type AttendanceSessionAudit struct {
+	ID             string            `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	CollegeID      *string           `gorm:"type:uuid" json:"college_id,omitempty"`
+	SessionID      string            `gorm:"type:uuid;not null" json:"session_id"`
+	Session        AttendanceSession `gorm:"foreignKey:SessionID" json:"session,omitempty"`
+	ActorUserID    string            `gorm:"type:uuid;not null" json:"actor_user_id"`
+	ActorUser      User              `gorm:"foreignKey:ActorUserID" json:"actor_user,omitempty"`
+	ActorRole      string            `gorm:"type:varchar(20);not null" json:"actor_role"`
+	Action         string            `gorm:"type:varchar(30);not null" json:"action"`
+	PreviousStatus *string           `gorm:"type:varchar(20)" json:"previous_status,omitempty"`
+	NewStatus      string            `gorm:"type:varchar(20);not null" json:"new_status"`
+	Reason         *string           `gorm:"type:text" json:"reason,omitempty"`
+	CreatedAt      time.Time         `json:"created_at"`
+}
+
+func (AttendanceSessionAudit) TableName() string {
+	return "attendance_session_audit"
+}
 
 // UpdateLateSettingsRequest represents input to modify session late threshold
 type UpdateLateSettingsRequest struct {
@@ -445,6 +523,10 @@ type LiveAttendanceSessionResponse struct {
 	LatePercentage       float64                   `json:"late_percentage"`
 	LateThresholdMinutes int                       `json:"late_threshold_minutes"`
 	LateAfter            time.Time                 `json:"late_after"`
+	FinalizationStatus   string                    `json:"finalization_status"`
+	FinalizedAt          *time.Time                `json:"finalized_at,omitempty"`
+	FinalizedBy          *string                   `json:"finalized_by,omitempty"`
+	FinalizedByName      *string                   `json:"finalized_by_name,omitempty"`
 	QRExpiresAt          time.Time                 `json:"qr_expires_at"`
 	StartedAt            time.Time                 `json:"started_at"`
 	DurationMinutes      int                       `json:"duration_minutes"`
@@ -461,6 +543,8 @@ type LiveAttendanceSessionResponse struct {
 // MarkAttendanceResponse represents student scan confirmation data
 type MarkAttendanceResponse struct {
 	AttendanceID         string    `json:"attendance_id,omitempty"`
+	ProofID              string    `json:"proof_id,omitempty"`
+	ProofPublicID        string    `json:"proof_public_id,omitempty"`
 	SessionID            string    `json:"session_id,omitempty"`
 	MarkedAt             time.Time `json:"marked_at"`
 	SubjectName          string    `json:"subject_name"`
@@ -469,6 +553,77 @@ type MarkAttendanceResponse struct {
 	Status               string    `json:"status"` // "PRESENT" or "LATE"
 	LateThresholdMinutes int       `json:"late_threshold_minutes"`
 	LateAfter            time.Time `json:"late_after,omitempty"`
+}
+
+// ==============================================================================
+// ATTENDANCE PROOF & DIGITAL RECEIPT MODELS (Feature #14)
+// ==============================================================================
+
+// AttendanceProof represents a verifiable digital receipt identity for an attendance record
+type AttendanceProof struct {
+	ID           string      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	AttendanceID string      `gorm:"type:uuid;unique;not null" json:"attendance_id"`
+	Attendance   *Attendance `gorm:"foreignKey:AttendanceID" json:"attendance,omitempty"`
+	PublicID     string      `gorm:"type:varchar(50);unique;not null" json:"public_id"`
+	CollegeID    *string     `gorm:"type:uuid" json:"college_id,omitempty"`
+	CreatedAt    time.Time   `json:"created_at"`
+	UpdatedAt    time.Time   `json:"updated_at"`
+}
+
+func (AttendanceProof) TableName() string {
+	return "attendance_proofs"
+}
+
+// AttendanceProofResponse represents the full institutional attendance receipt payload
+type AttendanceProofResponse struct {
+	ProofID              string    `json:"proof_id"`
+	PublicID             string    `json:"public_id"`
+	VerificationURL      string    `json:"verification_url"`
+	VerificationStatus   string    `json:"verification_status"`
+	AttendanceID         string    `json:"attendance_id"`
+	StudentID            string    `json:"student_id"`
+	StudentName          string    `json:"student_name"`
+	RollNumber           string    `json:"roll_number"`
+	Email                string    `json:"email"`
+	Department           string    `json:"department"`
+	Semester             int       `json:"semester"`
+	Section              string    `json:"section"`
+	ClassName            string    `json:"class_name"`
+	SubjectID            string    `json:"subject_id"`
+	SubjectName          string    `json:"subject_name"`
+	SubjectCode          string    `json:"subject_code"`
+	TeacherName          string    `json:"teacher_name"`
+	TeacherDepartment    string    `json:"teacher_department"`
+	SessionID            string    `json:"session_id"`
+	SessionDate          string    `json:"session_date"`
+	SessionStartTime     string    `json:"session_start_time"`
+	SessionEndTime       string    `json:"session_end_time"`
+	AttendanceMarkedAt   time.Time `json:"attendance_marked_at"`
+	AttendanceStatus     string    `json:"attendance_status"`
+	StatusLabel          string    `json:"status_label"`
+	LateThresholdMinutes int       `json:"late_threshold_minutes"`
+	CollegeName          string    `json:"college_name"`
+	GeneratedAt          time.Time `json:"generated_at"`
+}
+
+// AttendanceProofPublicVerificationResponse represents the sanitized public verification response
+type AttendanceProofPublicVerificationResponse struct {
+	Valid              bool       `json:"valid"`
+	VerificationStatus string     `json:"verification_status"` // "VALID" or "INVALID"
+	PublicID           string     `json:"public_id,omitempty"`
+	StudentName        string     `json:"student_name,omitempty"`
+	RollNumber         string     `json:"roll_number,omitempty"`
+	Department         string     `json:"department,omitempty"`
+	ClassName          string     `json:"class_name,omitempty"`
+	SubjectName        string     `json:"subject_name,omitempty"`
+	SubjectCode        string     `json:"subject_code,omitempty"`
+	SessionDate        string     `json:"session_date,omitempty"`
+	AttendanceMarkedAt *time.Time `json:"attendance_marked_at,omitempty"`
+	AttendanceStatus   string     `json:"attendance_status,omitempty"`
+	StatusLabel        string     `json:"status_label,omitempty"`
+	CollegeName        string     `json:"college_name,omitempty"`
+	VerifiedAt         time.Time  `json:"verified_at"`
+	Message            string     `json:"message"`
 }
 
 // SubjectAttendanceStat represents student attendance in a single course module
@@ -497,12 +652,13 @@ type StudentAttendanceSummary struct {
 
 // StudentRecentAttendanceItem represents recent attendance log entry
 type StudentRecentAttendanceItem struct {
-	SessionID   string    `json:"session_id"`
-	SubjectName string    `json:"subject_name"`
-	SubjectCode string    `json:"subject_code"`
-	ClassName   string    `json:"class_name"`
-	MarkedAt    time.Time `json:"marked_at"`
-	Status      string    `json:"status"`
+	AttendanceID string    `json:"attendance_id,omitempty"`
+	SessionID    string    `json:"session_id"`
+	SubjectName  string    `json:"subject_name"`
+	SubjectCode  string    `json:"subject_code"`
+	ClassName    string    `json:"class_name"`
+	MarkedAt     time.Time `json:"marked_at"`
+	Status       string    `json:"status"`
 }
 
 // StudentCalendarSessionItem represents a single lecture session on a given date for student calendar
@@ -542,16 +698,17 @@ type StudentCalendarResponse struct {
 
 // StudentAttendanceHistoryRecord represents a single lecture attendance record in history
 type StudentAttendanceHistoryRecord struct {
-	SessionID   string     `json:"session_id"`
-	SubjectID   string     `json:"subject_id"`
-	SubjectName string     `json:"subject_name"`
-	SubjectCode string     `json:"subject_code"`
-	ClassID     string     `json:"class_id"`
-	ClassName   string     `json:"class_name"`
-	StartedAt   time.Time  `json:"started_at"`
-	EndedAt     time.Time  `json:"ended_at"`
-	Status      string     `json:"status"` // "PRESENT", "LATE", or "ABSENT"
-	MarkedAt    *time.Time `json:"marked_at"`
+	AttendanceID *string    `json:"attendance_id,omitempty"`
+	SessionID    string     `json:"session_id"`
+	SubjectID    string     `json:"subject_id"`
+	SubjectName  string     `json:"subject_name"`
+	SubjectCode  string     `json:"subject_code"`
+	ClassID      string     `json:"class_id"`
+	ClassName    string     `json:"class_name"`
+	StartedAt    time.Time  `json:"started_at"`
+	EndedAt      time.Time  `json:"ended_at"`
+	Status       string     `json:"status"` // "PRESENT", "LATE", or "ABSENT"
+	MarkedAt     *time.Time `json:"marked_at"`
 }
 
 // StudentAttendanceHistoryPagination represents server-side pagination metadata

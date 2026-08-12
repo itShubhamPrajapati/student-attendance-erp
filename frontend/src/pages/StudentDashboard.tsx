@@ -19,12 +19,14 @@ import {
   ShieldAlert,
   Info,
   History,
+  FileText,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { AttendanceProofModal } from '../components/AttendanceProofModal';
 import {
   StudentProfile,
   Subject,
@@ -52,6 +54,7 @@ export const StudentDashboard: React.FC = () => {
   const [recentAttendance, setRecentAttendance] = useState<StudentRecentAttendanceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [proofAttendanceId, setProofAttendanceId] = useState<string | null>(null);
 
   // Subject filtering and search
   const [searchQuery, setSearchQuery] = useState('');
@@ -909,7 +912,8 @@ export const StudentDashboard: React.FC = () => {
                         <th className="py-3 px-4">Subject</th>
                         <th className="py-3 px-4">Classroom</th>
                         <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Marked Time</th>
+                        <th className="py-3 px-4">Marked Time</th>
+                        <th className="py-3 px-4 text-right">Proof</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -923,12 +927,20 @@ export const StudentDashboard: React.FC = () => {
                           </td>
                           <td className="py-3 px-4 text-slate-700 dark:text-slate-300 font-medium">{item.class_name}</td>
                           <td className="py-3 px-4">
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800">
-                              <CheckCircle2 className="w-3 h-3" />
+                            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                              item.status === 'LATE'
+                                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800'
+                                : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800'
+                            }`}>
+                              {item.status === 'LATE' ? (
+                                <Clock className="w-3 h-3 text-amber-600" />
+                              ) : (
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              )}
                               <span>{item.status}</span>
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-right font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                          <td className="py-3 px-4 font-mono text-[11px] text-slate-500 dark:text-slate-400">
                             {new Date(item.marked_at).toLocaleDateString()}{' '}
                             <span className="text-slate-800 dark:text-slate-200 font-semibold">
                               {new Date(item.marked_at).toLocaleTimeString([], {
@@ -936,6 +948,18 @@ export const StudentDashboard: React.FC = () => {
                                 minute: '2-digit',
                               })}
                             </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {item.attendance_id && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setProofAttendanceId(item.attendance_id!)}
+                                leftIcon={<FileText className="w-3 h-3 text-indigo-600" />}
+                              >
+                                Proof
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -947,6 +971,14 @@ export const StudentDashboard: React.FC = () => {
           </div>
         </>
       )}
+
+      {/* Digital Attendance Proof Modal */}
+      <AttendanceProofModal
+        isOpen={!!proofAttendanceId}
+        onClose={() => setProofAttendanceId(null)}
+        attendanceId={proofAttendanceId}
+        role="STUDENT"
+      />
     </div>
   );
 };

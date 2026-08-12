@@ -33,6 +33,7 @@ import { EmptyState } from '../components/EmptyState';
 import { ManualAttendanceModal } from '../components/ManualAttendanceModal';
 import { CorrectAttendanceModal } from '../components/CorrectAttendanceModal';
 import { AttendanceAuditHistoryModal } from '../components/AttendanceAuditHistoryModal';
+import { AttendanceProofModal } from '../components/AttendanceProofModal';
 import {
   TeacherStudentSearchResponse,
   TeacherStudentAttendanceDetailResponse,
@@ -116,6 +117,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
     rollNumber: string;
     subjectName: string;
   } | null>(null);
+  const [proofAttendanceId, setProofAttendanceId] = useState<string | null>(null);
 
   const handleAuditSuccess = () => {
     if (inspectingStudentId) {
@@ -1230,6 +1232,12 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                                   {r.attendance_id ? (
                                     <>
                                       <button
+                                        onClick={() => setProofAttendanceId(r.attendance_id!)}
+                                        className="text-blue-600 font-bold hover:underline text-[11px]"
+                                      >
+                                        Proof
+                                      </button>
+                                      <button
                                         onClick={() => {
                                           setCorrectingAttendance({
                                             attendanceId: r.attendance_id!,
@@ -1403,6 +1411,14 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
           subjectName={auditAttendance.subjectName}
         />
       )}
+
+      {/* Digital Attendance Proof Modal (Feature #14) */}
+      <AttendanceProofModal
+        isOpen={!!proofAttendanceId}
+        onClose={() => setProofAttendanceId(null)}
+        attendanceId={proofAttendanceId}
+        role="TEACHER"
+      />
     </div>
   );
 };
