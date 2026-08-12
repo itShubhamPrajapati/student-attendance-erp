@@ -28,6 +28,7 @@ import { StudentAttendanceCalendarPage } from './pages/StudentAttendanceCalendar
 import { StudentAttendanceHistoryPage } from './pages/StudentAttendanceHistoryPage';
 import { StudentAttendanceAnalyticsPage } from './pages/StudentAttendanceAnalyticsPage';
 import { StudentScanAttendancePage } from './pages/StudentScanAttendancePage';
+import { StudentProfilePage } from './pages/StudentProfilePage';
 import { AttendanceProofVerificationPage } from './pages/AttendanceProofVerificationPage';
 import { ActivityPage } from './pages/ActivityPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -292,6 +293,17 @@ export const App: React.FC = () => {
               <ProtectedRoute allowedRoles={['STUDENT']}>
                 <DashboardLayout role="STUDENT">
                   <StudentScanAttendancePage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/student/profile"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <DashboardLayout role="STUDENT">
+                  <StudentProfilePage />
                 </DashboardLayout>
               </ProtectedRoute>
             }

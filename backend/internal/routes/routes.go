@@ -193,7 +193,11 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		studentGroup.Use(middleware.RequireAuth(cfg.JWTSecret))
 		studentGroup.Use(middleware.RequireRole(models.RoleStudent))
 		{
+			// Student Profile & Account Settings (Feature #18)
 			studentGroup.GET("/profile", handlers.GetStudentProfileHandler(database.DB))
+			studentGroup.PATCH("/profile", handlers.UpdateStudentProfileHandler(database.DB))
+			studentGroup.PATCH("/account/password", handlers.ChangeStudentPasswordHandler(database.DB))
+
 			studentGroup.GET("/subjects", handlers.GetStudentSubjectsHandler(database.DB))
 
 			// Student Attendance Summaries, Calendar, History & Analytics (Features 5, 6 & 8)

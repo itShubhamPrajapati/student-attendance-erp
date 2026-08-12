@@ -112,7 +112,21 @@ export interface StudentProfile {
   department: string;
   semester: number;
   section: string;
+  phone?: string | null;
+  address?: string | null;
+  is_active?: boolean;
+  created_at?: string;
   class?: ClassBrief | null;
+}
+
+export interface StudentProfileUpdatePayload {
+  phone?: string | null;
+  address?: string | null;
+}
+
+export interface ChangePasswordPayload {
+  current_password: string;
+  new_password: string;
 }
 
 export interface DashboardStats {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { QrCode, Menu, X, Shield, GraduationCap, School, LogIn, LogOut, Home, Users, BookOpen, Building2, UserCheck2, Calendar, TrendingUp, Search } from 'lucide-react';
+import { QrCode, Menu, X, Shield, GraduationCap, School, LogIn, LogOut, Home, Users, BookOpen, Building2, UserCheck2, Calendar, TrendingUp, Search, User } from 'lucide-react';
 import { ConnectionStatus } from './ConnectionStatus';
 import { MobileMenu } from './MobileMenu';
 import { Badge } from './Badge';
@@ -42,7 +42,10 @@ export const Navbar: React.FC = () => {
       ];
     }
 
-    return [{ name: 'Student Portal', path: '/student', icon: <GraduationCap className="w-4 h-4" /> }];
+    return [
+      { name: 'Student Portal', path: '/student', icon: <GraduationCap className="w-4 h-4" /> },
+      { name: 'My Profile', path: '/student/profile', icon: <User className="w-4 h-4" /> },
+    ];
   };
 
   const navLinks = getNavLinks();

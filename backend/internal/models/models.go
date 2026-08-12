@@ -38,6 +38,8 @@ type Student struct {
 	Section    string    `gorm:"type:varchar(20);not null" json:"section"`
 	ClassID    *string   `gorm:"type:uuid" json:"class_id,omitempty"`
 	Class      *Class    `gorm:"foreignKey:ClassID" json:"class,omitempty"`
+	Phone      *string   `gorm:"type:varchar(20)" json:"phone,omitempty"`
+	Address    *string   `gorm:"type:varchar(255)" json:"address,omitempty"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
@@ -230,7 +232,23 @@ type StudentProfileResponse struct {
 	Department string              `json:"department"`
 	Semester   int                 `json:"semester"`
 	Section    string              `json:"section"`
+	Phone      *string             `json:"phone,omitempty"`
+	Address    *string             `json:"address,omitempty"`
+	IsActive   bool                `json:"is_active"`
+	CreatedAt  time.Time           `json:"created_at"`
 	Class      *ClassBriefResponse `json:"class,omitempty"`
+}
+
+// StudentProfileUpdateRequest represents the payload for updating editable student profile fields
+type StudentProfileUpdateRequest struct {
+	Phone   *string `json:"phone"`
+	Address *string `json:"address"`
+}
+
+// ChangePasswordRequest represents the payload for updating account password
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required,min=6"`
 }
 
 // DashboardStatsResponse represents extended Admin Dashboard metrics

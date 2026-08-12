@@ -527,37 +527,7 @@ func GetTeacherAssignmentsByUserID(db *gorm.DB, userID string) ([]models.Teacher
 
 // GetStudentProfileByUserID returns student information including assigned class
 func GetStudentProfileByUserID(db *gorm.DB, userID string) (*models.StudentProfileResponse, error) {
-	var student models.Student
-	if err := db.Preload("User").Preload("Class").Where("user_id = ?", userID).First(&student).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("Student profile not found.")
-		}
-		return nil, err
-	}
-
-	resp := &models.StudentProfileResponse{
-		ID:         student.ID,
-		UserID:     student.UserID,
-		Name:       student.User.Name,
-		Email:      student.User.Email,
-		RollNumber: student.RollNumber,
-		Department: student.Department,
-		Semester:   student.Semester,
-		Section:    student.Section,
-	}
-
-	if student.Class != nil {
-		resp.Class = &models.ClassBriefResponse{
-			ID:           student.Class.ID,
-			Name:         student.Class.Name,
-			Department:   student.Class.Department,
-			Semester:     student.Class.Semester,
-			Section:      student.Class.Section,
-			AcademicYear: student.Class.AcademicYear,
-		}
-	}
-
-	return resp, nil
+	return GetStudentProfile(db, userID)
 }
 
 // GetStudentSubjectsByUserID returns the list of subjects linked to the student's assigned class

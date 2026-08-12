@@ -9,6 +9,8 @@ import {
   TeacherAssignmentItem,
   TeacherProfile,
   StudentProfile,
+  StudentProfileUpdatePayload,
+  ChangePasswordPayload,
   DashboardStats,
   CreateStudentPayload,
   UpdateStudentPayload,
@@ -345,10 +347,28 @@ export async function apiGetTeacherAssignments(): Promise<{ success: boolean; da
   });
 }
 
-// Student Portal APIs (Phase 3)
-export async function apiGetStudentProfile(): Promise<{ success: boolean; student: StudentProfile }> {
-  return request<{ success: boolean; student: StudentProfile }>('/api/student/profile', {
+// Student Portal APIs (Phase 3 & Feature #18)
+export async function apiGetStudentProfile(): Promise<{ success: boolean; student: StudentProfile; data?: StudentProfile }> {
+  return request<{ success: boolean; student: StudentProfile; data?: StudentProfile }>('/api/student/profile', {
     method: 'GET',
+  });
+}
+
+export async function apiUpdateStudentProfile(
+  payload: StudentProfileUpdatePayload
+): Promise<{ success: boolean; message: string; student: StudentProfile; data?: StudentProfile }> {
+  return request<{ success: boolean; message: string; student: StudentProfile; data?: StudentProfile }>('/api/student/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiChangeStudentPassword(
+  payload: ChangePasswordPayload
+): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>('/api/student/account/password', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
   });
 }
 

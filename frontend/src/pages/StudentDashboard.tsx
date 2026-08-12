@@ -19,6 +19,7 @@ import {
   Info,
   History,
   FileText,
+  User,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -157,6 +158,11 @@ export const StudentDashboard: React.FC = () => {
         }
         actions={
           <div className="flex items-center gap-2 flex-wrap">
+            <Link to="/student/profile">
+              <Button variant="outline" size="sm" leftIcon={<User className="w-3.5 h-3.5" />}>
+                My Profile
+              </Button>
+            </Link>
             <Link to="/student/attendance/analytics">
               <Button variant="outline" size="sm" leftIcon={<TrendingUp className="w-3.5 h-3.5" />}>
                 Analytics
