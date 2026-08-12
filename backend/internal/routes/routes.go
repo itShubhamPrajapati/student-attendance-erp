@@ -181,6 +181,9 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			// Attendance Digital Proof & Receipt (Feature #14)
 			teacherGroup.GET("/attendance/:attendance_id/proof", handlers.GetTeacherAttendanceProofHandler(database.DB, cfg))
 			teacherGroup.GET("/attendance/:attendance_id/proof/pdf", handlers.DownloadTeacherAttendanceProofPDFHandler(database.DB, cfg))
+
+			// Teacher Attendance Analytics & Class Performance Insights (Feature #15)
+			teacherGroup.GET("/attendance/analytics", handlers.GetTeacherAttendanceAnalyticsHandler(database.DB))
 		}
 
 		// ==============================================================================

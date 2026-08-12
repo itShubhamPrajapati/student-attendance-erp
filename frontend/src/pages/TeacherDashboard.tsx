@@ -13,6 +13,7 @@ import {
   Eye,
   X,
   Users,
+  TrendingUp,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -114,13 +115,22 @@ export const TeacherDashboard: React.FC = () => {
         }
         actions={
           <div className="flex items-center gap-2">
+            <Link to="/teacher/attendance/analytics">
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<TrendingUp className="w-3.5 h-3.5" />}
+              >
+                Analytics & Insights
+              </Button>
+            </Link>
             <Link to="/teacher/students/attendance">
               <Button
                 variant="outline"
                 size="sm"
                 leftIcon={<Users className="w-3.5 h-3.5" />}
               >
-                Student Search & Audit
+                Student Search
               </Button>
             </Link>
             <Button

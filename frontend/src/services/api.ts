@@ -44,6 +44,8 @@ import {
   SessionAuditItem,
   AttendanceProof,
   AttendanceProofVerification,
+  TeacherAttendanceAnalyticsParams,
+  TeacherAttendanceAnalyticsResponse,
 } from '../types';
 import { getToken } from '../auth/authService';
 
@@ -973,4 +975,40 @@ export async function apiVerifyAttendanceProof(
     `/api/attendance/proof/verify/${publicId}`,
     { method: 'GET' }
   );
+}
+
+// ==============================================================================
+// Feature #15: Teacher Attendance Analytics APIs
+// ==============================================================================
+
+export async function apiGetTeacherAttendanceAnalytics(
+  params?: TeacherAttendanceAnalyticsParams
+): Promise<{ success: boolean; data: TeacherAttendanceAnalyticsResponse }> {
+  const query = new URLSearchParams();
+  if (params) {
+    if (params.class_id && params.class_id.trim() !== '') {
+      query.append('class_id', params.class_id.trim());
+    }
+    if (params.subject_id && params.subject_id.trim() !== '') {
+      query.append('subject_id', params.subject_id.trim());
+    }
+    if (params.from && params.from.trim() !== '') {
+      query.append('from', params.from.trim());
+    }
+    if (params.to && params.to.trim() !== '') {
+      query.append('to', params.to.trim());
+    }
+    if (params.period && params.period.trim() !== '') {
+      query.append('period', params.period.trim());
+    }
+    if (params.finalization_status && params.finalization_status.trim() !== '') {
+      query.append('finalization_status', params.finalization_status.trim());
+    }
+  }
+
+  const qs = query.toString();
+  const endpoint = qs ? `/api/teacher/attendance/analytics?${qs}` : '/api/teacher/attendance/analytics';
+  return request<{ success: boolean; data: TeacherAttendanceAnalyticsResponse }>(endpoint, {
+    method: 'GET',
+  });
 }

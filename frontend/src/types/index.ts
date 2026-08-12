@@ -771,3 +771,175 @@ export interface AttendanceProofVerification {
   verified_at: string;
   message: string;
 }
+
+// ==============================================================================
+// TEACHER ATTENDANCE ANALYTICS & CLASS PERFORMANCE INSIGHTS (Feature #15)
+// ==============================================================================
+
+export interface TeacherAttendanceAnalyticsParams {
+  class_id?: string;
+  subject_id?: string;
+  from?: string;
+  to?: string;
+  period?: 'today' | 'this_week' | 'this_month' | 'last_7_days' | 'last_30_days' | 'current_semester' | 'custom' | string;
+  finalization_status?: 'ALL' | 'OPEN' | 'FINALIZED' | string;
+}
+
+export interface TeacherAttendanceAnalyticsSummary {
+  total_classes: number;
+  total_subjects: number;
+  total_students: number;
+  total_sessions: number;
+  total_present: number;
+  total_late: number;
+  total_absent: number;
+  total_attended: number;
+  attendance_percentage: number;
+  late_percentage: number;
+  below_requirement_students: number;
+  critical_students: number;
+  open_sessions: number;
+  finalized_sessions: number;
+}
+
+export interface TeacherAttendanceClassStat {
+  class_id: string;
+  class_name: string;
+  department: string;
+  semester: number;
+  section: string;
+  total_students: number;
+  total_sessions: number;
+  present: number;
+  late: number;
+  absent: number;
+  attendance_percentage: number;
+  late_percentage: number;
+  below_requirement_students: number;
+  critical_students: number;
+}
+
+export interface TeacherAttendanceSubjectStat {
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  classes_count: number;
+  total_sessions: number;
+  total_students: number;
+  present: number;
+  late: number;
+  absent: number;
+  attendance_percentage: number;
+  late_percentage: number;
+  below_requirement_students: number;
+  critical_students: number;
+}
+
+export interface TeacherAttendanceStandingDistribution {
+  requirement_met: number;
+  below_requirement: number;
+  critical: number;
+  total_evaluated: number;
+}
+
+export interface TeacherAttendanceStudentStat {
+  student_id: string;
+  user_id: string;
+  name: string;
+  roll_number: string;
+  email: string;
+  class_id: string;
+  class_name: string;
+  department: string;
+  total_sessions: number;
+  present: number;
+  late: number;
+  absent: number;
+  attendance_percentage: number;
+  late_percentage: number;
+  status: 'REQUIREMENT_MET' | 'BELOW_REQUIREMENT' | 'CRITICAL' | string;
+}
+
+export interface TeacherAttendanceLateAnalysis {
+  total_late: number;
+  late_percentage: number;
+  most_late_student?: TeacherAttendanceStudentStat | null;
+  highest_late_class?: TeacherAttendanceClassStat | null;
+  highest_late_subject?: TeacherAttendanceSubjectStat | null;
+}
+
+export interface TeacherAttendanceMonthlyTrend {
+  month: string;
+  month_label: string;
+  total_sessions: number;
+  present: number;
+  late: number;
+  absent: number;
+  attendance_percentage: number;
+  late_percentage: number;
+}
+
+export interface TeacherAttendanceWeeklyTrend {
+  day_of_week: number;
+  day_name: string;
+  total_sessions: number;
+  present: number;
+  late: number;
+  absent: number;
+  attendance_percentage: number;
+  late_percentage: number;
+}
+
+export interface TeacherAttendanceSessionPerformance {
+  session_id: string;
+  started_at: string;
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  class_id: string;
+  class_name: string;
+  total_students: number;
+  present: number;
+  late: number;
+  absent: number;
+  attendance_percentage: number;
+  late_percentage: number;
+  finalization_status: 'OPEN' | 'FINALIZED' | string;
+  finalized_at?: string | null;
+}
+
+export interface TeacherAttendanceCorrectionSummary {
+  total_manual_marks: number;
+  total_corrections: number;
+  present_to_late: number;
+  late_to_present: number;
+  absent_to_present: number;
+  absent_to_late: number;
+  other_corrections: number;
+}
+
+export interface TeacherAttendanceAnalyticsFilterInfo {
+  class_id?: string | null;
+  class_name?: string | null;
+  subject_id?: string | null;
+  subject_name?: string | null;
+  from?: string | null;
+  to?: string | null;
+  period: string;
+  finalization_status: string;
+}
+
+export interface TeacherAttendanceAnalyticsResponse {
+  summary: TeacherAttendanceAnalyticsSummary;
+  monthly_trend: TeacherAttendanceMonthlyTrend[];
+  weekly_trend: TeacherAttendanceWeeklyTrend[];
+  classes: TeacherAttendanceClassStat[];
+  subjects: TeacherAttendanceSubjectStat[];
+  distribution: TeacherAttendanceStandingDistribution;
+  top_students: TeacherAttendanceStudentStat[];
+  attention_students: TeacherAttendanceStudentStat[];
+  late_analysis: TeacherAttendanceLateAnalysis;
+  recent_sessions: TeacherAttendanceSessionPerformance[];
+  corrections: TeacherAttendanceCorrectionSummary;
+  filters: TeacherAttendanceAnalyticsFilterInfo;
+}

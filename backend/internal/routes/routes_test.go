@@ -94,6 +94,7 @@ func TestTeacherSessionRoutesRegistered(t *testing.T) {
 		{"Student Attendance Proof PDF", "GET", "/api/student/attendance/12345/proof/pdf", studentToken},
 		{"Teacher Attendance Proof", "GET", "/api/teacher/attendance/12345/proof", teacherToken},
 		{"Teacher Attendance Proof PDF", "GET", "/api/teacher/attendance/12345/proof/pdf", teacherToken},
+		{"Teacher Attendance Analytics", "GET", "/api/teacher/attendance/analytics", teacherToken},
 		{"Admin Attendance Proof", "GET", "/api/admin/attendance/12345/proof", adminToken},
 		{"Admin Attendance Proof PDF", "GET", "/api/admin/attendance/12345/proof/pdf", adminToken},
 		{"Public Attendance Proof Verification", "GET", "/api/attendance/proof/verify/ATT-2026-TESTCODE", ""},

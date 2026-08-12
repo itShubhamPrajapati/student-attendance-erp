@@ -946,3 +946,188 @@ type TeacherStudentAttendanceDetailResponse struct {
 	Subjects []TeacherStudentAttendanceDetailSubject `json:"subjects"`
 	History  TeacherStudentAttendanceDetailHistory   `json:"history"`
 }
+
+// ==============================================================================
+// TEACHER ATTENDANCE ANALYTICS & CLASS PERFORMANCE INSIGHTS (Feature #15)
+// ==============================================================================
+
+// TeacherAttendanceAnalyticsRequest captures query filter parameters
+type TeacherAttendanceAnalyticsRequest struct {
+	ClassID            *string `form:"class_id"`
+	SubjectID          *string `form:"subject_id"`
+	From               *string `form:"from"`
+	To                 *string `form:"to"`
+	Period             *string `form:"period"`              // "today", "this_week", "this_month", "last_7_days", "last_30_days", "current_semester", "custom"
+	FinalizationStatus *string `form:"finalization_status"` // "ALL", "OPEN", "FINALIZED"
+}
+
+// TeacherAttendanceAnalyticsSummary represents overarching KPIs for a teacher's assigned scope
+type TeacherAttendanceAnalyticsSummary struct {
+	TotalClasses             int64   `json:"total_classes"`
+	TotalSubjects            int64   `json:"total_subjects"`
+	TotalStudents            int64   `json:"total_students"`
+	TotalSessions            int64   `json:"total_sessions"`
+	TotalPresent             int64   `json:"total_present"`
+	TotalLate                int64   `json:"total_late"`
+	TotalAbsent              int64   `json:"total_absent"`
+	TotalAttended            int64   `json:"total_attended"` // Present + Late
+	AttendancePercentage     float64 `json:"attendance_percentage"`
+	LatePercentage           float64 `json:"late_percentage"`
+	BelowRequirementStudents int64   `json:"below_requirement_students"` // < 75%
+	CriticalStudents         int64   `json:"critical_students"`          // < 60%
+	OpenSessions             int64   `json:"open_sessions"`
+	FinalizedSessions        int64   `json:"finalized_sessions"`
+}
+
+// TeacherAttendanceClassStat represents class comparison metrics
+type TeacherAttendanceClassStat struct {
+	ClassID                  string  `json:"class_id"`
+	ClassName                string  `json:"class_name"`
+	Department               string  `json:"department"`
+	Semester                 int     `json:"semester"`
+	Section                  string  `json:"section"`
+	TotalStudents            int64   `json:"total_students"`
+	TotalSessions            int64   `json:"total_sessions"`
+	Present                  int64   `json:"present"`
+	Late                     int64   `json:"late"`
+	Absent                   int64   `json:"absent"`
+	AttendancePercentage     float64 `json:"attendance_percentage"`
+	LatePercentage           float64 `json:"late_percentage"`
+	BelowRequirementStudents int64   `json:"below_requirement_students"`
+	CriticalStudents         int64   `json:"critical_students"`
+}
+
+// TeacherAttendanceSubjectStat represents subject comparison metrics
+type TeacherAttendanceSubjectStat struct {
+	SubjectID                string  `json:"subject_id"`
+	SubjectName              string  `json:"subject_name"`
+	SubjectCode              string  `json:"subject_code"`
+	ClassesCount             int64   `json:"classes_count"`
+	TotalSessions            int64   `json:"total_sessions"`
+	TotalStudents            int64   `json:"total_students"`
+	Present                  int64   `json:"present"`
+	Late                     int64   `json:"late"`
+	Absent                   int64   `json:"absent"`
+	AttendancePercentage     float64 `json:"attendance_percentage"`
+	LatePercentage           float64 `json:"late_percentage"`
+	BelowRequirementStudents int64   `json:"below_requirement_students"`
+	CriticalStudents         int64   `json:"critical_students"`
+}
+
+// TeacherAttendanceStandingDistribution represents counts of students by standing tier
+type TeacherAttendanceStandingDistribution struct {
+	RequirementMet   int64 `json:"requirement_met"`   // >= 75%
+	BelowRequirement int64 `json:"below_requirement"` // 60% - 74.9%
+	Critical         int64 `json:"critical"`          // < 60%
+	TotalEvaluated   int64 `json:"total_evaluated"`
+}
+
+// TeacherAttendanceStudentStat represents ranked or attention student data
+type TeacherAttendanceStudentStat struct {
+	StudentID            string  `json:"student_id"`
+	UserID               string  `json:"user_id"`
+	Name                 string  `json:"name"`
+	RollNumber           string  `json:"roll_number"`
+	Email                string  `json:"email"`
+	ClassID              string  `json:"class_id"`
+	ClassName            string  `json:"class_name"`
+	Department           string  `json:"department"`
+	TotalSessions        int64   `json:"total_sessions"`
+	Present              int64   `json:"present"`
+	Late                 int64   `json:"late"`
+	Absent               int64   `json:"absent"`
+	AttendancePercentage float64 `json:"attendance_percentage"`
+	LatePercentage       float64 `json:"late_percentage"`
+	Status               string  `json:"status"` // "REQUIREMENT_MET", "BELOW_REQUIREMENT", "CRITICAL"
+}
+
+// TeacherAttendanceLateAnalysis represents deep-dive analytics on late attendance
+type TeacherAttendanceLateAnalysis struct {
+	TotalLate          int64                         `json:"total_late"`
+	LatePercentage     float64                       `json:"late_percentage"`
+	MostLateStudent    *TeacherAttendanceStudentStat `json:"most_late_student,omitempty"`
+	HighestLateClass   *TeacherAttendanceClassStat   `json:"highest_late_class,omitempty"`
+	HighestLateSubject *TeacherAttendanceSubjectStat `json:"highest_late_subject,omitempty"`
+}
+
+// TeacherAttendanceMonthlyTrend represents attendance trend metrics for a specific month
+type TeacherAttendanceMonthlyTrend struct {
+	Month                string  `json:"month"`       // "YYYY-MM"
+	MonthLabel           string  `json:"month_label"` // "Aug 2026"
+	TotalSessions        int64   `json:"total_sessions"`
+	Present              int64   `json:"present"`
+	Late                 int64   `json:"late"`
+	Absent               int64   `json:"absent"`
+	AttendancePercentage float64 `json:"attendance_percentage"`
+	LatePercentage       float64 `json:"late_percentage"`
+}
+
+// TeacherAttendanceWeeklyTrend represents day-of-week attendance distribution
+type TeacherAttendanceWeeklyTrend struct {
+	DayOfWeek            int     `json:"day_of_week"` // 1=Mon, 2=Tue, ..., 7=Sun
+	DayName              string  `json:"day_name"`    // "Monday", "Tuesday", etc.
+	TotalSessions        int64   `json:"total_sessions"`
+	Present              int64   `json:"present"`
+	Late                 int64   `json:"late"`
+	Absent               int64   `json:"absent"`
+	AttendancePercentage float64 `json:"attendance_percentage"`
+	LatePercentage       float64 `json:"late_percentage"`
+}
+
+// TeacherAttendanceSessionPerformance represents recent session summary item
+type TeacherAttendanceSessionPerformance struct {
+	SessionID            string     `json:"session_id"`
+	StartedAt            time.Time  `json:"started_at"`
+	SubjectID            string     `json:"subject_id"`
+	SubjectName          string     `json:"subject_name"`
+	SubjectCode          string     `json:"subject_code"`
+	ClassID              string     `json:"class_id"`
+	ClassName            string     `json:"class_name"`
+	TotalStudents        int64      `json:"total_students"`
+	Present              int64      `json:"present"`
+	Late                 int64      `json:"late"`
+	Absent               int64      `json:"absent"`
+	AttendancePercentage float64    `json:"attendance_percentage"`
+	LatePercentage       float64    `json:"late_percentage"`
+	FinalizationStatus   string     `json:"finalization_status"`
+	FinalizedAt          *time.Time `json:"finalized_at,omitempty"`
+}
+
+// TeacherAttendanceCorrectionSummary represents audit and manual modification metrics
+type TeacherAttendanceCorrectionSummary struct {
+	TotalManualMarks int64 `json:"total_manual_marks"`
+	TotalCorrections int64 `json:"total_corrections"`
+	PresentToLate    int64 `json:"present_to_late"`
+	LateToPresent    int64 `json:"late_to_present"`
+	AbsentToPresent  int64 `json:"absent_to_present"`
+	AbsentToLate     int64 `json:"absent_to_late"`
+	OtherCorrections int64 `json:"other_corrections"`
+}
+
+// TeacherAttendanceAnalyticsFilterInfo echoes back applied filters
+type TeacherAttendanceAnalyticsFilterInfo struct {
+	ClassID            *string `json:"class_id"`
+	ClassName          *string `json:"class_name"`
+	SubjectID          *string `json:"subject_id"`
+	SubjectName        *string `json:"subject_name"`
+	From               *string `json:"from"`
+	To                 *string `json:"to"`
+	Period             string  `json:"period"`
+	FinalizationStatus string  `json:"finalization_status"`
+}
+
+// TeacherAttendanceAnalyticsResponse represents the full payload of GET /api/teacher/attendance/analytics
+type TeacherAttendanceAnalyticsResponse struct {
+	Summary           TeacherAttendanceAnalyticsSummary     `json:"summary"`
+	MonthlyTrend      []TeacherAttendanceMonthlyTrend       `json:"monthly_trend"`
+	WeeklyTrend       []TeacherAttendanceWeeklyTrend        `json:"weekly_trend"`
+	Classes           []TeacherAttendanceClassStat          `json:"classes"`
+	Subjects          []TeacherAttendanceSubjectStat        `json:"subjects"`
+	Distribution      TeacherAttendanceStandingDistribution `json:"distribution"`
+	TopStudents       []TeacherAttendanceStudentStat        `json:"top_students"`
+	AttentionStudents []TeacherAttendanceStudentStat        `json:"attention_students"`
+	LateAnalysis      TeacherAttendanceLateAnalysis         `json:"late_analysis"`
+	RecentSessions    []TeacherAttendanceSessionPerformance `json:"recent_sessions"`
+	Corrections       TeacherAttendanceCorrectionSummary    `json:"corrections"`
+	Filters           TeacherAttendanceAnalyticsFilterInfo  `json:"filters"`
+}
