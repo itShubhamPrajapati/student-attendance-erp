@@ -135,7 +135,7 @@ export const Navbar: React.FC = () => {
                   'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-medium transition shadow-xs',
                   location.pathname === '/login'
                     ? 'bg-indigo-600 text-white shadow'
-                    : 'bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700'
+                    : 'bg-slate-700 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700'
                 )}
               >
                 <LogIn className="w-3.5 h-3.5" />

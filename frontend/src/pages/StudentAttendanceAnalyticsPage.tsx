@@ -257,7 +257,7 @@ export const StudentAttendanceAnalyticsPage: React.FC = () => {
           {/* ========================================================================= */}
           <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 sm:gap-3.5">
             {/* 1. Overall Percentage */}
-            <Card variant="glass-strong" hoverEffect className="col-span-2 p-5 bg-gradient-to-br from-indigo-950/80 via-slate-900/90 to-slate-950 text-white border-white/10 shadow-md flex flex-col justify-between">
+            <Card variant="glass-strong" hoverEffect className="col-span-2 p-5 bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 dark:from-indigo-950/80 dark:via-slate-900/90 dark:to-slate-950 text-white border-indigo-500/30 dark:border-white/10 shadow-md flex flex-col justify-between">
               <div className="flex items-start justify-between">
                 <div>
                   <span className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider block">

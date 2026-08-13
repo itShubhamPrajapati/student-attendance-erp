@@ -279,7 +279,7 @@ export const TeacherProfilePage: React.FC = () => {
       )}
 
       {/* Hero Profile Card */}
-      <Card className="p-6 bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white rounded-3xl shadow-lg border-indigo-800">
+      <Card className="p-6 bg-gradient-to-br from-amber-600 via-indigo-700 to-indigo-800 dark:from-indigo-900 dark:via-slate-900 dark:to-indigo-950 text-white rounded-3xl shadow-lg border-amber-500/40 dark:border-indigo-800">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
           {/* Avatar Initials Badge */}
           <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-500 to-orange-400 text-white font-heading font-black text-2xl flex items-center justify-center shadow-lg border-2 border-white/20 shrink-0">
@@ -620,7 +620,7 @@ export const TeacherProfilePage: React.FC = () => {
             </div>
 
             {/* Metric Banner */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white flex items-baseline justify-between">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 dark:from-slate-900 dark:to-indigo-950 text-white flex items-baseline justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase text-indigo-300 tracking-wider block">
                   Overall Student Attendance

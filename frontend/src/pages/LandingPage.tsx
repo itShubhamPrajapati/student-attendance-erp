@@ -47,7 +47,7 @@ export const LandingPage: React.FC = () => {
   return (
     <div className="space-y-10 py-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Hero Section with Liquid Glass & FluidGlass 3D Backdrop */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950/90 via-slate-900/95 to-slate-950 p-6 sm:p-10 lg:p-12 text-white shadow-xl border border-white/10 dark:border-white/10 backdrop-blur-2xl">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 dark:from-indigo-950/90 dark:via-slate-900/95 dark:to-slate-950 p-6 sm:p-10 lg:p-12 text-white shadow-xl border border-indigo-500/30 dark:border-white/10 backdrop-blur-2xl">
         {/* 3D FluidGlass Ambient Hero Element (Desktop only, lazy-loaded) */}
         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[340px] h-[340px] lg:w-[420px] lg:h-[420px] pointer-events-none hidden md:block opacity-80">
           <Suspense fallback={<div className="w-full h-full rounded-full bg-indigo-500/10 blur-3xl" />}>

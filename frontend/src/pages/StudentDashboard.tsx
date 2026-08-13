@@ -220,7 +220,7 @@ export const StudentDashboard: React.FC = () => {
       {/* Mobile-First Primary QR Scan & Profile Hero (Visible only on mobile screens < 640px) */}
       <div className="block sm:hidden space-y-3.5">
         {/* Mobile Student Profile & Status Summary Card */}
-        <Card className="p-4 bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 text-white shadow-md relative overflow-hidden border-indigo-950">
+        <Card className="p-4 bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 dark:from-indigo-900 dark:via-slate-900 dark:to-slate-950 text-white shadow-md relative overflow-hidden border-indigo-700 dark:border-indigo-950">
           <div className="flex items-start justify-between gap-3 relative z-10">
             <div className="space-y-0.5">
               <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-300">
@@ -248,7 +248,7 @@ export const StudentDashboard: React.FC = () => {
           </div>
 
           {/* Big Attendance Metric */}
-          <div className="mt-4 pt-3 border-t border-slate-800/80 relative z-10">
+          <div className="mt-4 pt-3 border-t border-indigo-500/40 dark:border-slate-800/80 relative z-10">
             <div className="flex items-baseline justify-between">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
@@ -269,7 +269,7 @@ export const StudentDashboard: React.FC = () => {
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden mt-2.5">
+            <div className="w-full bg-indigo-500/30 dark:bg-slate-800 rounded-full h-2 overflow-hidden mt-2.5">
               <div
                 className={`h-2 rounded-full transition-all duration-700 ${
                   overallPercentage >= MIN_ATTENDANCE_THRESHOLD ? 'bg-emerald-400' : 'bg-amber-400'
@@ -278,18 +278,18 @@ export const StudentDashboard: React.FC = () => {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-3 mt-3 border-t border-slate-800/60 font-medium">
-              <div className="p-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50">
-                <span className="text-slate-400 block text-[9px] uppercase">On-Time</span>
-                <span className="text-emerald-400 font-bold font-mono text-xs">{presentClasses}</span>
+            <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-3 mt-3 border-t border-indigo-500/30 dark:border-slate-800/60 font-medium">
+              <div className="p-1.5 rounded-lg bg-white/10 dark:bg-slate-800/60 border border-white/20 dark:border-slate-700/50">
+                <span className="text-indigo-100 dark:text-slate-400 block text-[9px] uppercase">On-Time</span>
+                <span className="text-emerald-300 dark:text-emerald-400 font-bold font-mono text-xs">{presentClasses}</span>
               </div>
-              <div className="p-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50">
-                <span className="text-slate-400 block text-[9px] uppercase">Late</span>
-                <span className="text-amber-400 font-bold font-mono text-xs">{lateClasses}</span>
+              <div className="p-1.5 rounded-lg bg-white/10 dark:bg-slate-800/60 border border-white/20 dark:border-slate-700/50">
+                <span className="text-indigo-100 dark:text-slate-400 block text-[9px] uppercase">Late</span>
+                <span className="text-amber-300 dark:text-amber-400 font-bold font-mono text-xs">{lateClasses}</span>
               </div>
-              <div className="p-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50">
-                <span className="text-slate-400 block text-[9px] uppercase">Missed</span>
-                <span className="text-rose-400 font-bold font-mono text-xs">{absentClasses}</span>
+              <div className="p-1.5 rounded-lg bg-white/10 dark:bg-slate-800/60 border border-white/20 dark:border-slate-700/50">
+                <span className="text-indigo-100 dark:text-slate-400 block text-[9px] uppercase">Missed</span>
+                <span className="text-rose-300 dark:text-rose-400 font-bold font-mono text-xs">{absentClasses}</span>
               </div>
             </div>
           </div>
@@ -536,18 +536,18 @@ export const StudentDashboard: React.FC = () => {
           {/* 4. Four Summary KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* KPI 1: Overall Attendance % */}
-            <Card variant="glass-strong" hoverEffect className="p-5 shadow-md bg-gradient-to-br from-indigo-950/90 via-slate-900/90 to-slate-950 text-white flex flex-col justify-between relative overflow-hidden border-white/10">
+            <Card hoverEffect className="p-5 shadow-md bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 dark:from-indigo-950/90 dark:via-slate-900/90 dark:to-slate-950 text-white flex flex-col justify-between relative overflow-hidden border-indigo-500/30 dark:border-white/10">
               <div className="space-y-1.5 relative z-10">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-300">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-100 dark:text-indigo-300">
                     Overall Attendance
                   </span>
                   <Badge
                     variant={overallPercentage >= MIN_ATTENDANCE_THRESHOLD ? 'success' : 'warning'}
                     className={`text-[10px] ${
                       overallPercentage >= MIN_ATTENDANCE_THRESHOLD
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                        ? 'bg-emerald-500/20 text-emerald-100 dark:text-emerald-300 border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-100 dark:text-amber-300 border-amber-500/30'
                     }`}
                   >
                     {totalClasses === 0
@@ -561,20 +561,20 @@ export const StudentDashboard: React.FC = () => {
                   <span className="text-4xl font-extrabold font-heading font-mono text-white">
                     {overallPercentage}%
                   </span>
-                  <span className="text-xs font-mono text-indigo-200">
+                  <span className="text-xs font-mono text-indigo-100 dark:text-indigo-200">
                     Target: {MIN_ATTENDANCE_THRESHOLD}%
                   </span>
                 </div>
-                <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden mt-2">
+                <div className="w-full bg-white/20 dark:bg-slate-800 rounded-full h-2 overflow-hidden mt-2">
                   <div
                     className={`h-2 rounded-full transition-all duration-700 ${
-                      overallPercentage >= MIN_ATTENDANCE_THRESHOLD ? 'bg-emerald-400' : 'bg-amber-400'
+                      overallPercentage >= MIN_ATTENDANCE_THRESHOLD ? 'bg-emerald-300 dark:bg-emerald-400' : 'bg-amber-300 dark:bg-amber-400'
                     }`}
                     style={{ width: `${Math.min(100, overallPercentage)}%` }}
                   />
                 </div>
               </div>
-              <p className="text-[11px] text-slate-300 pt-3 relative z-10">
+              <p className="text-[11px] text-indigo-100 dark:text-slate-300 pt-3 relative z-10">
                 Calculated across all courses & lectures held for your class batch.
               </p>
             </Card>

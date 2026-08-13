@@ -312,7 +312,7 @@ export const TeacherAttendanceAnalyticsPage: React.FC = () => {
           {/* ========================================================================= */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
             {/* 1. Overall Attendance Rate */}
-            <Card className="p-4 sm:p-5 bg-gradient-to-br from-indigo-900 to-slate-900 text-white shadow-md rounded-3xl col-span-2 sm:col-span-1 flex flex-col justify-between">
+            <Card className="p-4 sm:p-5 bg-gradient-to-br from-indigo-600 to-indigo-800 dark:from-indigo-900 dark:to-slate-900 text-white shadow-md rounded-3xl col-span-2 sm:col-span-1 flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300 block">
                   Overall Attendance Rate
@@ -333,29 +333,29 @@ export const TeacherAttendanceAnalyticsPage: React.FC = () => {
             </Card>
 
             {/* 2. Total Enrolled Students */}
-            <Card className="p-4 sm:p-5 bg-white border-slate-200/80 shadow-xs rounded-3xl flex flex-col justify-between">
+            <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs rounded-3xl flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                   Enrolled Students
                 </span>
-                <span className="text-2xl sm:text-3xl font-extrabold font-heading text-slate-900 mt-1.5 block">
+                <span className="text-2xl sm:text-3xl font-extrabold font-heading text-slate-900 dark:text-white mt-1.5 block">
                   {summary?.total_students.toLocaleString()}
                 </span>
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
                 <span>Across Classes:</span>
-                <span className="font-bold text-slate-800">{summary?.total_classes} Classes</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{summary?.total_classes} Classes</span>
               </div>
             </Card>
 
             {/* 3. Sessions Held */}
-            <Card className="p-4 sm:p-5 bg-white border-slate-200/80 shadow-xs rounded-3xl flex flex-col justify-between">
+            <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs rounded-3xl flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                   Sessions Conducted
                 </span>
-                <span className="text-2xl sm:text-3xl font-extrabold font-heading text-slate-900 mt-1.5 block">
+                <span className="text-2xl sm:text-3xl font-extrabold font-heading text-slate-900 dark:text-white mt-1.5 block">
                   {summary?.total_sessions.toLocaleString()}
                 </span>
               </div>
@@ -367,7 +367,7 @@ export const TeacherAttendanceAnalyticsPage: React.FC = () => {
             </Card>
 
             {/* 4. Attendance Breakdown */}
-            <Card className="p-4 sm:p-5 bg-white border-slate-200/80 shadow-xs rounded-3xl flex flex-col justify-between">
+            <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs rounded-3xl flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                   Status Breakdown
@@ -375,13 +375,13 @@ export const TeacherAttendanceAnalyticsPage: React.FC = () => {
                 <div className="flex items-center gap-3 mt-1.5">
                   <div>
                     <span className="text-xs font-bold text-emerald-600 block">Present</span>
-                    <span className="text-base font-extrabold font-mono text-slate-900">
+                    <span className="text-base font-extrabold font-mono text-slate-900 dark:text-white">
                       {summary?.total_present.toLocaleString()}
                     </span>
                   </div>
-                  <div className="border-l border-slate-200 pl-3">
+                  <div className="border-l border-slate-200 dark:border-slate-700 pl-3">
                     <span className="text-xs font-bold text-amber-600 block">Late</span>
-                    <span className="text-base font-extrabold font-mono text-slate-900">
+                    <span className="text-base font-extrabold font-mono text-slate-900 dark:text-white">
                       {summary?.total_late.toLocaleString()}
                     </span>
                   </div>
@@ -395,7 +395,7 @@ export const TeacherAttendanceAnalyticsPage: React.FC = () => {
             </Card>
 
             {/* 5. Standing Attention Needed */}
-            <Card className="p-4 sm:p-5 bg-white border-slate-200/80 shadow-xs rounded-3xl col-span-2 sm:col-span-1 flex flex-col justify-between">
+            <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs rounded-3xl col-span-2 sm:col-span-1 flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 block">
                   Standing Attention
