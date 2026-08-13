@@ -115,8 +115,10 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
   const summary = historyData?.summary || {
     total: 0,
     present: 0,
+    late: 0,
     absent: 0,
     percentage: 0,
+    late_percentage: 0,
   };
 
   const pagination = historyData?.pagination || {
@@ -169,32 +171,37 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
     return 'Standard Session';
   };
 
+  // Mobile Filter Sheet / Modal State
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  const activeFilterCount = (selectedSubjectId ? 1 : 0) + (selectedStatus ? 1 : 0) + (fromDate ? 1 : 0) + (toDate ? 1 : 0);
+
   return (
-    <div className="space-y-6 pb-12">
-      {/* 1. Header with Cross-Feature Navigation */}
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* 1. Header Section */}
       <PageHeader
-        title="Attendance History"
-        description="Comprehensive log of all conducted lectures, verified check-in timestamps, and session details."
+        title="Student Attendance History"
+        description="Comprehensive audit-logged record of your attendance check-ins, timestamps, verified lectures, and proof tokens."
         badge={
-          <Badge variant="info" withDot>
-            Student History
+          <Badge variant="success" withDot>
+            Verified Attendance History
           </Badge>
         }
         actions={
           <div className="flex items-center gap-2 flex-wrap">
-            <Link to="/student">
-              <Button variant="outline" size="sm" leftIcon={<Layers className="w-3.5 h-3.5" />}>
-                Overview
+            <Link to="/attendance/scan">
+              <Button variant="primary" size="sm" leftIcon={<Camera className="w-3.5 h-3.5" />}>
+                Scan Attendance QR
+              </Button>
+            </Link>
+            <Link to="/student/attendance/analytics">
+              <Button variant="outline" size="sm" leftIcon={<TrendingUp className="w-3.5 h-3.5" />}>
+                Analytics
               </Button>
             </Link>
             <Link to="/student/attendance/calendar">
               <Button variant="outline" size="sm" leftIcon={<Calendar className="w-3.5 h-3.5" />}>
                 Calendar View
-              </Button>
-            </Link>
-            <Link to="/attendance/scan">
-              <Button variant="primary" size="sm" leftIcon={<Camera className="w-3.5 h-3.5" />}>
-                Scan QR
               </Button>
             </Link>
             <Button
@@ -210,16 +217,16 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
         }
       />
 
-      {/* 2. Top Summary Metrics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Lectures */}
+      {/* 2. KPI Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Total Sessions Held */}
         <Card className="p-4 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Total Lectures
             </span>
             <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-              <BookOpen className="w-4 h-4" />
+              <Layers className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
@@ -230,7 +237,7 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* Attended (Present) */}
+        {/* Attended (Present + Late) */}
         <Card className="p-4 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -242,9 +249,11 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {summary.present}
+              {summary.present + summary.late}
             </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">Present</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              ({summary.present} on-time, {summary.late} late)
+            </span>
           </div>
         </Card>
 
@@ -293,29 +302,12 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* 3. Filter Bar */}
+      {/* 3. Filter Bar (Responsive for Desktop and Mobile) */}
       <Card className="p-4 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-              <Filter className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Filter Attendance Records</span>
-            </div>
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={handleClearFilters}
-                className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-medium hover:underline flex items-center gap-1"
-              >
-                <X className="w-3 h-3" />
-                Clear Filters
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {/* Search Input */}
-            <div className="relative">
+          {/* Mobile Filter Header & Search Bar */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -325,10 +317,43 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               />
             </div>
 
+            {/* Mobile Filter Button */}
+            <div className="md:hidden">
+              <Button
+                type="button"
+                variant={activeFilterCount > 0 ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setIsMobileFilterOpen(true)}
+                className="text-xs h-[38px] px-3 font-semibold flex items-center gap-1.5"
+              >
+                <Filter className="w-3.5 h-3.5" />
+                <span>Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="w-4 h-4 rounded-full bg-white text-indigo-700 text-[10px] font-extrabold flex items-center justify-center ml-0.5">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="hidden md:flex text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-medium hover:underline items-center gap-1 flex-shrink-0"
+              >
+                <X className="w-3 h-3" />
+                Clear Filters
+              </button>
+            )}
+          </div>
+
+          {/* Desktop Filter Row (Hidden on mobile < 768px) */}
+          <div className="hidden md:grid grid-cols-4 gap-3 pt-1">
             {/* Subject Filter */}
             <div>
               <select
@@ -337,6 +362,7 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
                   setSelectedSubjectId(e.target.value);
                   setCurrentPage(1);
                 }}
+                aria-label="Filter by subject"
                 className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               >
                 <option value="">All Subjects</option>
@@ -356,6 +382,7 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
                   setSelectedStatus(e.target.value);
                   setCurrentPage(1);
                 }}
+                aria-label="Filter by attendance status"
                 className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               >
                 <option value="">All Statuses</option>
@@ -375,6 +402,7 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
                   setCurrentPage(1);
                 }}
                 title="From Date"
+                aria-label="From Date"
                 className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               />
             </div>
@@ -389,12 +417,143 @@ export const StudentAttendanceHistoryPage: React.FC = () => {
                   setCurrentPage(1);
                 }}
                 title="To Date"
+                aria-label="To Date"
                 className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               />
             </div>
           </div>
         </div>
       </Card>
+
+      {/* Mobile Filter Modal / Bottom Sheet */}
+      {isMobileFilterOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div
+            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 max-h-[85vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                  <Filter className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">
+                  Filter Attendance History
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileFilterOpen(false)}
+                aria-label="Close filter modal"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 space-y-3.5 overflow-y-auto flex-1 text-xs">
+              {/* Subject */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Course Subject
+                </label>
+                <select
+                  value={selectedSubjectId}
+                  onChange={(e) => {
+                    setSelectedSubjectId(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full px-3 py-2.5 text-xs border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                >
+                  <option value="">All Subjects</option>
+                  {subjects.map((sub) => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.name} ({sub.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Attendance Status
+                </label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => {
+                    setSelectedStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full px-3 py-2.5 text-xs border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="PRESENT">On-Time (Present)</option>
+                  <option value="LATE">Late (Attended)</option>
+                  <option value="ABSENT">Absent (Missed)</option>
+                </select>
+              </div>
+
+              {/* From & To Date */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    From Date
+                  </label>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => {
+                      setFromDate(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    To Date
+                  </label>
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => {
+                      setToDate(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="md"
+                className="flex-1 text-xs min-h-[44px]"
+                onClick={() => {
+                  handleClearFilters();
+                  setIsMobileFilterOpen(false);
+                }}
+              >
+                Clear All
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                className="flex-1 text-xs min-h-[44px] font-bold"
+                onClick={() => setIsMobileFilterOpen(false)}
+              >
+                Apply Filters
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error Banner with Retry */}
       {error && (

@@ -376,9 +376,10 @@ export const StudentAttendanceCalendarPage: React.FC = () => {
                 {WEEKDAYS.map((wd) => (
                   <div
                     key={wd}
-                    className="text-[11px] font-bold uppercase tracking-wider text-slate-400"
+                    className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400"
                   >
-                    {wd}
+                    <span className="hidden sm:inline">{wd}</span>
+                    <span className="sm:hidden">{wd.slice(0, 2)}</span>
                   </div>
                 ))}
               </div>

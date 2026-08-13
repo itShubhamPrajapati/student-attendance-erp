@@ -319,33 +319,40 @@ export const StudentScanAttendancePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+          <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5">
             {successData.attendance_id && (
               <Button
                 size="md"
                 variant="primary"
                 onClick={() => setShowProofModal(true)}
-                className="w-full sm:w-auto shadow-sm"
+                className="w-full sm:w-auto min-h-[44px] shadow-sm font-bold flex items-center justify-center gap-2"
                 leftIcon={<FileText className="w-4 h-4" />}
               >
                 View Attendance Proof
               </Button>
             )}
-            <Link to="/student" className="w-full sm:w-auto">
-              <Button size="md" variant="outline" className="w-full sm:w-auto" leftIcon={<ArrowLeft className="w-4 h-4" />}>
-                Back to Dashboard
+            <Link to="/student/attendance/history" className="w-full sm:w-auto">
+              <Button size="md" variant="outline" className="w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-2" leftIcon={<Clock className="w-4 h-4 text-indigo-600" />}>
+                Attendance History
               </Button>
             </Link>
             <Button
               size="md"
               variant="outline"
+              className="w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-2"
               onClick={() => {
                 setSuccessData(null);
                 startCamera();
               }}
+              leftIcon={<RefreshCw className="w-4 h-4" />}
             >
-              Scan Another Session
+              Scan Another QR
             </Button>
+            <Link to="/student" className="w-full sm:w-auto">
+              <Button size="md" variant="outline" className="w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-2" leftIcon={<ArrowLeft className="w-4 h-4" />}>
+                Dashboard
+              </Button>
+            </Link>
           </div>
         </Card>
       )}
