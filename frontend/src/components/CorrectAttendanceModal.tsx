@@ -113,7 +113,7 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
       aria-modal="true"
       aria-labelledby="correct-attendance-title"
     >
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-4.5 bg-gradient-to-r from-amber-900 via-amber-800 to-slate-900 text-white flex items-center justify-between border-b border-amber-700/50">
           <div className="flex items-center gap-3">
@@ -143,25 +143,25 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
         {/* Content Form */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 text-xs">
           {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-start gap-2.5">
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
               <div className="space-y-0.5">
                 <p className="font-semibold">Unable to correct attendance</p>
-                <p className="text-[11px] text-rose-600">{errorMessage}</p>
+                <p className="text-[11px] text-rose-600 dark:text-rose-400">{errorMessage}</p>
               </div>
             </div>
           )}
 
           {/* Student Info Card */}
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
                   <User className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-900 font-heading text-sm">{student.name}</h4>
-                  <p className="text-[11px] text-slate-400 font-mono">Roll: #{student.roll_number}</p>
+                  <h4 className="font-bold text-slate-900 dark:text-white font-heading text-sm">{student.name}</h4>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">Roll: #{student.roll_number}</p>
                 </div>
               </div>
               <Badge
@@ -175,7 +175,7 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
 
           {/* Status Change Selector */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
               Status Change Transition
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -184,11 +184,11 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
                 onClick={() => setTargetStatus('PRESENT')}
                 className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border font-bold transition text-xs ${
                   targetStatus === 'PRESENT'
-                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700 ring-2 ring-emerald-500/20'
-                    : 'bg-slate-50/70 border-slate-200 text-slate-500 hover:bg-slate-100'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
+                    : 'bg-slate-50/70 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
               >
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>PRESENT</span>
               </button>
 
@@ -197,11 +197,11 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
                 onClick={() => setTargetStatus('LATE')}
                 className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border font-bold transition text-xs ${
                   targetStatus === 'LATE'
-                    ? 'bg-amber-50 border-amber-500 text-amber-800 ring-2 ring-amber-500/20'
-                    : 'bg-slate-50/70 border-slate-200 text-slate-500 hover:bg-slate-100'
+                    ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-500 text-amber-800 dark:text-amber-300 ring-2 ring-amber-500/20'
+                    : 'bg-slate-50/70 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
               >
-                <Clock className="w-4 h-4 text-amber-600" />
+                <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 <span>LATE</span>
               </button>
 
@@ -210,30 +210,30 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
                 onClick={() => setTargetStatus('ABSENT')}
                 className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border font-bold transition text-xs ${
                   targetStatus === 'ABSENT'
-                    ? 'bg-rose-50 border-rose-500 text-rose-700 ring-2 ring-rose-500/20'
-                    : 'bg-slate-50/70 border-slate-200 text-slate-500 hover:bg-slate-100'
+                    ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-500 text-rose-700 dark:text-rose-300 ring-2 ring-rose-500/20'
+                    : 'bg-slate-50/70 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
               >
-                <XCircle className="w-4 h-4 text-rose-600" />
+                <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                 <span>ABSENT</span>
               </button>
             </div>
 
             {/* Visual Transition Badge */}
-            <div className="mt-2.5 p-2 rounded-xl bg-amber-50/60 border border-amber-200/60 flex items-center justify-center gap-2 text-xs font-semibold">
-              <span className="text-slate-600">Transition:</span>
+            <div className="mt-2.5 p-2 rounded-xl bg-amber-50/60 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 flex items-center justify-center gap-2 text-xs font-semibold">
+              <span className="text-slate-600 dark:text-slate-400">Transition:</span>
               <span
                 className={`px-2 py-0.5 rounded font-mono text-[11px] font-bold ${
                   currentStatus === 'PRESENT'
-                    ? 'bg-emerald-100 text-emerald-800'
+                    ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
                     : currentStatus === 'LATE'
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-slate-200 text-slate-700'
+                    ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                 }`}
               >
                 {currentStatus}
               </span>
-              <ArrowRight className="w-3.5 h-3.5 text-amber-700" />
+              <ArrowRight className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
               <span
                 className={`px-2 py-0.5 rounded font-mono text-[11px] font-bold ${
                   targetStatus === 'PRESENT'
@@ -248,7 +248,7 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
             </div>
 
             {!isStatusChanged && (
-              <p className="mt-1 text-[11px] text-amber-700 font-medium">
+              <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400 font-medium">
                 * Please select a new status different from the recorded status ({currentStatus}).
               </p>
             )}
@@ -259,20 +259,20 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
             <div className="flex items-center justify-between mb-1.5">
               <label
                 htmlFor="correct-reason"
-                className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5"
+                className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5"
               >
-                <FileText className="w-3.5 h-3.5 text-amber-700" />
+                <FileText className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
                 Mandatory Correction Reason <span className="text-rose-500">*</span>
               </label>
               <span
                 className={`font-mono text-[11px] font-semibold ${
                   charCount === 0
-                    ? 'text-slate-400'
+                    ? 'text-slate-400 dark:text-slate-500'
                     : charCount < 5
-                    ? 'text-amber-600'
+                    ? 'text-amber-600 dark:text-amber-400'
                     : charCount <= 500
-                    ? 'text-emerald-600'
-                    : 'text-rose-600'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-rose-600 dark:text-rose-400'
                 }`}
               >
                 {charCount} / 500 characters
@@ -286,10 +286,10 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               disabled={isSubmitting}
-              className="w-full text-xs rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-slate-800 focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs resize-none"
+              className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 p-3 text-slate-800 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs resize-none"
             />
 
-            <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-500">
+            <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
               <HelpCircle className="w-3 h-3 text-slate-400 shrink-0" />
               <span>
                 Minimum 5 characters. All changes and teacher identities are audited and time-stamped.
@@ -298,7 +298,7 @@ export const CorrectAttendanceModal: React.FC<CorrectAttendanceModalProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
             <Button
               type="button"
               variant="outline"

@@ -500,25 +500,25 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT / MAIN COLUMN: QR Code & Expiration Box (7 Cols) */}
         <div className="lg:col-span-7 space-y-5">
-          <Card className="p-6 sm:p-7 flex flex-col items-center justify-center text-center space-y-5 bg-white border-slate-200/80 shadow-md">
+          <Card className="p-6 sm:p-7 flex flex-col items-center justify-center text-center space-y-5 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-md">
             {/* Metadata Banner */}
-            <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 text-left">
+            <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800 text-left">
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Course Subject</span>
-                <h3 className="text-base font-bold text-slate-900 font-heading">{session.subject_name}</h3>
-                <p className="text-xs font-mono font-semibold text-indigo-600">{session.subject_code}</p>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">Course Subject</span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">{session.subject_name}</h3>
+                <p className="text-xs font-mono font-semibold text-indigo-600 dark:text-indigo-400">{session.subject_code}</p>
               </div>
               <div className="text-right">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Class Batch</span>
-                <p className="text-xs font-bold text-slate-800">{session.class_name}</p>
-                <p className="text-[11px] text-slate-500 font-medium">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">Class Batch</span>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{session.class_name}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                   Sem {session.semester} &bull; Section {session.section}
                 </p>
               </div>
             </div>
 
             {/* Large QR Display Container */}
-            <div className="relative p-6 rounded-3xl bg-slate-50 border border-slate-200/80 shadow-inner flex flex-col items-center justify-center w-full max-w-[340px]">
+            <div className="relative p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 shadow-inner flex flex-col items-center justify-center w-full max-w-[340px]">
               <div
                 className={`p-4 rounded-2xl bg-white shadow-xs transition duration-300 ${
                   !isLive ? 'opacity-20 blur-[2px] grayscale' : ''
@@ -536,7 +536,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
 
               {/* Expired / Ended Overlay */}
               {!isLive && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-5 bg-slate-900/70 backdrop-blur-xs rounded-3xl text-white space-y-3">
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-5 bg-slate-900/80 backdrop-blur-xs rounded-3xl text-white space-y-3">
                   <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-400 flex items-center justify-center">
                     <Lock className="w-6 h-6" />
                   </div>
@@ -565,44 +565,44 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
             </div>
 
             {/* QR Countdown & Live Status Box */}
-            <div className="w-full p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5 text-center">
-              <div className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <div className="w-full p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 space-y-1.5 text-center">
+              <div className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                 <span>QR Status:</span>
-                <span className={isLive ? 'text-emerald-700 font-bold' : 'text-slate-500 font-semibold'}>
+                <span className={isLive ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 dark:text-slate-400 font-semibold'}>
                   {isLive ? '● ACTIVE' : !session.is_active ? 'COMPLETED' : 'EXPIRED'}
                 </span>
               </div>
 
-              <div className="text-xs text-slate-600 font-medium">
+              <div className="text-xs text-slate-600 dark:text-slate-300 font-medium">
                 {isLive ? (
                   <span>
                     QR expires in:{' '}
                     <strong
                       className={`font-mono text-sm ${
                         secondsRemaining < 60
-                          ? 'text-rose-600 font-bold animate-pulse'
+                          ? 'text-rose-600 dark:text-rose-400 font-bold animate-pulse'
                           : secondsRemaining < 120
-                          ? 'text-amber-600 font-bold'
-                          : 'text-indigo-900 font-bold'
+                          ? 'text-amber-600 dark:text-amber-400 font-bold'
+                          : 'text-indigo-900 dark:text-indigo-300 font-bold'
                       }`}
                     >
                       {formatTime(secondsRemaining)}
                     </strong>
                   </span>
                 ) : (
-                  <span className="text-slate-400 font-mono text-xs">00:00 (Check-ins Closed)</span>
+                  <span className="text-slate-400 dark:text-slate-500 font-mono text-xs">00:00 (Check-ins Closed)</span>
                 )}
               </div>
             </div>
 
-            <p className="text-xs text-slate-500 max-w-md">
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
               Students must scan this QR code with their mobile device logged into the student portal.
             </p>
 
             {/* Bottom Session Action Controls */}
             {isLive && (
-              <div className="w-full pt-2 border-t border-slate-100 flex justify-center">
+              <div className="w-full pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-center">
                 <Button
                   variant="danger"
                   size="md"
@@ -617,19 +617,19 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
           </Card>
 
           {/* Late Attendance Threshold Configuration Card (Feature #12) */}
-          <Card className="p-5 bg-white border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <Card className="p-5 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 font-heading">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white font-heading">
                     Late Attendance Configuration
                   </h4>
-                  <p className="text-[11px] text-slate-500">
-                    Threshold: <strong className="text-slate-800 font-semibold">{currentLateThreshold} minutes</strong> &bull; Cutoff:{' '}
-                    <span className="font-mono font-medium text-slate-700">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Threshold: <strong className="text-slate-800 dark:text-slate-200 font-semibold">{currentLateThreshold} minutes</strong> &bull; Cutoff:{' '}
+                    <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
                       {lateCutoffDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </span>
                   </p>
@@ -640,12 +640,12 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
               {isLive && (
                 <div>
                   {isLateWindowActive ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300/80 shadow-xs animate-pulse">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-200 border border-amber-300/80 dark:border-amber-700 shadow-xs animate-pulse">
                       <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                       LATE WINDOW ACTIVE
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300/80 shadow-xs">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-200 border border-emerald-300/80 dark:border-emerald-700 shadow-xs">
                       <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                       ON-TIME WINDOW ({formatTime(onTimeRemainingSecs)})
                     </span>
@@ -656,7 +656,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
 
             {/* Threshold Preset Selectors */}
             <div className="space-y-2">
-              <span className="text-[11px] font-semibold text-slate-600 block">
+              <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block">
                 Quick Adjust Late Window:
               </span>
               <div className="flex flex-wrap items-center gap-1.5">
@@ -672,10 +672,10 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                     type="button"
                     onClick={() => handleSaveLateThreshold(preset.value)}
                     disabled={savingLateThreshold}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold border transition ${
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold border transition cursor-pointer ${
                       currentLateThreshold === preset.value
                         ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                        : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
                     }`}
                   >
                     {preset.label}
@@ -693,10 +693,10 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                   max="180"
                   value={lateThresholdInput}
                   onChange={(e) => setLateThresholdInput(Math.max(0, Math.min(180, parseInt(e.target.value) || 0)))}
-                  className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-mono text-slate-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-slate-100 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
                   placeholder="Minutes (0-180)"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-medium">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 dark:text-slate-500 font-medium">
                   min
                 </span>
               </div>
@@ -713,18 +713,18 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
 
             {/* Alerts */}
             {lateThresholdSuccess && (
-              <p className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 p-2 rounded-xl">
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800 p-2 rounded-xl">
                 {lateThresholdSuccess}
               </p>
             )}
             {lateThresholdError && (
-              <p className="text-[11px] text-rose-700 bg-rose-50 border border-rose-200/80 p-2 rounded-xl">
+              <p className="text-[11px] text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800 p-2 rounded-xl">
                 {lateThresholdError}
               </p>
             )}
 
-            <div className="text-[11px] text-slate-500 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100">
-              💡 <strong>Academic Rule:</strong> Students who scan after the threshold are automatically recorded as <strong className="text-amber-700">LATE</strong>. Per policy, late attendance counts as <strong>ATTENDED</strong> towards required attendance.
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50/70 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700">
+              💡 <strong>Academic Rule:</strong> Students who scan after the threshold are automatically recorded as <strong className="text-amber-700 dark:text-amber-400">LATE</strong>. Per policy, late attendance counts as <strong>ATTENDED</strong> towards required attendance.
             </div>
           </Card>
         </div>
@@ -732,10 +732,10 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
         {/* RIGHT / SUMMARY COLUMN: Counters, Progress & Live Student Feed (5 Cols) */}
         <div className="lg:col-span-5 space-y-4">
           {/* 1. Summary KPI & Progress Card */}
-          <Card className="p-5 bg-white border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-800 font-heading">
-                <Users className="w-4 h-4 text-indigo-600" />
+          <Card className="p-5 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 font-heading">
+                <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <span>Attendance Telemetry</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -754,24 +754,24 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
             {/* Attendance Big Number Metrics */}
             <div className="grid grid-cols-2 gap-3 items-end">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-0.5">
                   Total Attended
                 </span>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-extrabold text-slate-900 font-heading">
+                  <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-heading">
                     {attendedCount}
                   </span>
-                  <span className="text-sm font-semibold text-slate-400">
+                  <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">
                     / {totalStudents}
                   </span>
                 </div>
               </div>
 
               <div className="text-right">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-0.5">
                   Attendance Rate
                 </span>
-                <span className="text-2xl font-extrabold text-indigo-600 font-heading font-mono">
+                <span className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 font-heading font-mono">
                   {attendancePercentage}%
                 </span>
               </div>
@@ -779,23 +779,23 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
 
             {/* Three Breakdown Chips (Present, Late, Absent) */}
             <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono">
-              <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200/60">
-                <span className="text-[10px] font-bold text-emerald-800 block uppercase">On-Time</span>
-                <span className="text-base font-extrabold text-emerald-700">{presentCount}</span>
+              <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800">
+                <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 block uppercase">On-Time</span>
+                <span className="text-base font-extrabold text-emerald-700 dark:text-emerald-400">{presentCount}</span>
               </div>
-              <div className="p-2 rounded-xl bg-amber-50 border border-amber-200/60">
-                <span className="text-[10px] font-bold text-amber-800 block uppercase">Late ({latePercentage}%)</span>
-                <span className="text-base font-extrabold text-amber-700">{lateCount}</span>
+              <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200/60 dark:border-amber-800">
+                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 block uppercase">Late ({latePercentage}%)</span>
+                <span className="text-base font-extrabold text-amber-700 dark:text-amber-400">{lateCount}</span>
               </div>
-              <div className="p-2 rounded-xl bg-rose-50 border border-rose-200/60">
-                <span className="text-[10px] font-bold text-rose-800 block uppercase">Absent</span>
-                <span className="text-base font-extrabold text-rose-700">{absentCount}</span>
+              <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200/60 dark:border-rose-800">
+                <span className="text-[10px] font-bold text-rose-800 dark:text-rose-300 block uppercase">Absent</span>
+                <span className="text-base font-extrabold text-rose-700 dark:text-rose-400">{absentCount}</span>
               </div>
             </div>
 
-            {/* Dual-Tone Visual Progress Bar */}
+            {/* Segmented Progress Bar (On-Time in Emerald, Late in Amber, Absent remainder in Slate) */}
             <div className="space-y-1">
-              <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden flex">
+              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 overflow-hidden flex shadow-inner">
                 <div
                   className="bg-emerald-500 h-3 transition-all duration-500 ease-out"
                   style={{ width: `${totalStudents > 0 ? (presentCount / totalStudents) * 100 : 0}%` }}
@@ -807,31 +807,31 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                   title={`Late: ${lateCount}`}
                 />
               </div>
-              <div className="flex justify-between text-[10px] text-slate-400 font-medium">
+              <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 font-medium">
                 <span>{attendedCount} Total Attended ({presentCount} on-time, {lateCount} late)</span>
                 <span>{absentCount} Absent</span>
               </div>
             </div>
 
             {/* Session Duration & Started Info */}
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-1 font-medium">
-                <Clock className="w-3 h-3 text-slate-400" />
+                <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                 <span>Duration: {durationMinutes} min</span>
               </div>
-              <span className="font-mono text-slate-400">
+              <span className="font-mono text-slate-400 dark:text-slate-500">
                 Started {new Date(session.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           </Card>
 
           {/* 2. Live Student Attendance List Card */}
-          <Card className="p-0 overflow-hidden bg-white border-slate-200/80 shadow-xs">
+          <Card className="p-0 overflow-hidden bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs">
             {/* Header with Search */}
-            <div className="p-4 border-b border-slate-100 bg-slate-50/50 space-y-2.5">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-heading">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 font-heading">
                     Live Check-Ins ({attendedCount})
                   </h4>
                   {isLive && (
@@ -842,7 +842,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                   )}
                 </div>
                 {lastUpdated && (
-                  <span className="text-[10px] font-mono text-slate-400">
+                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
                     Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
                 )}
@@ -850,14 +850,14 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
 
               {/* Non-blocking Poll Error Notice */}
               {pollError && (
-                <div className="p-2 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-between text-[11px] text-amber-800">
+                <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800 flex items-center justify-between text-[11px] text-amber-800 dark:text-amber-300">
                   <div className="flex items-center gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                     <span>Live attendance updates temporarily unavailable</span>
                   </div>
                   <button
                     onClick={() => fetchLiveData(true)}
-                    className="font-bold underline hover:text-amber-900"
+                    className="font-bold underline hover:text-amber-900 dark:hover:text-amber-100 cursor-pointer"
                   >
                     Retry
                   </button>
@@ -866,33 +866,33 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
 
               {/* Search Box */}
               <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                 <input
                   type="text"
                   placeholder="Search student or roll no..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
+                  className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
                 />
               </div>
             </div>
 
             {/* List Stream (Sorted Newest First) */}
-            <div className="p-3 max-h-80 overflow-y-auto divide-y divide-slate-100 space-y-1.5">
+            <div className="p-3 max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 space-y-1.5">
               {studentsList.length === 0 ? (
                 <div className="py-10 text-center space-y-2 px-4">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 mx-auto flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mx-auto flex items-center justify-center">
                     <Users className="w-5 h-5" />
                   </div>
                   <div>
-                    <h5 className="text-xs font-bold text-slate-800 font-heading">No students checked in yet</h5>
-                    <p className="text-[11px] text-slate-400 max-w-xs mx-auto mt-0.5">
+                    <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200 font-heading">No students checked in yet</h5>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 max-w-xs mx-auto mt-0.5">
                       Students will appear here automatically in real time when they scan the QR code.
                     </p>
                   </div>
                 </div>
               ) : filteredStudents.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-400">
+                <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
                   No present or late students match "{searchQuery}".
                 </div>
               ) : (
@@ -901,23 +901,23 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                   return (
                     <div
                       key={st.student_id}
-                      className="p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60 hover:bg-slate-50 transition flex items-center justify-between text-xs"
+                      className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-between text-xs"
                     >
                       <div className="flex items-center gap-2.5">
                         <div
                           className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-[11px] ${
                             isStudentLate
-                              ? 'bg-amber-100 text-amber-700'
-                              : 'bg-emerald-100 text-emerald-700'
+                              ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300'
+                              : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
                           }`}
                         >
                           {isStudentLate ? <Clock className="w-3.5 h-3.5" /> : '✓'}
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-900 font-heading truncate max-w-[140px] sm:max-w-[180px]">
+                          <p className="font-semibold text-slate-900 dark:text-white font-heading truncate max-w-[140px] sm:max-w-[180px]">
                             {st.name}
                           </p>
-                          <span className="font-mono text-[10px] text-indigo-600 font-medium">
+                          <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
                             {st.roll_number}
                           </span>
                         </div>
@@ -927,13 +927,13 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
                             isStudentLate
-                              ? 'bg-amber-50 text-amber-800 border-amber-200/80'
-                              : 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
+                              ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200/80 dark:border-amber-800'
+                              : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800'
                           }`}
                         >
                           {isStudentLate ? 'LATE' : 'PRESENT'}
                         </span>
-                        <span className="block font-mono text-[10px] text-slate-400 mt-0.5">
+                        <span className="block font-mono text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
                           {st.marked_at
                             ? new Date(st.marked_at).toLocaleTimeString([], {
                                 hour: '2-digit',
@@ -955,30 +955,30 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
       {/* Confirmation Modal for Ending Session */}
       {showEndModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
-          <Card className="max-w-md w-full p-6 space-y-4 bg-white shadow-2xl border-slate-200">
-            <div className="flex items-center gap-3 text-rose-600">
-              <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
+          <Card className="max-w-md w-full p-6 space-y-4 bg-white dark:bg-slate-900 shadow-2xl border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900 font-heading">End Attendance Session?</h3>
-                <p className="text-xs text-slate-500">Conclude active QR check-ins</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">End Attendance Session?</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Conclude active QR check-ins</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               Are you sure you want to conclude attendance for <strong>{session.subject_name}</strong> (
               {session.class_name})? Once ended, students will no longer be able to scan the QR code.
             </p>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-500">Current Present Count:</span>
-              <span className="font-bold text-slate-900">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between text-xs font-mono">
+              <span className="text-slate-500 dark:text-slate-400">Current Present Count:</span>
+              <span className="font-bold text-slate-900 dark:text-white">
                 {presentCount} / {totalStudents} ({attendancePercentage}%)
               </span>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <Button
                 variant="outline"
                 size="sm"
@@ -1004,37 +1004,37 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
       {/* Confirmation Modal for Finalizing Session (Feature #13) */}
       {showFinalizeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
-          <Card className="max-w-lg w-full p-6 space-y-4 bg-white shadow-2xl border-slate-200">
+          <Card className="max-w-lg w-full p-6 space-y-4 bg-white dark:bg-slate-900 shadow-2xl border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center flex-shrink-0 text-purple-600">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 flex items-center justify-center flex-shrink-0 text-purple-600 dark:text-purple-400">
                 <Lock className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900 font-heading">Finalize Attendance Session?</h3>
-                <p className="text-xs text-slate-500">{session.subject_name} &bull; {session.class_name}</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">Finalize Attendance Session?</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{session.subject_name} &bull; {session.class_name}</p>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed space-y-1.5">
+            <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs leading-relaxed space-y-1.5">
               <p className="font-semibold">Once finalized, teachers will no longer be able to:</p>
-              <ul className="list-disc list-inside space-y-0.5 text-amber-800">
+              <ul className="list-disc list-inside space-y-0.5 text-amber-800 dark:text-amber-300">
                 <li>Mark attendance (QR or manual)</li>
                 <li>Correct existing attendance records</li>
                 <li>Modify any attendance data</li>
               </ul>
-              <p className="text-amber-700 mt-1.5">Reports, history, and analytics remain fully accessible.</p>
+              <p className="text-amber-700 dark:text-amber-400 mt-1.5">Reports, history, and analytics remain fully accessible.</p>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-500">Current Attendance:</span>
-              <span className="font-bold text-slate-900">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between text-xs font-mono">
+              <span className="text-slate-500 dark:text-slate-400">Current Attendance:</span>
+              <span className="font-bold text-slate-900 dark:text-white">
                 {attendedCount} attended / {totalStudents} total ({attendancePercentage}%)
               </span>
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="finalize-reason" className="block text-xs font-medium text-slate-600">
-                Reason for finalization <span className="text-slate-400">(optional)</span>
+              <label htmlFor="finalize-reason" className="block text-xs font-medium text-slate-600 dark:text-slate-400">
+                Reason for finalization <span className="text-slate-400 dark:text-slate-500">(optional)</span>
               </label>
               <textarea
                 id="finalize-reason"
@@ -1043,11 +1043,11 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                 onChange={(e) => setFinalizeReason(e.target.value)}
                 placeholder="E.g., End of class session — attendance complete."
                 disabled={finalizing}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none resize-none transition bg-slate-50/50 placeholder:text-slate-400"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none resize-none transition bg-slate-50/50 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <Button
                 variant="outline"
                 size="sm"
@@ -1061,7 +1061,7 @@ export const TeacherAttendanceSessionPage: React.FC = () => {
                 onClick={handleFinalizeSession}
                 isLoading={finalizing}
                 leftIcon={<ShieldCheck className="w-4 h-4" />}
-                className="bg-purple-600 hover:bg-purple-700 text-white border-transparent shadow-sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white border-transparent shadow-sm cursor-pointer"
               >
                 Confirm Finalization
               </Button>

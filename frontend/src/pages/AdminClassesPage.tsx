@@ -314,25 +314,25 @@ export const AdminClassesPage: React.FC = () => {
       {/* Add Class Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
                   <Plus className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900 font-heading">Add Academic Class</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">Add Academic Class</h3>
               </div>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {addError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                 <span>{addError}</span>
               </div>
             )}
@@ -365,11 +365,11 @@ export const AdminClassesPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Semester
                   </label>
                   <select
-                    className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    className="block w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                     value={addForm.semester}
                     onChange={(e) => setAddForm({ ...addForm, semester: parseInt(e.target.value, 10) || 1 })}
                   >
@@ -390,7 +390,7 @@ export const AdminClassesPage: React.FC = () => {
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
                 <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
                   Cancel
                 </Button>
@@ -406,25 +406,25 @@ export const AdminClassesPage: React.FC = () => {
       {/* Edit Class Modal */}
       {editingClass && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
                   <Edit2 className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900 font-heading">Edit Class Batch</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">Edit Class Batch</h3>
               </div>
               <button
                 onClick={() => setEditingClass(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {editError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                 <span>{editError}</span>
               </div>
             )}
@@ -454,11 +454,11 @@ export const AdminClassesPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Semester
                   </label>
                   <select
-                    className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    className="block w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                     value={editForm.semester}
                     onChange={(e) => setEditForm({ ...editForm, semester: parseInt(e.target.value, 10) || 1 })}
                   >
@@ -478,7 +478,7 @@ export const AdminClassesPage: React.FC = () => {
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
                 <Button type="button" variant="outline" onClick={() => setEditingClass(null)}>
                   Cancel
                 </Button>
@@ -494,31 +494,31 @@ export const AdminClassesPage: React.FC = () => {
       {/* Delete Confirmation Dialog */}
       {deletingClass && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl space-y-4 text-center">
-            <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-rose-50 text-rose-600">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4 text-center">
+            <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
               <Trash2 className="w-6 h-6" />
             </div>
 
             <div>
-              <h3 className="text-base font-bold text-slate-900 font-heading">Delete this class?</h3>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">Delete this class?</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                 Class <strong>{deletingClass.name}</strong> (Sem {deletingClass.semester} - {deletingClass.section}) will be removed.
               </p>
             </div>
 
             {deleteError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs text-left flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs text-left flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
                 <span>{deleteError}</span>
               </div>
             )}
 
             <div className="pt-2 flex items-center justify-center gap-2.5">
-              <Button variant="outline" onClick={() => setDeletingClass(null)}>
+              <Button variant="outline" size="sm" onClick={() => setDeletingClass(null)} disabled={deleteLoading}>
                 Cancel
               </Button>
-              <Button variant="danger" isLoading={deleteLoading} onClick={handleConfirmDelete}>
-                Delete Class
+              <Button variant="danger" size="sm" isLoading={deleteLoading} onClick={handleConfirmDelete}>
+                Yes, Delete
               </Button>
             </div>
           </div>

@@ -43,10 +43,10 @@ export const AttendanceProofCard: React.FC<AttendanceProofCardProps> = ({
       {/* Printable Receipt Container */}
       <div
         id="attendance-proof-receipt"
-        className="bg-white rounded-3xl border border-slate-200/90 shadow-lg overflow-hidden print:shadow-none print:border print:border-slate-300 print:rounded-xl print:m-0"
+        className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-lg overflow-hidden print:shadow-none print:border print:border-slate-300 print:rounded-xl print:m-0"
       >
         {/* Top Institutional Header */}
-        <div className="bg-slate-900 text-white p-6 sm:p-7 relative overflow-hidden print:bg-slate-900 print:text-white">
+        <div className="bg-slate-900 dark:bg-slate-950 text-white p-6 sm:p-7 relative overflow-hidden print:bg-slate-900 print:text-white border-b border-slate-800">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -82,19 +82,19 @@ export const AttendanceProofCard: React.FC<AttendanceProofCardProps> = ({
         <div
           className={`px-6 py-3.5 border-y flex items-center justify-between gap-3 text-xs sm:text-sm font-bold ${
             isLate
-              ? 'bg-amber-50/90 border-amber-200 text-amber-900'
+              ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200'
               : isAbsent
-              ? 'bg-rose-50/90 border-rose-200 text-rose-900'
-              : 'bg-emerald-50/90 border-emerald-200 text-emerald-900'
+              ? 'bg-rose-50/90 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60 text-rose-900 dark:text-rose-200'
+              : 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200'
           }`}
         >
           <div className="flex items-center gap-2.5">
             {isLate ? (
-              <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
             ) : isAbsent ? (
-              <XCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+              <XCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0" />
             ) : (
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
             )}
             <div>
               <span className="uppercase text-[10px] tracking-wider block font-bold opacity-75">
@@ -118,40 +118,40 @@ export const AttendanceProofCard: React.FC<AttendanceProofCardProps> = ({
         <div className="p-5 sm:p-7 space-y-6">
           {/* Section 1: Student Information */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
-              <User className="w-3.5 h-3.5 text-indigo-600" />
+            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-1.5">
+              <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
               Student Profile & Enrollment
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
                   Student Name
                 </span>
-                <span className="font-bold text-slate-900 font-heading text-sm mt-0.5 block">
+                <span className="font-bold text-slate-900 dark:text-white font-heading text-sm mt-0.5 block">
                   {proof.student_name}
                 </span>
-                <span className="text-[11px] text-slate-400">{proof.email}</span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">{proof.email}</span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
                   Roll Number
                 </span>
-                <span className="font-mono font-bold text-slate-800 text-sm mt-0.5 block">
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5 block">
                   {proof.roll_number}
                 </span>
-                <span className="text-[11px] text-slate-500">{proof.department}</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">{proof.department}</span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
                   Class & Cohort
                 </span>
-                <span className="font-semibold text-slate-800 text-sm mt-0.5 block">
+                <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm mt-0.5 block">
                   {proof.class_name}
                 </span>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
                   Semester {proof.semester} ({proof.section})
                 </span>
               </div>
@@ -160,64 +160,64 @@ export const AttendanceProofCard: React.FC<AttendanceProofCardProps> = ({
 
           {/* Section 2: Course & Session Attendance Details */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
-              <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-1.5">
+              <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
               Lecture & Session Attendance Log
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 space-y-2">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
                     Course / Subject
                   </span>
-                  <p className="font-bold text-slate-900 font-heading text-sm">
+                  <p className="font-bold text-slate-900 dark:text-white font-heading text-sm">
                     {proof.subject_name}
                   </p>
-                  <span className="text-[11px] font-mono text-indigo-600 font-semibold">
+                  <span className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold">
                     Code: {proof.subject_code}
                   </span>
                 </div>
 
-                <div className="pt-2 border-t border-slate-200/60">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
                     Faculty Instructor
                   </span>
-                  <span className="font-medium text-slate-800">{proof.teacher_name}</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">{proof.teacher_name}</span>
                   {proof.teacher_department && (
-                    <span className="text-[11px] text-slate-400 block">
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500 block">
                       {proof.teacher_department}
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
                       Session Date
                     </span>
-                    <span className="font-semibold text-slate-800 text-xs">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
                       {proof.session_date}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
                       Lecture Time
                     </span>
-                    <span className="font-semibold text-slate-800 text-xs">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
                       {proof.session_start_time} – {proof.session_end_time}
                     </span>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-200/60 space-y-1">
+                <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                       Recorded Timestamp:
                     </span>
-                    <span className="font-mono font-bold text-slate-900 text-xs">
+                    <span className="font-mono font-bold text-slate-900 dark:text-white text-xs">
                       {proof.attendance_marked_at
                         ? new Date(proof.attendance_marked_at).toLocaleTimeString([], {
                             hour: '2-digit',
@@ -227,7 +227,7 @@ export const AttendanceProofCard: React.FC<AttendanceProofCardProps> = ({
                         : '—'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-slate-500">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
                     <span>Late Grace Period:</span>
                     <span className="font-medium">{proof.late_threshold_minutes} Minutes</span>
                   </div>
@@ -237,23 +237,23 @@ export const AttendanceProofCard: React.FC<AttendanceProofCardProps> = ({
           </div>
 
           {/* Section 3: Digital Verification & QR Box */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-50/60 to-slate-50 border border-indigo-100 flex flex-col sm:flex-row items-center justify-between gap-5">
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-50/60 dark:from-indigo-950/30 to-slate-50 dark:to-slate-800/40 border border-indigo-100 dark:border-indigo-900/60 flex flex-col sm:flex-row items-center justify-between gap-5">
             <div className="space-y-2 text-center sm:text-left flex-1 min-w-0">
-              <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs font-bold text-indigo-900 uppercase tracking-wider">
-                <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+              <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">
+                <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                 <span>Institutional Verification System</span>
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                 This digital attendance proof is cryptographically tied to the authoritative
                 database attendance ledger. Anyone can verify this receipt by scanning the QR code or visiting the public verification portal.
               </p>
-              <div className="text-[11px] text-slate-500 flex items-center justify-center sm:justify-start gap-1 flex-wrap pt-1">
-                <span className="font-semibold text-slate-700">Verification URL:</span>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-center sm:justify-start gap-1 flex-wrap pt-1">
+                <span className="font-semibold text-slate-700 dark:text-slate-300">Verification URL:</span>
                 <a
                   href={proof.verification_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-indigo-600 hover:underline inline-flex items-center gap-1 break-all"
+                  className="font-mono text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 break-all"
                 >
                   <span>{proof.verification_url}</span>
                   <ExternalLink className="w-3 h-3 shrink-0" />
@@ -262,7 +262,7 @@ export const AttendanceProofCard: React.FC<AttendanceProofCardProps> = ({
             </div>
 
             {/* Embedded QR Code */}
-            <div className="bg-white p-3 rounded-2xl border border-indigo-200/80 shadow-xs flex flex-col items-center flex-shrink-0">
+            <div className="bg-white p-3 rounded-2xl border border-indigo-200/80 dark:border-slate-700 shadow-xs flex flex-col items-center flex-shrink-0">
               <QRCodeSVG
                 value={proof.verification_url}
                 size={110}
@@ -276,11 +276,11 @@ export const AttendanceProofCard: React.FC<AttendanceProofCardProps> = ({
           </div>
 
           {/* Official Footer Note */}
-          <div className="text-center pt-2 border-t border-slate-100 space-y-1">
-            <p className="text-[11px] text-slate-400">
+          <div className="text-center pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">
               Generated: {new Date(proof.generated_at).toUTCString()} &bull; System Version 4.0
             </p>
-            <p className="text-[10px] text-slate-400 italic">
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic">
               This digital attendance receipt is generated from the official attendance system. No physical signature is required.
             </p>
           </div>

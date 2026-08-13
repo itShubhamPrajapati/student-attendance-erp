@@ -68,7 +68,7 @@ export const AttendanceSessionAuditHistoryModal: React.FC<AttendanceSessionAudit
       aria-modal="true"
       aria-labelledby="session-audit-history-title"
     >
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-4.5 bg-gradient-to-r from-slate-900 via-slate-950 to-indigo-950 text-white flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-3">
@@ -100,23 +100,23 @@ export const AttendanceSessionAuditHistoryModal: React.FC<AttendanceSessionAudit
               <LoadingSpinner size="md" label="Loading lifecycle audit history..." />
             </div>
           ) : error ? (
-            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-start gap-3">
+            <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">Unable to Load Audit Trail</p>
-                <p className="text-rose-600 mt-0.5">{error}</p>
+                <p className="text-rose-600 dark:text-rose-400 mt-0.5">{error}</p>
               </div>
             </div>
           ) : logs.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 space-y-2">
-              <ShieldCheck className="w-10 h-10 mx-auto text-slate-300 stroke-[1.5]" />
-              <p className="font-medium text-slate-700">No Finalization Events Recorded</p>
-              <p className="text-slate-400 text-[11px] max-w-xs mx-auto">
+            <div className="py-12 text-center text-slate-500 dark:text-slate-400 space-y-2">
+              <ShieldCheck className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 stroke-[1.5]" />
+              <p className="font-medium text-slate-700 dark:text-slate-300">No Finalization Events Recorded</p>
+              <p className="text-slate-400 dark:text-slate-500 text-[11px] max-w-xs mx-auto">
                 This attendance session is currently open and has not been finalized or reopened yet.
               </p>
             </div>
           ) : (
-            <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+            <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
               {logs.map((log) => {
                 const isFinalize = log.action === 'FINALIZE';
                 const isReopen = log.action === 'REOPEN';
@@ -125,7 +125,7 @@ export const AttendanceSessionAuditHistoryModal: React.FC<AttendanceSessionAudit
                   <div key={log.id} className="relative group">
                     {/* Node Icon */}
                     <div
-                      className={`absolute -left-6 top-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-xs ${
+                      className={`absolute -left-6 top-1 w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center shadow-xs ${
                         isFinalize
                           ? 'bg-rose-500 text-white'
                           : isReopen
@@ -141,38 +141,38 @@ export const AttendanceSessionAuditHistoryModal: React.FC<AttendanceSessionAudit
                     </div>
 
                     {/* Card Body */}
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 shadow-xs space-y-2.5 hover:border-slate-300 transition">
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-2.5 hover:border-slate-300 dark:hover:border-slate-600 transition">
                       {/* Action Header */}
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                               isFinalize
-                                ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                                : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                                : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
                             }`}
                           >
                             {isFinalize ? 'Session Finalized / Locked' : 'Session Reopened'}
                           </span>
-                          <Badge variant="neutral" className="text-[10px] py-0 px-1.5 bg-white">
+                          <Badge variant="neutral" className="text-[10px] py-0 px-1.5 bg-white dark:bg-slate-800">
                             {log.actor_role}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-1 text-slate-400 text-[11px]">
+                        <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 text-[11px]">
                           <Calendar className="w-3.5 h-3.5" />
                           <span>{new Date(log.created_at).toLocaleString()}</span>
                         </div>
                       </div>
 
                       {/* State Transition */}
-                      <div className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
-                        <span className="font-semibold text-slate-500">Lifecycle Transition:</span>
+                      <div className="flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 text-[11px]">
+                        <span className="font-semibold text-slate-500 dark:text-slate-400">Lifecycle Transition:</span>
                         <div className="flex items-center gap-1.5 font-mono">
                           <span
                             className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                               log.previous_status === 'FINALIZED'
-                                ? 'bg-rose-100 text-rose-700'
-                                : 'bg-emerald-100 text-emerald-700'
+                                ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300'
+                                : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
                             }`}
                           >
                             {log.previous_status || 'OPEN'}
@@ -181,8 +181,8 @@ export const AttendanceSessionAuditHistoryModal: React.FC<AttendanceSessionAudit
                           <span
                             className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                               log.new_status === 'FINALIZED'
-                                ? 'bg-rose-100 text-rose-700'
-                                : 'bg-emerald-100 text-emerald-700'
+                                ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300'
+                                : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
                             }`}
                           >
                             {log.new_status}
@@ -191,25 +191,25 @@ export const AttendanceSessionAuditHistoryModal: React.FC<AttendanceSessionAudit
                       </div>
 
                       {/* Reason */}
-                      <div className="p-2.5 rounded-lg bg-indigo-50/50 border border-indigo-100/80 text-indigo-950 space-y-1">
-                        <div className="flex items-center gap-1 text-[11px] font-semibold text-indigo-900">
-                          <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                      <div className="p-2.5 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-100/80 dark:border-indigo-800/60 text-indigo-950 dark:text-indigo-200 space-y-1">
+                        <div className="flex items-center gap-1 text-[11px] font-semibold text-indigo-900 dark:text-indigo-300">
+                          <FileText className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                           <span>Action Reason:</span>
                         </div>
-                        <p className="text-indigo-900/90 text-xs italic leading-relaxed">
+                        <p className="text-indigo-900/90 dark:text-indigo-200 text-xs italic leading-relaxed">
                           &ldquo;{log.reason || 'No specific reason provided.'}&rdquo;
                         </p>
                       </div>
 
                       {/* Actor Info */}
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-700">
                         <div className="flex items-center gap-1.5">
                           <User className="w-3.5 h-3.5 text-slate-400" />
                           <span>
-                            Logged by: <strong className="text-slate-700">{log.actor_name}</strong>
+                            Logged by: <strong className="text-slate-700 dark:text-slate-200">{log.actor_name}</strong>
                           </span>
                         </div>
-                        <span className="font-mono text-[10px] text-slate-400">
+                        <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">
                           ID: {log.id.slice(0, 8)}
                         </span>
                       </div>
@@ -222,9 +222,9 @@ export const AttendanceSessionAuditHistoryModal: React.FC<AttendanceSessionAudit
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div className="px-6 py-3.5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-1 text-[11px]">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>Immutable Institutional Audit Log</span>
           </div>
           <Button variant="outline" size="sm" onClick={onClose}>

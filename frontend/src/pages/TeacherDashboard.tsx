@@ -210,10 +210,10 @@ export const TeacherDashboard: React.FC = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-slate-900 font-heading">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
               My Classes & Teaching Allocations
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Select a subject and classroom to start a live QR attendance session
             </p>
           </div>
@@ -234,10 +234,10 @@ export const TeacherDashboard: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {assignments.map((item) => (
-              <Card key={item.assignment_id} hoverEffect className="p-5 flex flex-col justify-between border-slate-200/80 shadow-xs space-y-4 bg-white">
+              <Card key={item.assignment_id} hoverEffect className="p-5 flex flex-col justify-between border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4 bg-white dark:bg-slate-900">
                 <div className="space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold flex-shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold flex-shrink-0">
                       <BookOpen className="w-4 h-4" />
                     </div>
                     <Badge variant="info" className="font-mono text-[11px]">
@@ -246,22 +246,22 @@ export const TeacherDashboard: React.FC = () => {
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900 font-heading">{item.subject}</h4>
-                    <p className="text-xs text-slate-500 font-medium">{item.department}</p>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white font-heading">{item.subject}</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{item.department}</p>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
-                      <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
+                      <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                       <span>{item.class}</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 font-medium">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                       Semester {item.semester} &bull; Section {item.section} ({item.academic_year})
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100">
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
                   <Button
                     variant="primary"
                     size="sm"
@@ -282,15 +282,15 @@ export const TeacherDashboard: React.FC = () => {
       <div className="space-y-4 pt-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-slate-900 font-heading">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
               Recent Attendance Sessions
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Review live and concluded lecture sessions and verify student records
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-400 font-medium hidden sm:inline">{sessions.length} sessions</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium hidden sm:inline">{sessions.length} sessions</span>
             <Link to="/teacher/attendance/history">
               <Button variant="outline" size="sm" className="text-xs py-1">
                 View All History &rarr;
@@ -300,15 +300,15 @@ export const TeacherDashboard: React.FC = () => {
         </div>
 
         {sessions.length === 0 ? (
-          <Card className="p-8 text-center bg-white border-slate-200/80">
-            <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-xs text-slate-500">No attendance sessions created yet. Click "Start Attendance" on any class above to launch your first session.</p>
+          <Card className="p-8 text-center bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800">
+            <Clock className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+            <p className="text-xs text-slate-500 dark:text-slate-400">No attendance sessions created yet. Click "Start Attendance" on any class above to launch your first session.</p>
           </Card>
         ) : (
-          <Card className="p-0 overflow-hidden bg-white border-slate-200/80 shadow-xs">
+          <Card className="p-0 overflow-hidden bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase tracking-wider font-semibold">
+                <thead className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
                   <tr>
                     <th className="py-3 px-4">Date & Time</th>
                     <th className="py-3 px-4">Subject</th>
@@ -318,27 +318,27 @@ export const TeacherDashboard: React.FC = () => {
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {sessions.map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50/50 transition">
+                    <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
                       <td className="py-3 px-4 font-mono text-[11px]">
-                        <div className="font-semibold text-slate-900">{new Date(s.started_at).toLocaleDateString()}</div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="font-semibold text-slate-900 dark:text-slate-100">{new Date(s.started_at).toLocaleDateString()}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500">
                           {new Date(s.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-900 font-heading">{s.subject_name}</div>
-                        <span className="font-mono text-[10px] text-indigo-600 font-semibold">{s.subject_code}</span>
+                        <div className="font-semibold text-slate-900 dark:text-white font-heading">{s.subject_name}</div>
+                        <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">{s.subject_code}</span>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-medium text-slate-800">{s.class_name}</div>
-                        <div className="text-[10px] text-slate-400">Sem {s.semester} &bull; Sec {s.section}</div>
+                        <div className="font-medium text-slate-800 dark:text-slate-200">{s.class_name}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500">Sem {s.semester} &bull; Sec {s.section}</div>
                       </td>
                       <td className="py-3 px-4 font-mono">
-                        <span className="font-bold text-slate-900">{s.present_count}</span>
-                        <span className="text-slate-400"> / {s.total_students}</span>
-                        <span className="ml-1 text-[11px] font-bold text-emerald-700">({s.percentage}%)</span>
+                        <span className="font-bold text-slate-900 dark:text-slate-100">{s.present_count}</span>
+                        <span className="text-slate-400 dark:text-slate-500"> / {s.total_students}</span>
+                        <span className="ml-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">({s.percentage}%)</span>
                       </td>
                       <td className="py-3 px-4">
                         {s.is_active && !s.is_expired ? (
@@ -385,15 +385,15 @@ export const TeacherDashboard: React.FC = () => {
       {/* Start Attendance Setup Modal */}
       {selectedAssignment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden animate-in zoom-in-95">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60">
               <div className="flex items-center gap-2">
-                <QrCode className="w-4 h-4 text-indigo-600" />
-                <h3 className="text-sm font-bold text-slate-900 font-heading">Start Attendance Session</h3>
+                <QrCode className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">Start Attendance Session</h3>
               </div>
               <button
                 onClick={() => setSelectedAssignment(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -401,23 +401,23 @@ export const TeacherDashboard: React.FC = () => {
 
             <div className="p-5 space-y-4 text-xs">
               {modalError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                   <span>{modalError}</span>
                 </div>
               )}
 
               {/* Assignment Details Confirmation */}
-              <div className="p-3.5 rounded-xl bg-indigo-50/50 border border-indigo-100 space-y-2">
+              <div className="p-3.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-800/60 space-y-2">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Course Subject</span>
-                  <p className="font-bold text-slate-900 text-sm font-heading">{selectedAssignment.subject}</p>
-                  <span className="font-mono text-xs text-indigo-600 font-semibold">{selectedAssignment.code}</span>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Course Subject</span>
+                  <p className="font-bold text-slate-900 dark:text-white text-sm font-heading">{selectedAssignment.subject}</p>
+                  <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400 font-semibold">{selectedAssignment.code}</span>
                 </div>
-                <div className="pt-2 border-t border-indigo-100/60">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target Class</span>
-                  <p className="font-semibold text-slate-800">{selectedAssignment.class}</p>
-                  <span className="text-slate-500">
+                <div className="pt-2 border-t border-indigo-100/60 dark:border-indigo-800/40">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Target Class</span>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{selectedAssignment.class}</p>
+                  <span className="text-slate-500 dark:text-slate-400">
                     Semester {selectedAssignment.semester} &bull; Section {selectedAssignment.section} ({selectedAssignment.academic_year})
                   </span>
                 </div>
@@ -425,25 +425,25 @@ export const TeacherDashboard: React.FC = () => {
 
               {/* Duration Selector */}
               <div className="space-y-1.5">
-                <label className="font-bold text-slate-700 uppercase tracking-wider text-[11px] block">
+                <label className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[11px] block">
                   Session Duration
                 </label>
                 <select
                   value={durationMinutes}
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setDurationMinutes(Number(e.target.value))}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 shadow-xs focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
                 >
                   <option value={1}>1 Minute (Fast Testing / Demo)</option>
                   <option value={5}>5 Minutes (Recommended Standard)</option>
                   <option value={10}>10 Minutes (Extended Lecture Window)</option>
                 </select>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">
                   The QR code will automatically expire when the timer reaches zero.
                 </p>
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2">
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setSelectedAssignment(null)}>
                 Cancel
               </Button>
@@ -454,7 +454,7 @@ export const TeacherDashboard: React.FC = () => {
                 isLoading={startingSession}
                 leftIcon={<Play className="w-3.5 h-3.5" />}
               >
-                Generate Live QR Code
+                Launch QR Session
               </Button>
             </div>
           </div>

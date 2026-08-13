@@ -4,6 +4,7 @@ import { Navbar } from './components/Navbar';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { AuthLayout } from './layouts/AuthLayout';
 import { AuthProvider } from './auth/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
@@ -36,12 +37,12 @@ import { NotFoundPage } from './pages/NotFoundPage';
 
 // Root layout for public pages
 const PublicLayout: React.FC = () => (
-  <div className="min-h-screen flex flex-col bg-slate-50/70">
+  <div className="min-h-screen flex flex-col bg-slate-50/70 dark:bg-slate-950">
     <Navbar />
     <main className="flex-1 py-6">
       <Outlet />
     </main>
-    <footer className="border-t border-slate-200/80 bg-white py-4 px-6 text-center text-xs text-slate-500">
+    <footer className="border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 py-4 px-6 text-center text-xs text-slate-500">
       QR-Based Student Attendance Management System &bull; Phase 4 QR-Based Attendance &bull; College Field Project
     </footer>
   </div>
@@ -50,8 +51,9 @@ const PublicLayout: React.FC = () => (
 export const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
           <Routes>
           {/* Public & Landing Pages */}
           <Route element={<PublicLayout />}>
@@ -345,7 +347,8 @@ export const App: React.FC = () => {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
-    </ErrorBoundary>
+    </ThemeProvider>
+  </ErrorBoundary>
   );
 };
 

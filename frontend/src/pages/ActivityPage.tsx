@@ -125,18 +125,18 @@ export const ActivityPage: React.FC = () => {
       />
 
       {/* Filter Toolbar */}
-      <Card className="p-4 bg-white border-slate-200/80 shadow-xs space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+      <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-indigo-600" />
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+            <Filter className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <h3 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">
               Filter Activity Events
             </h3>
           </div>
           {hasActiveFilters && (
             <button
               onClick={handleClearFilters}
-              className="text-xs text-indigo-600 font-semibold hover:underline cursor-pointer"
+              className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline cursor-pointer"
             >
               Clear Filters
             </button>
@@ -146,14 +146,14 @@ export const ActivityPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
           {/* Event Type Filter */}
           <div>
-            <label className="block text-slate-500 font-semibold mb-1">Event Type</label>
+            <label className="block text-slate-500 dark:text-slate-400 font-semibold mb-1">Event Type</label>
             <select
               value={selectedType}
               onChange={(e) => {
                 setSelectedType(e.target.value);
                 setPage(1);
               }}
-              className="w-full text-xs rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+              className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-800 dark:text-slate-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
             >
               <option value="">All Event Categories</option>
               <option value="ATTENDANCE_MARKED">Attendance Marked (On-time)</option>
@@ -169,7 +169,7 @@ export const ActivityPage: React.FC = () => {
 
           {/* From Date */}
           <div>
-            <label className="block text-slate-500 font-semibold mb-1">From Date</label>
+            <label className="block text-slate-500 dark:text-slate-400 font-semibold mb-1">From Date</label>
             <Input
               type="date"
               value={fromDate}
@@ -183,7 +183,7 @@ export const ActivityPage: React.FC = () => {
 
           {/* To Date */}
           <div>
-            <label className="block text-slate-500 font-semibold mb-1">To Date</label>
+            <label className="block text-slate-500 dark:text-slate-400 font-semibold mb-1">To Date</label>
             <Input
               type="date"
               value={toDate}
@@ -199,7 +199,7 @@ export const ActivityPage: React.FC = () => {
 
       {/* Main Timeline List */}
       {loading ? (
-        <Card className="p-6 bg-white border-slate-200/80 shadow-xs">
+        <Card className="p-6 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs">
           <LoadingState variant="activity" rows={6} message="Retrieving live activity records..." />
         </Card>
       ) : error ? (
@@ -228,7 +228,7 @@ export const ActivityPage: React.FC = () => {
         />
       ) : (
         <div className="space-y-3">
-          <div className="flex items-center justify-between px-1 text-xs text-slate-500">
+          <div className="flex items-center justify-between px-1 text-xs text-slate-500 dark:text-slate-400">
             <span>Showing {activities.length} of {total} events</span>
             <span>Page {page} of {totalPages}</span>
           </div>
@@ -252,7 +252,7 @@ export const ActivityPage: React.FC = () => {
               return (
                 <Card
                   key={item.id}
-                  className="p-4 bg-white border-slate-200/80 shadow-xs rounded-2xl hover:border-slate-300 transition space-y-2"
+                  className="p-4 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs rounded-2xl hover:border-slate-300 dark:hover:border-slate-700 transition space-y-2"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
@@ -261,19 +261,19 @@ export const ActivityPage: React.FC = () => {
                       </span>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-bold text-slate-900 font-heading">
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white font-heading">
                             {item.title}
                           </h4>
-                          <span className="text-[10px] text-slate-400 font-mono">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                             {formatRelativeTime(item.created_at)}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-600 mt-0.5">{item.description}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">{item.description}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 self-end sm:self-center">
-                      <span className="text-[10px] font-mono text-slate-400">
+                      <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
                         {new Date(item.created_at).toLocaleString([], {
                           month: 'short',
                           day: 'numeric',
@@ -293,10 +293,10 @@ export const ActivityPage: React.FC = () => {
                   </div>
 
                   {/* Context Metadata Footer */}
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
                     <div className="flex items-center gap-3 flex-wrap">
                       {item.subject_name && (
-                        <span className="font-semibold text-slate-800">
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">
                           {item.subject_name} {item.subject_code ? `(${item.subject_code})` : ''}
                         </span>
                       )}
@@ -307,7 +307,7 @@ export const ActivityPage: React.FC = () => {
                         <span>&bull; Student: {item.student_name} {item.student_roll_number ? `(${item.student_roll_number})` : ''}</span>
                       )}
                       {item.actor_name && (
-                        <span className="text-slate-400">&bull; Performed by {item.actor_name}</span>
+                        <span className="text-slate-400 dark:text-slate-500">&bull; Performed by {item.actor_name}</span>
                       )}
                     </div>
                   </div>
@@ -318,7 +318,7 @@ export const ActivityPage: React.FC = () => {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
               <Button
                 variant="outline"
                 size="sm"
@@ -329,7 +329,7 @@ export const ActivityPage: React.FC = () => {
                 Previous
               </Button>
 
-              <span className="text-xs text-slate-600 font-semibold">
+              <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
                 Page {page} of {totalPages}
               </span>
 

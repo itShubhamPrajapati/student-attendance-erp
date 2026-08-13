@@ -83,12 +83,12 @@ export const LandingPage: React.FC = () => {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Terminal className="w-4 h-4 text-indigo-600" />
-            <h2 className="text-base font-bold text-slate-900 font-heading">
+            <Terminal className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <h2 className="text-base font-bold text-slate-900 dark:text-white font-heading">
               Environment & Connection Verification
             </h2>
           </div>
-          <span className="text-xs text-slate-400 font-mono">Phase 1 Check</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">Phase 1 Check</span>
         </div>
 
         <ConnectionStatus />
@@ -97,10 +97,10 @@ export const LandingPage: React.FC = () => {
       {/* Role-Based Dashboards Preview Grid */}
       <section className="space-y-4">
         <div className="space-y-1">
-          <h2 className="text-lg font-bold text-slate-900 font-heading">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white font-heading">
             Role-Based Workspaces Preview
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Phase 1 sets up the responsive UI foundation and placeholder routing for each academic role.
           </p>
         </div>
@@ -111,7 +111,7 @@ export const LandingPage: React.FC = () => {
               <div>
                 <CardHeader className="flex-row items-center justify-between pb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center">
                       {card.icon}
                     </div>
                     <div>
@@ -126,18 +126,18 @@ export const LandingPage: React.FC = () => {
                     {card.badge}
                   </Badge>
 
-                  <p className="text-xs text-slate-600 leading-relaxed">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                     {card.description}
                   </p>
 
-                  <div className="pt-2 border-t border-slate-100">
-                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
                       Upcoming Scope (Phase 2):
                     </p>
                     <ul className="space-y-1.5">
                       {card.stats.map((stat) => (
-                        <li key={stat} className="flex items-center gap-2 text-xs text-slate-600">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+                        <li key={stat} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 flex-shrink-0" />
                           <span>{stat}</span>
                         </li>
                       ))}
@@ -146,7 +146,7 @@ export const LandingPage: React.FC = () => {
                 </CardContent>
               </div>
 
-              <div className="pt-4 mt-4 border-t border-slate-100">
+              <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
                 <Link to={card.path} className="block">
                   <Button variant="outline" size="sm" className="w-full justify-between group">
                     <span>View {card.role} Dashboard</span>
@@ -160,30 +160,30 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Tech Stack Specs */}
-      <section className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-900 mb-3 font-heading">
+      <section className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 font-heading">
           Technical Architecture (Phase 1 Foundation)
         </h3>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-            <span className="font-semibold text-slate-700 block mb-1">Frontend</span>
-            <span className="text-slate-500">React + Vite + TypeScript + Tailwind</span>
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">Frontend</span>
+            <span className="text-slate-500 dark:text-slate-400">React + Vite + TypeScript + Tailwind</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-            <span className="font-semibold text-slate-700 block mb-1">Backend</span>
-            <span className="text-slate-500">Go + Gin Web Framework</span>
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">Backend</span>
+            <span className="text-slate-500 dark:text-slate-400">Go + Gin Web Framework</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-            <span className="font-semibold text-slate-700 block mb-1">Database</span>
-            <span className="text-slate-500">PostgreSQL + GORM Driver</span>
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">Database</span>
+            <span className="text-slate-500 dark:text-slate-400">PostgreSQL + GORM Driver</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-            <span className="font-semibold text-slate-700 block mb-1">Security Model</span>
-            <span className="text-slate-500">JWT & bcrypt Architecture-Ready</span>
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">Security Model</span>
+            <span className="text-slate-500 dark:text-slate-400">JWT & bcrypt Architecture-Ready</span>
           </div>
         </div>
       </section>

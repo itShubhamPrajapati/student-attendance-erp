@@ -63,7 +63,7 @@ export const AttendanceAuditHistoryModal: React.FC<AttendanceAuditHistoryModalPr
       aria-modal="true"
       aria-labelledby="audit-history-title"
     >
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-4.5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-3">
@@ -95,29 +95,29 @@ export const AttendanceAuditHistoryModal: React.FC<AttendanceAuditHistoryModalPr
               <LoadingSpinner size="md" label="Loading audit history..." />
             </div>
           ) : error ? (
-            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-start gap-3">
+            <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">Audit Record Unavailable</p>
-                <p className="text-xs text-rose-600 mt-0.5">{error}</p>
+                <p className="text-xs text-rose-600 dark:text-rose-400 mt-0.5">{error}</p>
               </div>
             </div>
           ) : logs.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 space-y-2">
-              <History className="w-8 h-8 mx-auto text-slate-300" />
-              <p className="font-medium text-slate-600">No manual changes or corrections recorded.</p>
-              <p className="text-[11px] text-slate-400">
+            <div className="py-12 text-center text-slate-400 dark:text-slate-500 space-y-2">
+              <History className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
+              <p className="font-medium text-slate-600 dark:text-slate-300">No manual changes or corrections recorded.</p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">
                 This attendance was marked automatically via student QR scan.
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold uppercase tracking-wider pb-1 border-b border-slate-100">
+              <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider pb-1 border-b border-slate-100 dark:border-slate-800">
                 <span>Timeline ({logs.length} audit {logs.length === 1 ? 'event' : 'events'})</span>
-                <span className="text-indigo-600 font-bold">Immutable System Log</span>
+                <span className="text-indigo-600 dark:text-indigo-400 font-bold">Immutable System Log</span>
               </div>
 
-              <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+              <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
                 {logs.map((item, idx) => {
                   const isManualMark = item.action === 'MANUAL_MARK';
                   const isPresent = item.new_status === 'PRESENT';
@@ -126,10 +126,10 @@ export const AttendanceAuditHistoryModal: React.FC<AttendanceAuditHistoryModalPr
                     <div key={item.id || idx} className="relative space-y-2">
                       {/* Timeline Dot */}
                       <div
-                        className={`absolute -left-6 top-1 w-5 h-5 rounded-full border-2 bg-white flex items-center justify-center shadow-xs ${
+                        className={`absolute -left-6 top-1 w-5 h-5 rounded-full border-2 bg-white dark:bg-slate-900 flex items-center justify-center shadow-xs ${
                           isManualMark
-                            ? 'border-indigo-500 text-indigo-600'
-                            : 'border-amber-500 text-amber-600'
+                            ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                            : 'border-amber-500 text-amber-600 dark:text-amber-400'
                         }`}
                       >
                         <div
@@ -150,26 +150,26 @@ export const AttendanceAuditHistoryModal: React.FC<AttendanceAuditHistoryModalPr
                           </Badge>
 
                           {item.previous_status ? (
-                            <span className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-600 font-semibold bg-slate-100 px-2 py-0.5 rounded">
+                            <span className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-600 dark:text-slate-300 font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
                               <span>{item.previous_status}</span>
                               <ArrowRight className="w-3 h-3 text-slate-400" />
                               <span
                                 className={
-                                  isPresent ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'
+                                  isPresent ? 'text-emerald-700 dark:text-emerald-300 font-bold' : 'text-rose-700 dark:text-rose-300 font-bold'
                                 }
                               >
                                 {item.new_status}
                               </span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                               <CheckCircle2 className="w-3 h-3" />
                               {item.new_status}
                             </span>
                           )}
                         </div>
 
-                        <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
+                        <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {new Date(item.created_at).toLocaleString([], {
                             year: 'numeric',
@@ -182,30 +182,30 @@ export const AttendanceAuditHistoryModal: React.FC<AttendanceAuditHistoryModalPr
                       </div>
 
                       {/* Reason Box */}
-                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5 shadow-2xs">
-                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                          <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1.5 shadow-2xs">
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                          <FileText className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                           <span>Explanatory Reason:</span>
                         </div>
-                        <p className="text-xs text-slate-800 italic bg-white p-2.5 rounded-lg border border-slate-100">
+                        <p className="text-xs text-slate-800 dark:text-slate-200 italic bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700">
                           &ldquo;{item.reason}&rdquo;
                         </p>
                       </div>
 
                       {/* Actor Meta */}
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-0.5">
                         <div className="flex items-center gap-1.5">
                           <User className="w-3.5 h-3.5 text-slate-400" />
                           <span>
-                            Logged by: <strong className="text-slate-700">{item.actor_name}</strong>
+                            Logged by: <strong className="text-slate-700 dark:text-slate-200">{item.actor_name}</strong>
                           </span>
-                          <span className="text-slate-300">&bull;</span>
-                          <span className="px-1.5 py-0.2 rounded bg-slate-100 font-mono text-[10px] text-slate-600 font-semibold">
+                          <span className="text-slate-300 dark:text-slate-600">&bull;</span>
+                          <span className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[10px] text-slate-600 dark:text-slate-300 font-semibold">
                             {item.actor_role}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-1 text-emerald-600">
+                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                           <ShieldCheck className="w-3.5 h-3.5" />
                           <span className="font-semibold text-[10px]">Verified Audit</span>
                         </div>
@@ -219,7 +219,7 @@ export const AttendanceAuditHistoryModal: React.FC<AttendanceAuditHistoryModalPr
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end">
           <Button size="sm" variant="outline" onClick={onClose}>
             Close Audit Trail
           </Button>

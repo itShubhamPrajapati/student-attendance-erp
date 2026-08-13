@@ -429,38 +429,38 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
               </Button>
 
               {isExportMenuOpen && (
-                <div className="absolute right-0 mt-1.5 w-52 rounded-2xl bg-white shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                <div className="absolute right-0 mt-1.5 w-52 rounded-2xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200/90 dark:border-slate-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-700">
                     Export Current Data
                   </div>
                   <button
                     onClick={() => handleExportMaster('csv')}
-                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-2.5 transition cursor-pointer"
                   >
-                    <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                     <div>
                       <div>Export CSV</div>
-                      <span className="text-[10px] text-slate-400 font-normal">Raw attendance dataset</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Raw attendance dataset</span>
                     </div>
                   </button>
                   <button
                     onClick={() => handleExportMaster('excel')}
-                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-2.5 transition cursor-pointer"
                   >
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                     <div>
                       <div>Export Excel (.xlsx)</div>
-                      <span className="text-[10px] text-slate-400 font-normal">Formatted multi-sheet workbook</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Formatted multi-sheet workbook</span>
                     </div>
                   </button>
                   <button
                     onClick={() => handleExportMaster('pdf')}
-                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-2.5 transition cursor-pointer"
                   >
-                    <FileDown className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                    <FileDown className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                     <div>
-                      <div>Export PDF Document</div>
-                      <span className="text-[10px] text-slate-400 font-normal">Official printable audit report</span>
+                      <div>Export PDF Summary</div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Institutional executive report</span>
                     </div>
                   </button>
                 </div>
@@ -506,65 +506,65 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
         </div>
       )}
 
-      {/* 2. Summary KPI Cards */}
+      {/* 2. KPI Metrics Ribbon */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <Card className="p-4 bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+        <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
             Total Students
           </span>
-          <p className="text-2xl font-extrabold text-slate-900 font-heading mt-1">
+          <p className="text-2xl font-extrabold text-slate-900 dark:text-white font-heading mt-1">
             {summary.total_students}
           </p>
-          <span className="text-[11px] text-slate-500 mt-1">Enrolled in your classes</span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Enrolled in your classes</span>
         </Card>
 
-        <Card className="p-4 bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">
+        <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
             Requirement Met (≥75%)
           </span>
-          <p className="text-2xl font-extrabold text-emerald-600 font-heading mt-1">
+          <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-heading mt-1">
             {summary.students_meeting_requirement}
           </p>
-          <span className="text-[11px] text-slate-500 mt-1">Good attendance standing</span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Good attendance standing</span>
         </Card>
 
-        <Card className="p-4 bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">
+        <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
             Below 75%
           </span>
-          <p className="text-2xl font-extrabold text-amber-600 font-heading mt-1">
+          <p className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 font-heading mt-1">
             {summary.students_below_requirement}
           </p>
-          <span className="text-[11px] text-slate-500 mt-1">Attendance warning level</span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Attendance warning level</span>
         </Card>
 
-        <Card className="p-4 bg-white border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">
+        <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider">
             Critical (&lt;60%)
           </span>
-          <p className="text-2xl font-extrabold text-rose-600 font-heading mt-1">
+          <p className="text-2xl font-extrabold text-rose-600 dark:text-rose-400 font-heading mt-1">
             {summary.students_critical}
           </p>
-          <span className="text-[11px] text-slate-500 mt-1">Severe attendance deficit</span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Severe attendance deficit</span>
         </Card>
       </div>
 
       {/* 3. Search & Filter Bar */}
-      <Card className="p-4 sm:p-5 bg-white border-slate-200/80 shadow-xs space-y-3.5">
+      <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3.5">
         {/* Main Search Input */}
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
           <input
             type="text"
             placeholder="Search student by name, roll number (e.g. 24, CS101), or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-10 py-2.5 text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition shadow-2xs"
+            className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 pl-10 pr-10 py-2.5 text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition shadow-2xs"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               aria-label="Clear search query"
             >
               <X className="w-4 h-4" />
@@ -576,8 +576,8 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1">
           {/* Class Filter */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
-              <Building2 className="w-3 h-3 text-slate-400" />
+            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
+              <Building2 className="w-3 h-3 text-slate-400 dark:text-slate-500" />
               Class
             </label>
             <select
@@ -586,7 +586,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                 setSelectedClassId(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full text-xs rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+              className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-slate-800 dark:text-slate-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
             >
               <option value="">All Assigned Classes</option>
               {uniqueClasses.map((c) => (
@@ -599,8 +599,8 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
 
           {/* Subject Filter */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
-              <BookOpen className="w-3 h-3 text-slate-400" />
+            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
+              <BookOpen className="w-3 h-3 text-slate-400 dark:text-slate-500" />
               Subject
             </label>
             <select
@@ -609,7 +609,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                 setSelectedSubjectId(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full text-xs rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+              className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-slate-800 dark:text-slate-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
             >
               <option value="">All Assigned Subjects</option>
               {uniqueSubjects.map((s) => (
@@ -622,8 +622,8 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
 
           {/* Status Filter */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
-              <Filter className="w-3 h-3 text-slate-400" />
+            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
+              <Filter className="w-3 h-3 text-slate-400 dark:text-slate-500" />
               Attendance Status
             </label>
             <select
@@ -632,7 +632,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                 setSelectedStatus(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full text-xs rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+              className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-slate-800 dark:text-slate-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
             >
               <option value="">All Standings</option>
               <option value="REQUIREMENT_MET">Requirement Met (≥75%)</option>
@@ -724,14 +724,14 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {/* Desktop Table View */}
-          <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+          <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-200/80 bg-slate-50/70 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                   <th className="py-3 px-4">
                     <button
                       onClick={() => handleSortToggle('name')}
-                      className="flex items-center gap-1 hover:text-slate-900 transition font-bold"
+                      className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition font-bold"
                     >
                       Student
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
@@ -740,7 +740,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                   <th className="py-3 px-4">
                     <button
                       onClick={() => handleSortToggle('roll_number')}
-                      className="flex items-center gap-1 hover:text-slate-900 transition font-bold"
+                      className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition font-bold"
                     >
                       Roll No
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
@@ -750,7 +750,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                   <th className="py-3 px-4">
                     <button
                       onClick={() => handleSortToggle('attendance_percentage')}
-                      className="flex items-center gap-1 hover:text-slate-900 transition font-bold"
+                      className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition font-bold"
                     >
                       Attendance Rate
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
@@ -759,7 +759,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                   <th className="py-3 px-4 text-center">
                     <button
                       onClick={() => handleSortToggle('present')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900 transition font-bold"
+                      className="inline-flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition font-bold"
                     >
                       Attended / Total
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
@@ -769,27 +769,27 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {items.map((st) => {
                   const isHealthy = st.attendance_percentage >= 75.0;
                   const isCrit = st.attendance_percentage < 60.0;
 
                   return (
-                    <tr key={st.student_id} className="hover:bg-slate-50/70 transition">
+                    <tr key={st.student_id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition">
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900 font-heading text-xs">
+                        <div className="font-bold text-slate-900 dark:text-white font-heading text-xs">
                           {st.name}
                         </div>
-                        <div className="text-[11px] text-slate-400">{st.email}</div>
+                        <div className="text-[11px] text-slate-400 dark:text-slate-500">{st.email}</div>
                       </td>
 
-                      <td className="py-3 px-4 font-mono font-semibold text-slate-700 text-xs">
+                      <td className="py-3 px-4 font-mono font-semibold text-slate-700 dark:text-slate-300 text-xs">
                         {st.roll_number}
                       </td>
 
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-800">{st.class_name}</div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200">{st.class_name}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500">
                           {st.department} &bull; Sem {st.semester}-{st.section}
                         </div>
                       </td>
@@ -800,16 +800,16 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                             <span
                               className={`font-black font-mono ${
                                 isCrit
-                                  ? 'text-rose-600'
+                                  ? 'text-rose-600 dark:text-rose-400'
                                   : !isHealthy
-                                  ? 'text-amber-600'
-                                  : 'text-emerald-600'
+                                  ? 'text-amber-600 dark:text-amber-400'
+                                  : 'text-emerald-600 dark:text-emerald-400'
                               }`}
                             >
                               {st.attendance_percentage}%
                             </span>
                           </div>
-                          <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                          <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                             <div
                               className={`h-full rounded-full transition-all duration-300 ${
                                 isCrit
@@ -825,10 +825,10 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                       </td>
 
                       <td className="py-3 px-4 text-center">
-                        <span className="font-semibold text-slate-800">{st.present}</span>
-                        <span className="text-slate-400"> / {st.total_sessions}</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">{st.present}</span>
+                        <span className="text-slate-400 dark:text-slate-500"> / {st.total_sessions}</span>
                         {st.absent > 0 && (
-                          <span className="text-[10px] text-rose-600 block">({st.absent} missed)</span>
+                          <span className="text-[10px] text-rose-600 dark:text-rose-400 block">({st.absent} missed)</span>
                         )}
                       </td>
 
@@ -867,11 +867,11 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
               const isCrit = st.attendance_percentage < 60.0;
 
               return (
-                <Card key={st.student_id} className="p-4 bg-white border-slate-200/80 shadow-xs space-y-3">
+                <Card key={st.student_id} className="p-4 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="font-bold text-slate-900 font-heading text-sm">{st.name}</h4>
-                      <p className="text-[11px] text-slate-400 font-mono">
+                      <h4 className="font-bold text-slate-900 dark:text-white font-heading text-sm">{st.name}</h4>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
                         Roll: {st.roll_number} &bull; {st.email}
                       </p>
                     </div>
@@ -884,20 +884,20 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                     </Badge>
                   </div>
 
-                  <div className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1">
+                  <div className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/60 space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 font-medium">Class:</span>
-                      <span className="font-semibold text-slate-800">{st.class_name}</span>
+                      <span className="text-slate-400 dark:text-slate-500 font-medium">Class:</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{st.class_name}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 font-medium">Attendance Rate:</span>
+                      <span className="text-slate-400 dark:text-slate-500 font-medium">Attendance Rate:</span>
                       <span
                         className={`font-black font-mono ${
                           isCrit
-                            ? 'text-rose-600'
+                            ? 'text-rose-600 dark:text-rose-400'
                             : !isHealthy
-                            ? 'text-amber-600'
-                            : 'text-emerald-600'
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-emerald-600 dark:text-emerald-400'
                         }`}
                       >
                         {st.attendance_percentage}% ({st.present}/{st.total_sessions})
@@ -921,8 +921,8 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
 
           {/* Pagination Controls */}
           {pagination.total_pages > 1 && (
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs text-xs">
-              <span className="text-slate-500">
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs text-xs">
+              <span className="text-slate-500 dark:text-slate-400">
                 Showing Page <strong>{pagination.page}</strong> of <strong>{pagination.total_pages}</strong>{' '}
                 ({pagination.total} total students)
               </span>
@@ -957,18 +957,18 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
       {/* ========================================================================= */}
       {inspectingStudentId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-800/60">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                <div className="w-9 h-9 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
                   <Users className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 font-heading">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white font-heading">
                     {detailData?.student.name || 'Student Attendance Details'}
                   </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">
                     Roll No: {detailData?.student.roll_number} &bull; Class: {detailData?.student.class_name}
                   </p>
                 </div>
@@ -976,7 +976,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
 
               <button
                 onClick={handleCloseDetailModal}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -999,49 +999,48 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
               ) : detailData ? (
                 <>
                   {/* Overall Attendance Summary Banner */}
-                  {/* Overall Attendance Summary Banner */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                    <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100 col-span-2 sm:col-span-1">
-                      <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-wider block">
+                    <div className="p-3.5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-800/60 col-span-2 sm:col-span-1">
+                      <span className="text-[10px] font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider block">
                         Attended Rate
                       </span>
-                      <p className="text-2xl font-black font-heading text-indigo-600 mt-1">
+                      <p className="text-2xl font-black font-heading text-indigo-600 dark:text-indigo-400 mt-1">
                         {detailData.summary.overall_percentage}%
                       </p>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
                         Total Sessions
                       </span>
-                      <p className="text-xl font-bold font-heading text-slate-900 mt-1">
+                      <p className="text-xl font-bold font-heading text-slate-900 dark:text-slate-200 mt-1">
                         {detailData.summary.total_sessions}
                       </p>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-emerald-50/50 border border-emerald-100">
-                      <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
+                    <div className="p-3.5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800/60">
+                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
                         On-Time
                       </span>
-                      <p className="text-xl font-bold font-heading text-emerald-700 mt-1">
+                      <p className="text-xl font-bold font-heading text-emerald-700 dark:text-emerald-300 mt-1">
                         {detailData.summary.total_present}
                       </p>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-amber-50/50 border border-amber-200/80">
-                      <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">
+                    <div className="p-3.5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60">
+                      <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">
                         Late ({detailData.summary.late_percentage || 0}%)
                       </span>
-                      <p className="text-xl font-bold font-heading text-amber-800 mt-1">
+                      <p className="text-xl font-bold font-heading text-amber-800 dark:text-amber-300 mt-1">
                         {detailData.summary.total_late || 0}
                       </p>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
+                      <span className="text-[10px] font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider block">
                         Absent
                       </span>
-                      <p className="text-xl font-bold font-heading text-rose-600 mt-1">
+                      <p className="text-xl font-bold font-heading text-rose-600 dark:text-rose-400 mt-1">
                         {detailData.summary.total_absent}
                       </p>
                     </div>
@@ -1049,8 +1048,8 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
 
                   {/* Subject Performance Breakdown */}
                   <div className="space-y-2.5">
-                    <h4 className="text-xs font-bold text-slate-900 font-heading uppercase tracking-wider flex items-center gap-1.5">
-                      <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white font-heading uppercase tracking-wider flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                       Subject Performance Breakdown
                     </h4>
 
@@ -1062,14 +1061,14 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                         return (
                           <div
                             key={sub.subject_id}
-                            className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/70 space-y-2"
+                            className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700 space-y-2"
                           >
                             <div className="flex items-start justify-between">
                               <div>
-                                <span className="text-[10px] font-bold text-slate-400 font-mono">
+                                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 font-mono">
                                   {sub.subject_code}
                                 </span>
-                                <h5 className="text-xs font-bold text-slate-900 font-heading">
+                                <h5 className="text-xs font-bold text-slate-900 dark:text-white font-heading">
                                   {sub.subject_name}
                                 </h5>
                               </div>
@@ -1082,7 +1081,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                             </div>
 
                             {/* Mini Bar */}
-                            <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                            <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                               <div
                                 className={`h-full rounded-full ${
                                   isSubCrit
@@ -1095,9 +1094,9 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                               />
                             </div>
 
-                            <div className="flex items-center justify-between text-[10px] text-slate-500">
+                            <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
                               <span>Present: {sub.present}</span>
-                              {sub.late > 0 && <span className="text-amber-700 font-medium">Late: {sub.late}</span>}
+                              {sub.late > 0 && <span className="text-amber-700 dark:text-amber-400 font-medium">Late: {sub.late}</span>}
                               <span>Absent: {sub.absent}</span>
                               <span>Total: {sub.total}</span>
                             </div>
@@ -1108,10 +1107,10 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                   </div>
 
                   {/* Attendance History Audit Log */}
-                  <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <h4 className="text-xs font-bold text-slate-900 font-heading uppercase tracking-wider flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white font-heading uppercase tracking-wider flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                         Verified Attendance Session Records
                       </h4>
 
@@ -1123,7 +1122,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                             setDetailSubjectId(e.target.value);
                             setDetailPage(1);
                           }}
-                          className="text-[11px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700"
+                          className="text-[11px] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-slate-700 dark:text-slate-200"
                         >
                           <option value="">All Subjects</option>
                           {detailData.subjects.map((s) => (
@@ -1139,7 +1138,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                             setDetailStatus(e.target.value);
                             setDetailPage(1);
                           }}
-                          className="text-[11px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700"
+                          className="text-[11px] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-slate-700 dark:text-slate-200"
                         >
                           <option value="">All Statuses</option>
                           <option value="PRESENT">On-Time</option>
@@ -1150,14 +1149,14 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                     </div>
 
                     {detailData.history.records.length === 0 ? (
-                      <p className="text-xs text-slate-400 text-center py-6">
+                      <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-6">
                         No attendance history records match your filters.
                       </p>
                     ) : (
-                      <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white">
+                      <div className="overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
                         <table className="w-full text-left text-xs">
                           <thead>
-                            <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                            <tr className="bg-slate-50 dark:bg-slate-800/60 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
                               <th className="py-2.5 px-3.5">Date & Time</th>
                               <th className="py-2.5 px-3.5">Subject</th>
                               <th className="py-2.5 px-3.5">Status</th>
@@ -1165,16 +1164,16 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                               <th className="py-2.5 px-3.5 text-right">Actions</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100">
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {detailData.history.records.map((r) => (
-                              <tr key={r.session_id} className="hover:bg-slate-50/60">
-                                <td className="py-2.5 px-3.5 font-medium text-slate-800">
+                              <tr key={r.session_id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                                <td className="py-2.5 px-3.5 font-medium text-slate-800 dark:text-slate-200">
                                   {new Date(r.started_at).toLocaleDateString(undefined, {
                                     day: 'numeric',
                                     month: 'short',
                                     year: 'numeric',
                                   })}
-                                  <span className="text-[10px] text-slate-400 block font-mono">
+                                  <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-mono">
                                     {new Date(r.started_at).toLocaleTimeString([], {
                                       hour: '2-digit',
                                       minute: '2-digit',
@@ -1182,8 +1181,8 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                                   </span>
                                 </td>
                                 <td className="py-2.5 px-3.5">
-                                  <span className="font-semibold text-slate-800">{r.subject_name}</span>
-                                  <span className="text-[10px] text-slate-400 font-mono block">
+                                  <span className="font-semibold text-slate-800 dark:text-slate-200">{r.subject_name}</span>
+                                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono block">
                                     {r.subject_code}
                                   </span>
                                 </td>
@@ -1197,7 +1196,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                                       PRESENT
                                     </Badge>
                                   ) : r.status === 'LATE' ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-300">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
                                       ● LATE
                                     </span>
                                   ) : (
@@ -1210,7 +1209,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                                     </Badge>
                                   )}
                                 </td>
-                                <td className="py-2.5 px-3.5 text-slate-400 text-[11px]">
+                                <td className="py-2.5 px-3.5 text-slate-400 dark:text-slate-500 text-[11px]">
                                   {r.marked_at
                                     ? new Date(r.marked_at).toLocaleTimeString([], {
                                         hour: '2-digit',
@@ -1223,7 +1222,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                                     <>
                                       <button
                                         onClick={() => setProofAttendanceId(r.attendance_id!)}
-                                        className="text-blue-600 font-bold hover:underline text-[11px]"
+                                        className="text-blue-600 dark:text-blue-400 font-bold hover:underline text-[11px] cursor-pointer"
                                       >
                                         Proof
                                       </button>
@@ -1245,7 +1244,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                                           });
                                           setCorrectModalOpen(true);
                                         }}
-                                        className="text-amber-600 font-bold hover:underline text-[11px]"
+                                        className="text-amber-600 dark:text-amber-400 font-bold hover:underline text-[11px] cursor-pointer"
                                       >
                                         Correct
                                       </button>
@@ -1259,7 +1258,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                                           });
                                           setAuditModalOpen(true);
                                         }}
-                                        className="text-indigo-600 font-bold hover:underline text-[11px]"
+                                        className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline text-[11px] cursor-pointer"
                                       >
                                         Audit
                                       </button>
@@ -1275,7 +1274,7 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
                                         });
                                         setManualModalOpen(true);
                                       }}
-                                      className="text-emerald-600 font-bold hover:underline text-[11px]"
+                                      className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline text-[11px] cursor-pointer"
                                     >
                                       Mark Manual
                                     </button>
@@ -1293,44 +1292,44 @@ export const TeacherStudentAttendanceSearchPage: React.FC = () => {
             </div>
 
             {/* Modal Footer with Export & Close */}
-            <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-800/60">
               <div className="relative inline-block text-left" ref={studentExportDropdownRef}>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setIsStudentExportMenuOpen((prev) => !prev)}
                   isLoading={isStudentExporting}
-                  leftIcon={<Download className="w-3.5 h-3.5 text-indigo-600" />}
+                  leftIcon={<Download className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />}
                   rightIcon={<ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
-                  className="bg-white"
+                  className="bg-white dark:bg-slate-900"
                 >
                   {isStudentExporting ? `Exporting ${studentExportingFormat?.toUpperCase()}...` : 'Export Student Report'}
                 </Button>
 
                 {isStudentExportMenuOpen && (
-                  <div className="absolute left-0 bottom-full mb-1.5 w-48 rounded-2xl bg-white shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                    <div className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                  <div className="absolute left-0 bottom-full mb-1.5 w-48 rounded-2xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200/90 dark:border-slate-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-700">
                       Export Student Audit
                     </div>
                     <button
                       onClick={() => handleExportStudentDetail('csv')}
-                      className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                      className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-2.5 transition cursor-pointer"
                     >
-                      <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                       CSV (.csv)
                     </button>
                     <button
                       onClick={() => handleExportStudentDetail('excel')}
-                      className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                      className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-2.5 transition cursor-pointer"
                     >
-                      <FileSpreadsheet className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                       Excel (.xlsx)
                     </button>
                     <button
                       onClick={() => handleExportStudentDetail('pdf')}
-                      className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                      className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-2.5 transition cursor-pointer"
                     >
-                      <FileDown className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                      <FileDown className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                       PDF Document (.pdf)
                     </button>
                   </div>

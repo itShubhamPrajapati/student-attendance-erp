@@ -192,62 +192,62 @@ export const TeacherAttendanceHistoryPage: React.FC = () => {
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <Card className="p-4 bg-white border-slate-200/80 shadow-xs space-y-1">
-          <div className="flex items-center justify-between text-slate-400">
+        <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500">
             <span className="text-[10px] font-bold uppercase tracking-wider">Total Sessions</span>
-            <Layers className="w-4 h-4 text-indigo-600" />
+            <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-slate-900 font-heading">{stats.total}</span>
-            <span className="text-[11px] text-slate-400 font-medium">Lectures</span>
+            <span className="text-2xl font-bold text-slate-900 dark:text-white font-heading">{stats.total}</span>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">Lectures</span>
           </div>
         </Card>
 
-        <Card className="p-4 bg-white border-emerald-100 shadow-xs space-y-1">
-          <div className="flex items-center justify-between text-emerald-600">
+        <Card className="p-4 bg-white dark:bg-slate-900 border-emerald-100 dark:border-emerald-800 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
             <span className="text-[10px] font-bold uppercase tracking-wider">Active / Live</span>
             <QrCode className="w-4 h-4" />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-emerald-800 font-heading">{stats.active}</span>
-            <span className="text-[11px] text-emerald-600 font-medium">Accepting Scans</span>
+            <span className="text-2xl font-bold text-emerald-800 dark:text-emerald-300 font-heading">{stats.active}</span>
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Accepting Scans</span>
           </div>
         </Card>
 
-        <Card className="p-4 bg-white border-amber-100 shadow-xs space-y-1">
-          <div className="flex items-center justify-between text-amber-600">
+        <Card className="p-4 bg-white dark:bg-slate-900 border-amber-100 dark:border-amber-800 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-amber-600 dark:text-amber-400">
             <span className="text-[10px] font-bold uppercase tracking-wider">Completed</span>
             <CheckCircle2 className="w-4 h-4" />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-amber-800 font-heading">{stats.completed}</span>
-            <span className="text-[11px] text-amber-600 font-medium">Concluded</span>
+            <span className="text-2xl font-bold text-amber-800 dark:text-amber-300 font-heading">{stats.completed}</span>
+            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Concluded</span>
           </div>
         </Card>
 
-        <Card className="p-4 bg-white border-indigo-100 shadow-xs space-y-1">
-          <div className="flex items-center justify-between text-indigo-600">
+        <Card className="p-4 bg-white dark:bg-slate-900 border-indigo-100 dark:border-indigo-800 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-indigo-600 dark:text-indigo-400">
             <span className="text-[10px] font-bold uppercase tracking-wider">Total Present Marks</span>
             <CheckCircle2 className="w-4 h-4" />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-indigo-900 font-heading">{stats.totalPresent}</span>
-            <span className="text-[11px] text-indigo-600 font-medium">Records</span>
+            <span className="text-2xl font-bold text-indigo-900 dark:text-indigo-300 font-heading">{stats.totalPresent}</span>
+            <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">Records</span>
           </div>
         </Card>
       </div>
 
       {/* Filter Control Bar */}
-      <Card className="p-4 bg-white border-slate-200/80 shadow-xs space-y-3">
+      <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-800 font-heading">
-            <Filter className="w-3.5 h-3.5 text-indigo-600" />
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 font-heading">
+            <Filter className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
             <span>Search & Filter Sessions</span>
           </div>
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="text-[11px] font-medium text-rose-600 hover:text-rose-700 flex items-center gap-1 transition"
+              className="text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:text-rose-700 flex items-center gap-1 transition cursor-pointer"
             >
               <X className="w-3 h-3" />
               <span>Clear Filters</span>
@@ -258,13 +258,13 @@ export const TeacherAttendanceHistoryPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
           {/* Search Query */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input
               type="text"
               placeholder="Search subject or class..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
             />
           </div>
 
@@ -272,7 +272,7 @@ export const TeacherAttendanceHistoryPage: React.FC = () => {
           <select
             value={selectedSubjectId}
             onChange={(e) => setSelectedSubjectId(e.target.value)}
-            className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs text-slate-900 focus:bg-white focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
+            className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
           >
             <option value="">All Subjects</option>
             {subjectOptions.map((sub) => (
@@ -286,7 +286,7 @@ export const TeacherAttendanceHistoryPage: React.FC = () => {
           <select
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
-            className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs text-slate-900 focus:bg-white focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
+            className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
           >
             <option value="">All Classes</option>
             {classOptions.map((cls) => (
@@ -300,7 +300,7 @@ export const TeacherAttendanceHistoryPage: React.FC = () => {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs text-slate-900 focus:bg-white focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
+            className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
           >
             <option value="">All Statuses</option>
             <option value="ACTIVE">Active (Live QR)</option>
@@ -313,7 +313,7 @@ export const TeacherAttendanceHistoryPage: React.FC = () => {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs text-slate-900 focus:bg-white focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
+            className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
           />
         </div>
       </Card>
@@ -354,11 +354,11 @@ export const TeacherAttendanceHistoryPage: React.FC = () => {
           }
         />
       ) : (
-        <Card className="p-0 overflow-hidden bg-white border-slate-200/80 shadow-xs">
+        <Card className="p-0 overflow-hidden bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs">
           {/* Table View (Desktop & Tablet) */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase tracking-wider font-semibold">
+              <thead className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
                 <tr>
                   <th className="py-3 px-4">Date</th>
                   <th className="py-3 px-4">Subject</th>
@@ -370,60 +370,60 @@ export const TeacherAttendanceHistoryPage: React.FC = () => {
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredSessions.map((s) => {
                   const duration = s.duration_minutes || Math.max(1, Math.round((new Date(s.expires_at).getTime() - new Date(s.started_at).getTime()) / 60000));
                   const absent = s.absent_count !== undefined ? s.absent_count : Math.max(0, s.total_students - s.present_count);
                   const isLive = s.is_active && !s.is_expired;
 
                   return (
-                    <tr key={s.id} className="hover:bg-slate-50/50 transition">
+                    <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
                       {/* Date */}
                       <td className="py-3 px-4 font-mono text-[11px]">
-                        <div className="font-semibold text-slate-900 flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                           <span>{new Date(s.started_at).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                         </div>
-                        <div className="text-[10px] text-slate-400 pl-5">
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 pl-5">
                           {new Date(s.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </td>
 
                       {/* Subject */}
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-900 font-heading">{s.subject_name}</div>
-                        <span className="font-mono text-[10px] text-indigo-600 font-semibold">{s.subject_code}</span>
+                        <div className="font-semibold text-slate-900 dark:text-white font-heading">{s.subject_name}</div>
+                        <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">{s.subject_code}</span>
                       </td>
 
                       {/* Class */}
                       <td className="py-3 px-4">
-                        <div className="font-medium text-slate-800 flex items-center gap-1">
-                          <Building2 className="w-3 h-3 text-slate-400" />
+                        <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                          <Building2 className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                           <span>{s.class_name}</span>
                         </div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500">
                           Sem {s.semester} &bull; Sec {s.section}
                         </div>
                       </td>
 
                       {/* Present */}
                       <td className="py-3 px-4 text-center font-mono">
-                        <span className="inline-flex items-center justify-center min-w-[28px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold text-xs border border-emerald-200/50">
+                        <span className="inline-flex items-center justify-center min-w-[28px] px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold text-xs border border-emerald-200/50 dark:border-emerald-800">
                           {s.present_count}
                         </span>
                       </td>
 
                       {/* Absent */}
                       <td className="py-3 px-4 text-center font-mono">
-                        <span className="inline-flex items-center justify-center min-w-[28px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold text-xs border border-slate-200">
+                        <span className="inline-flex items-center justify-center min-w-[28px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs border border-slate-200 dark:border-slate-700">
                           {absent}
                         </span>
                       </td>
 
                       {/* Duration */}
-                      <td className="py-3 px-4 font-mono text-slate-600 text-[11px]">
+                      <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-400 text-[11px]">
                         <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-slate-400" />
+                          <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                           <span>{duration} min</span>
                         </span>
                       </td>

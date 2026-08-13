@@ -80,22 +80,22 @@ export function getActivityIcon(type: ActivityType) {
 export function getActivityBg(type: ActivityType) {
   switch (type) {
     case 'ATTENDANCE_MARKED':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+      return 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800';
     case 'ATTENDANCE_LATE':
-      return 'bg-amber-50 text-amber-800 border-amber-100';
+      return 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-100 dark:border-amber-800';
     case 'ATTENDANCE_CORRECTED':
     case 'MANUAL_ATTENDANCE':
-      return 'bg-indigo-50 text-indigo-700 border-indigo-100';
+      return 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-100 dark:border-indigo-800';
     case 'SESSION_STARTED':
-      return 'bg-sky-50 text-sky-700 border-sky-100';
+      return 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-100 dark:border-sky-800';
     case 'SESSION_FINALIZED':
-      return 'bg-slate-100 text-slate-800 border-slate-200';
+      return 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700';
     case 'SESSION_REOPENED':
-      return 'bg-amber-50 text-amber-800 border-amber-200';
+      return 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800';
     case 'ATTENDANCE_PROOF_GENERATED':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+      return 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800';
     default:
-      return 'bg-slate-50 text-slate-700 border-slate-100';
+      return 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-100 dark:border-slate-700';
   }
 }
 
@@ -134,18 +134,18 @@ export const ActivityFeedCard: React.FC<ActivityFeedCardProps> = ({
   }, [fetchActivity]);
 
   return (
-    <Card className={`p-4 sm:p-5 bg-white border-slate-200/80 shadow-xs rounded-3xl space-y-4 ${className}`}>
+    <Card className={`p-4 sm:p-5 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs rounded-3xl space-y-4 ${className}`}>
       {/* Card Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
             <Activity className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-slate-900 font-heading uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white font-heading uppercase tracking-wider">
               {title}
             </h3>
-            {subtitle && <p className="text-[11px] text-slate-400">{subtitle}</p>}
+            {subtitle && <p className="text-[11px] text-slate-400 dark:text-slate-500">{subtitle}</p>}
           </div>
         </div>
 
@@ -154,14 +154,14 @@ export const ActivityFeedCard: React.FC<ActivityFeedCardProps> = ({
             onClick={fetchActivity}
             disabled={loading}
             title="Refresh feed"
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-600' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-600 dark:text-indigo-400' : ''}`} />
           </button>
           {showViewAllLink && (
             <Link
               to={viewAllUrl}
-              className="text-xs text-indigo-600 font-semibold hover:underline flex items-center gap-0.5 ml-1"
+              className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-0.5 ml-1"
             >
               View All <ChevronRight className="w-3 h-3" />
             </Link>
@@ -202,7 +202,7 @@ export const ActivityFeedCard: React.FC<ActivityFeedCardProps> = ({
             return (
               <div
                 key={item.id}
-                className="p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-100/60 transition space-y-1.5"
+                className="p-3 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/70 transition space-y-1.5"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -210,25 +210,25 @@ export const ActivityFeedCard: React.FC<ActivityFeedCardProps> = ({
                       {getActivityIcon(item.type)}
                     </span>
                     <div>
-                      <span className="text-xs font-bold text-slate-900 block leading-tight">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">
                         {item.title}
                       </span>
-                      <span className="text-[11px] text-slate-600 leading-snug">
+                      <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
                         {item.description}
                       </span>
                     </div>
                   </div>
 
-                  <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap flex-shrink-0">
+                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 whitespace-nowrap flex-shrink-0">
                     {formatRelativeTime(item.created_at)}
                   </span>
                 </div>
 
                 {/* Metadata tags & Resource link */}
-                <div className="flex items-center justify-between text-[10px] pt-1 border-t border-slate-200/50 text-slate-500">
+                <div className="flex items-center justify-between text-[10px] pt-1 border-t border-slate-200/50 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                   <div className="flex items-center gap-2 flex-wrap">
                     {item.subject_name && (
-                      <span className="font-semibold text-slate-700">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">
                         {item.subject_name} {item.subject_code ? `(${item.subject_code})` : ''}
                       </span>
                     )}
@@ -236,14 +236,14 @@ export const ActivityFeedCard: React.FC<ActivityFeedCardProps> = ({
                       <span>&bull; {item.class_name}</span>
                     )}
                     {item.actor_name && (
-                      <span className="text-slate-400">&bull; by {item.actor_name}</span>
+                      <span className="text-slate-400 dark:text-slate-500">&bull; by {item.actor_name}</span>
                     )}
                   </div>
 
                   {targetLink && (
                     <Link
                       to={targetLink}
-                      className="text-indigo-600 font-semibold hover:underline flex items-center gap-0.5"
+                      className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-0.5"
                     >
                       Details <ExternalLink className="w-2.5 h-2.5" />
                     </Link>

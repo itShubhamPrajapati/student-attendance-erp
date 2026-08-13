@@ -243,15 +243,15 @@ export const TeacherSessionAttendancePage: React.FC = () => {
                 size="sm"
                 onClick={() => setIsExportMenuOpen((prev) => !prev)}
                 isLoading={isExporting}
-                leftIcon={<Download className="w-3.5 h-3.5" />}
+                leftIcon={<Download className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />}
                 rightIcon={<ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
               >
                 {isExporting ? `Exporting ${exportingFormat?.toUpperCase()}...` : 'Export Roster'}
               </Button>
 
               {isExportMenuOpen && (
-                <div className="absolute right-0 mt-1.5 w-52 rounded-2xl bg-white border border-slate-200/90 shadow-xl py-1.5 z-30 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-3.5 py-1.5 border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="absolute right-0 mt-1.5 w-52 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 shadow-xl py-1.5 z-30 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3.5 py-1.5 border-b border-slate-100 dark:border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                     Export Session Report
                   </div>
                   <button
@@ -271,9 +271,9 @@ export const TeacherSessionAttendancePage: React.FC = () => {
                         setExportingFormat(null);
                       }
                     }}
-                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-2.5 transition cursor-pointer"
                   >
-                    <FileText className="w-4 h-4 text-sky-600" />
+                    <FileText className="w-4 h-4 text-sky-600 dark:text-sky-400" />
                     CSV (.csv)
                   </button>
                   <button
@@ -293,9 +293,9 @@ export const TeacherSessionAttendancePage: React.FC = () => {
                         setExportingFormat(null);
                       }
                     }}
-                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-2.5 transition cursor-pointer"
                   >
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     Excel (.xlsx)
                   </button>
                   <button
@@ -315,9 +315,9 @@ export const TeacherSessionAttendancePage: React.FC = () => {
                         setExportingFormat(null);
                       }
                     }}
-                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2.5 transition"
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-2.5 transition cursor-pointer"
                   >
-                    <FileDown className="w-4 h-4 text-rose-600" />
+                    <FileDown className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                     PDF Document (.pdf)
                   </button>
                 </div>
@@ -348,43 +348,43 @@ export const TeacherSessionAttendancePage: React.FC = () => {
 
       {/* Overview Stats (Feature #12: Total, Present, Late, Absent, Attendance Rate) */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <Card className="p-3.5 border-slate-200">
-          <p className="text-[10px] font-bold uppercase text-slate-400">Total Enrolled</p>
-          <p className="text-xl font-extrabold text-slate-900 font-heading">{data.total_students}</p>
+        <Card className="p-3.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+          <p className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">Total Enrolled</p>
+          <p className="text-xl font-extrabold text-slate-900 dark:text-white font-heading">{data.total_students}</p>
         </Card>
-        <Card className="p-3.5 border-emerald-100 bg-emerald-50/40">
-          <p className="text-[10px] font-bold uppercase text-emerald-700">On-Time</p>
-          <p className="text-xl font-extrabold text-emerald-800 font-heading">{data.present_count}</p>
+        <Card className="p-3.5 border-emerald-100 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/40">
+          <p className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400">On-Time</p>
+          <p className="text-xl font-extrabold text-emerald-800 dark:text-emerald-300 font-heading">{data.present_count}</p>
         </Card>
-        <Card className="p-3.5 border-amber-200 bg-amber-50/50">
-          <p className="text-[10px] font-bold uppercase text-amber-700">Late ({data.late_percentage}%)</p>
-          <p className="text-xl font-extrabold text-amber-800 font-heading">{lateCount}</p>
+        <Card className="p-3.5 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/40">
+          <p className="text-[10px] font-bold uppercase text-amber-700 dark:text-amber-400">Late ({data.late_percentage}%)</p>
+          <p className="text-xl font-extrabold text-amber-800 dark:text-amber-300 font-heading">{lateCount}</p>
         </Card>
-        <Card className="p-3.5 border-slate-200">
-          <p className="text-[10px] font-bold uppercase text-slate-500">Absent</p>
-          <p className="text-xl font-extrabold text-slate-700 font-heading">{absentCount}</p>
+        <Card className="p-3.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+          <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Absent</p>
+          <p className="text-xl font-extrabold text-slate-700 dark:text-slate-200 font-heading">{absentCount}</p>
         </Card>
-        <Card className="p-3.5 border-indigo-100 bg-indigo-50/40 col-span-2 sm:col-span-1">
-          <p className="text-[10px] font-bold uppercase text-indigo-700">Attended Rate</p>
-          <p className="text-xl font-extrabold text-indigo-900 font-heading font-mono">{data.percentage}%</p>
+        <Card className="p-3.5 border-indigo-100 dark:border-indigo-800 bg-indigo-50/40 dark:bg-indigo-950/40 col-span-2 sm:col-span-1">
+          <p className="text-[10px] font-bold uppercase text-indigo-700 dark:text-indigo-400">Attended Rate</p>
+          <p className="text-xl font-extrabold text-indigo-900 dark:text-indigo-300 font-heading font-mono">{data.percentage}%</p>
         </Card>
       </div>
 
       {/* Roster Table */}
-      <Card className="p-0 overflow-hidden border-slate-200">
-        <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
-          <div className="flex items-center gap-2 text-slate-800">
-            <Users className="w-4 h-4 text-indigo-600" />
+      <Card className="p-0 overflow-hidden bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-800/50">
+          <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
+            <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             <span className="text-xs font-bold uppercase">Students ({filteredRecords.length})</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-xl border border-slate-200 bg-white p-0.5 text-xs shadow-xs">
+            <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 text-xs shadow-xs">
               <button
                 type="button"
                 onClick={() => setStatusFilter('ALL')}
-                className={`px-2.5 py-1 rounded-lg font-medium transition ${
-                  statusFilter === 'ALL' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer ${
+                  statusFilter === 'ALL' ? 'bg-indigo-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 All ({data.records.length})
@@ -392,8 +392,8 @@ export const TeacherSessionAttendancePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStatusFilter('PRESENT')}
-                className={`px-2.5 py-1 rounded-lg font-medium transition ${
-                  statusFilter === 'PRESENT' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer ${
+                  statusFilter === 'PRESENT' ? 'bg-emerald-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 On-Time ({data.present_count})
@@ -401,8 +401,8 @@ export const TeacherSessionAttendancePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStatusFilter('LATE')}
-                className={`px-2.5 py-1 rounded-lg font-medium transition ${
-                  statusFilter === 'LATE' ? 'bg-amber-500 text-white' : 'text-slate-600 hover:text-slate-900'
+                className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer ${
+                  statusFilter === 'LATE' ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 Late ({lateCount})
@@ -410,8 +410,8 @@ export const TeacherSessionAttendancePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStatusFilter('ABSENT')}
-                className={`px-2.5 py-1 rounded-lg font-medium transition ${
-                  statusFilter === 'ABSENT' ? 'bg-slate-700 text-white' : 'text-slate-600 hover:text-slate-900'
+                className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer ${
+                  statusFilter === 'ABSENT' ? 'bg-slate-700 dark:bg-slate-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 Absent ({absentCount})
@@ -430,7 +430,7 @@ export const TeacherSessionAttendancePage: React.FC = () => {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-slate-50 text-slate-500 uppercase">
+            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 uppercase border-b border-slate-100 dark:border-slate-800">
               <tr>
                 <th className="py-3 px-4">Roll</th>
                 <th className="py-3 px-4">Name</th>
@@ -439,23 +439,23 @@ export const TeacherSessionAttendancePage: React.FC = () => {
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredRecords.map((st) => (
-                <tr key={st.student_id} className="hover:bg-slate-50">
-                  <td className="py-3 px-4 font-mono font-bold text-indigo-600">{st.roll_number}</td>
-                  <td className="py-3 px-4 font-semibold">{st.name}</td>
+                <tr key={st.student_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <td className="py-3 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">{st.roll_number}</td>
+                  <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">{st.name}</td>
                   <td className="py-3 px-4">
                     {st.status === 'PRESENT' ? (
                       <Badge variant="success" className="text-[10px]">PRESENT</Badge>
                     ) : st.status === 'LATE' ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-300">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
                         LATE
                       </span>
                     ) : (
                       <Badge variant="neutral" className="text-[10px]">ABSENT</Badge>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-center text-slate-500">
+                  <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">
                     {st.marked_at ? new Date(st.marked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
                   </td>
                   <td className="py-3 px-4 text-right space-x-2">
@@ -463,31 +463,31 @@ export const TeacherSessionAttendancePage: React.FC = () => {
                       <>
                         <button
                           onClick={() => setProofAttendanceId(st.attendance_id!)}
-                          className="text-blue-600 font-bold hover:underline"
+                          className="text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
                         >
                           Proof
                         </button>
                         {isFinalized ? (
-                          <span className="text-slate-400 text-[11px] font-medium cursor-not-allowed" title="Session finalized — corrections locked">Correct</span>
+                          <span className="text-slate-400 dark:text-slate-500 text-[11px] font-medium cursor-not-allowed" title="Session finalized — corrections locked">Correct</span>
                         ) : (
                           <button onClick={() => {
                             setCorrectingStudent({ student: { name: st.name, roll_number: st.roll_number }, attendanceId: st.attendance_id!, status: st.status });
                             setCorrectModalOpen(true);
-                          }} className="text-amber-600 font-bold hover:underline">Correct</button>
+                          }} className="text-amber-600 dark:text-amber-400 font-bold hover:underline cursor-pointer">Correct</button>
                         )}
                         <button onClick={() => {
                           setAuditStudent({ attendanceId: st.attendance_id!, studentName: st.name, rollNumber: st.roll_number, subjectName: session.subject_name });
                           setAuditModalOpen(true);
-                        }} className="text-indigo-600 font-bold hover:underline">Audit</button>
+                        }} className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer">Audit</button>
                       </>
                     ) : (
                       isFinalized ? (
-                        <span className="text-slate-400 text-[11px] font-medium cursor-not-allowed" title="Session finalized — modifications locked">Mark Manual</span>
+                        <span className="text-slate-400 dark:text-slate-500 text-[11px] font-medium cursor-not-allowed" title="Session finalized — modifications locked">Mark Manual</span>
                       ) : (
                         <button onClick={() => {
                           setSelectedStudentForManual(st.student_id);
                           setManualModalOpen(true);
-                        }} className="text-emerald-600 font-bold hover:underline">Mark Manual</button>
+                        }} className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">Mark Manual</button>
                       )
                     )}
                   </td>

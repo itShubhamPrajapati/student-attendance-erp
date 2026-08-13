@@ -4,6 +4,7 @@ import { QrCode, Menu, X, Shield, GraduationCap, School, LogIn, LogOut, Home, Us
 import { ConnectionStatus } from './ConnectionStatus';
 import { MobileMenu } from './MobileMenu';
 import { Badge } from './Badge';
+import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../auth/AuthContext';
 import { cn } from '../utils/cn';
 
@@ -53,22 +54,22 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md transition-colors">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo & Brand */}
           <div className="flex items-center gap-3">
             <Link
               to="/"
-              className="group flex items-center gap-2.5 rounded-xl text-slate-900 transition hover:opacity-90"
+              className="group flex items-center gap-2.5 rounded-xl text-slate-900 dark:text-white transition hover:opacity-90"
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm transition group-hover:bg-indigo-700">
                 <QrCode className="h-5 w-5" />
               </div>
               <div className="flex flex-col">
-                <span className="font-heading text-base font-bold tracking-tight text-slate-900 leading-tight">
+                <span className="font-heading text-base font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
                   QR Attendance
                 </span>
-                <span className="text-[10px] font-medium text-slate-400 tracking-wider uppercase">
+                <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 tracking-wider uppercase">
                   College Portal
                 </span>
               </div>
@@ -86,11 +87,11 @@ export const Navbar: React.FC = () => {
                   className={cn(
                     'flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition duration-150',
                     isActive
-                      ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                      ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
                   )}
                 >
-                  <span className={cn(isActive ? 'text-indigo-600' : 'text-slate-400')}>{link.icon}</span>
+                  <span className={cn(isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500')}>{link.icon}</span>
                   {link.name}
                 </Link>
               );
@@ -98,15 +99,18 @@ export const Navbar: React.FC = () => {
           </nav>
 
           {/* Right Actions & Auth Status */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div className="hidden lg:block">
               <ConnectionStatus compact />
             </div>
 
+            {/* Global Theme Toggle Button */}
+            <ThemeToggle />
+
             {isAuthenticated && user ? (
               <div className="flex items-center gap-2.5">
                 <div className="hidden sm:flex flex-col items-end text-right">
-                  <span className="text-xs font-bold text-slate-900 truncate max-w-[140px]">{user.name}</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[140px]">{user.name}</span>
                   <Badge
                     variant={user.role === 'ADMIN' ? 'info' : user.role === 'TEACHER' ? 'warning' : 'success'}
                     className="text-[10px] px-1.5 py-0"
@@ -118,7 +122,7 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={logout}
                   title="Log out of account"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition shadow-sm active:scale-95"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-300 hover:border-rose-200 dark:hover:border-rose-800 transition shadow-2xs active:scale-95"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Logout</span>
@@ -128,10 +132,10 @@ export const Navbar: React.FC = () => {
               <Link
                 to="/login"
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-medium transition shadow-sm',
+                  'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-medium transition shadow-xs',
                   location.pathname === '/login'
                     ? 'bg-indigo-600 text-white shadow'
-                    : 'bg-slate-900 text-white hover:bg-slate-800'
+                    : 'bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700'
                 )}
               >
                 <LogIn className="w-3.5 h-3.5" />
@@ -143,7 +147,7 @@ export const Navbar: React.FC = () => {
             <button
               onClick={() => setIsMobileOpen((prev) => !prev)}
               aria-label={isMobileOpen ? 'Close Menu' : 'Open Menu'}
-              className="flex xl:hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 active:scale-95 transition"
+              className="flex xl:hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition"
             >
               {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>

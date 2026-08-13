@@ -123,22 +123,22 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <Card className="w-full max-w-md bg-white border-slate-200 shadow-xl rounded-3xl overflow-hidden p-0">
+      <Card className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
               <Lock className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold font-heading text-slate-900">{title}</h3>
-              <p className="text-[11px] text-slate-500">{subtitle}</p>
+              <h3 className="text-sm font-bold font-heading text-slate-900 dark:text-white">{title}</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">{subtitle}</p>
             </div>
           </div>
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             aria-label="Close dialog"
           >
             <X className="w-4 h-4" />
@@ -149,26 +149,26 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {/* Success Banner */}
           {successMessage && (
-            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2.5 animate-in fade-in" role="status">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300 text-xs flex items-center gap-2.5 animate-in fade-in" role="status">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span className="font-semibold">{successMessage}</span>
             </div>
           )}
 
           {/* Error Banner */}
           {error && (
-            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2.5 animate-in fade-in" role="alert">
-              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-300 text-xs flex items-start gap-2.5 animate-in fade-in" role="alert">
+              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
               <div className="space-y-0.5">
                 <span className="font-semibold block">Password Change Failed</span>
-                <p className="text-[11px] text-rose-800 leading-relaxed">{error}</p>
+                <p className="text-[11px] text-rose-800 dark:text-rose-300 leading-relaxed">{error}</p>
               </div>
             </div>
           )}
 
           {/* Current Password */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Current Password <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
@@ -187,7 +187,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowCurrentPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
                 title={showCurrentPassword ? 'Hide password' : 'Show password'}
               >
                 {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -197,7 +197,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
 
           {/* New Password */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               New Password <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
@@ -216,18 +216,18 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowNewPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
                 title={showNewPassword ? 'Hide password' : 'Show password'}
               >
                 {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">Must be at least 6 characters in length.</p>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Must be at least 6 characters in length.</p>
           </div>
 
           {/* Confirm New Password */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Confirm New Password <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
@@ -246,7 +246,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
                 title={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
                 {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -255,7 +255,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
             <Button
               type="button"
               variant="outline"

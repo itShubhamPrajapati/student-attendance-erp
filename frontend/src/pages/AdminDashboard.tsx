@@ -93,81 +93,81 @@ export const AdminDashboard: React.FC = () => {
           {/* Summary KPI Cards with Real Data (Phase 3 Extended) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* 1. Total Students */}
-            <Card hoverEffect className="transition-all border-indigo-100 bg-white">
+            <Card hoverEffect className="transition-all border-indigo-100 dark:border-slate-800 bg-white dark:bg-slate-900">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-indigo-600" />
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <Badge variant="info" className="text-[10px]">
                   {stats?.students?.active ?? 0} Active
                 </Badge>
               </div>
               <div className="mt-3">
-                <div className="text-3xl font-bold text-slate-900 font-heading">
+                <div className="text-3xl font-bold text-slate-900 dark:text-white font-heading">
                   {stats?.students?.total ?? 0}
                 </div>
-                <div className="text-xs text-slate-500 mt-0.5">Registered Students</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Registered Students</div>
               </div>
             </Card>
 
             {/* 2. Total Teachers */}
-            <Card hoverEffect className="transition-all border-amber-100 bg-white">
+            <Card hoverEffect className="transition-all border-amber-100 dark:border-slate-800 bg-white dark:bg-slate-900">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
-                  <School className="w-5 h-5 text-amber-600" />
+                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-800 flex items-center justify-center">
+                  <School className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <Badge variant="warning" className="text-[10px]">
                   {stats?.teachers?.active ?? 0} Active
                 </Badge>
               </div>
               <div className="mt-3">
-                <div className="text-3xl font-bold text-slate-900 font-heading">
+                <div className="text-3xl font-bold text-slate-900 dark:text-white font-heading">
                   {stats?.teachers?.total ?? 0}
                 </div>
-                <div className="text-xs text-slate-500 mt-0.5">Faculty Members</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Faculty Members</div>
               </div>
             </Card>
 
             {/* 3. Total Subjects (Phase 3) */}
-            <Card hoverEffect className="transition-all border-purple-100 bg-white">
+            <Card hoverEffect className="transition-all border-purple-100 dark:border-slate-800 bg-white dark:bg-slate-900">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center">
-                  <BookOpen className="w-5 h-5 text-purple-600" />
+                <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-100 dark:border-purple-800 flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <Badge variant="info" className="text-[10px]">
                   Curriculum
                 </Badge>
               </div>
               <div className="mt-3">
-                <div className="text-3xl font-bold text-purple-700 font-heading">
+                <div className="text-3xl font-bold text-purple-700 dark:text-purple-400 font-heading">
                   {stats?.subjects?.total ?? 0}
                 </div>
-                <div className="text-xs text-slate-500 mt-0.5">Course Subjects</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Course Subjects</div>
               </div>
             </Card>
 
             {/* 4. Total Classes (Phase 3) */}
-            <Card hoverEffect className="transition-all border-emerald-100 bg-white">
+            <Card hoverEffect className="transition-all border-emerald-100 dark:border-slate-800 bg-white dark:bg-slate-900">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-emerald-600" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-800 flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <Badge variant="success" withDot className="text-[10px]">
                   Batches
                 </Badge>
               </div>
               <div className="mt-3">
-                <div className="text-3xl font-bold text-emerald-700 font-heading">
+                <div className="text-3xl font-bold text-emerald-700 dark:text-emerald-400 font-heading">
                   {stats?.classes?.total ?? 0}
                 </div>
-                <div className="text-xs text-slate-500 mt-0.5">Academic Classes</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Academic Classes</div>
               </div>
             </Card>
           </div>
 
           {/* Quick Actions Bar */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-2.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-heading">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 font-heading">
               Quick Administrative Actions
             </h4>
             <div className="flex flex-wrap items-center gap-2">
@@ -208,24 +208,24 @@ export const AdminDashboard: React.FC = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 font-heading">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">
                   Recent Teaching Assignments
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Live allocations linking faculty to course subjects and class batches
                 </p>
               </div>
-              <Link to="/admin/assignments" className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+              <Link to="/admin/assignments" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1">
                 <span>View All Assignments</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
             {stats?.recent_assignments && stats.recent_assignments.length > 0 ? (
-              <Card className="overflow-hidden p-0 shadow-sm">
+              <Card className="overflow-hidden p-0 shadow-sm bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase tracking-wider font-semibold">
+                    <thead className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
                       <tr>
                         <th className="py-3 px-4">Faculty Member</th>
                         <th className="py-3 px-4">Assigned Subject</th>
@@ -233,20 +233,20 @@ export const AdminDashboard: React.FC = () => {
                         <th className="py-3 px-4">Department</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {stats.recent_assignments.map((assignment) => (
-                        <tr key={assignment.id} className="hover:bg-slate-50/50 transition">
-                          <td className="py-3 px-4 font-semibold text-slate-900 font-heading">
+                        <tr key={assignment.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
+                          <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white font-heading">
                             {assignment.teacher_name} ({assignment.teacher_employee_id})
                           </td>
                           <td className="py-3 px-4">
-                            <span className="font-semibold text-slate-800">{assignment.subject_name}</span>{' '}
-                            <span className="font-mono text-[11px] text-indigo-600">({assignment.subject_code})</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{assignment.subject_name}</span>{' '}
+                            <span className="font-mono text-[11px] text-indigo-600 dark:text-indigo-400">({assignment.subject_code})</span>
                           </td>
-                          <td className="py-3 px-4 font-medium text-slate-700">
+                          <td className="py-3 px-4 font-medium text-slate-700 dark:text-slate-300">
                             {assignment.class_name} &bull; Sem {assignment.semester} &bull; Sec {assignment.section}
                           </td>
-                          <td className="py-3 px-4 text-slate-600">{assignment.department}</td>
+                          <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{assignment.department}</td>
                         </tr>
                       ))}
                     </tbody>
