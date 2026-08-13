@@ -536,7 +536,7 @@ export const StudentDashboard: React.FC = () => {
           {/* 4. Four Summary KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* KPI 1: Overall Attendance % */}
-            <Card className="p-5 shadow-xs bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 text-white flex flex-col justify-between relative overflow-hidden">
+            <Card variant="glass-strong" hoverEffect className="p-5 shadow-md bg-gradient-to-br from-indigo-950/90 via-slate-900/90 to-slate-950 text-white flex flex-col justify-between relative overflow-hidden border-white/10">
               <div className="space-y-1.5 relative z-10">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-300">
@@ -580,10 +580,10 @@ export const StudentDashboard: React.FC = () => {
             </Card>
 
             {/* KPI 2: Total Attended */}
-            <Card className="p-5 shadow-xs bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+            <Card variant="glass" hoverEffect className="p-5 flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
                     Lectures Attended
                   </span>
                   <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
@@ -604,10 +604,10 @@ export const StudentDashboard: React.FC = () => {
             </Card>
 
             {/* KPI 3: Total Absent / Missed */}
-            <Card className="p-5 shadow-xs bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+            <Card variant="glass" hoverEffect className="p-5 flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
                     Lectures Missed
                   </span>
                   <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">
@@ -630,10 +630,10 @@ export const StudentDashboard: React.FC = () => {
             </Card>
 
             {/* KPI 4: Total Held Classes */}
-            <Card className="p-5 shadow-xs bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+            <Card variant="glass" hoverEffect className="p-5 flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
                     Total Held Classes
                   </span>
                   <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">

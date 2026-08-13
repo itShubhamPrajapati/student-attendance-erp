@@ -101,18 +101,18 @@ export const LoginPage: React.FC = () => {
         <span>Return to System Overview</span>
       </Link>
 
-      <Card className="shadow-soft-lg border-slate-200/90 dark:border-slate-800 dark:bg-slate-900">
-        <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
+      <Card variant="glass-strong" className="shadow-2xl border-white/20 dark:border-white/10">
+        <CardHeader className="text-center pb-4 border-b border-slate-200/50 dark:border-white/5">
+          <div className="mx-auto mb-3 flex h-13 w-13 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
             <QrCode className="h-6 w-6" />
           </div>
-          <CardTitle className="text-xl font-bold font-heading text-slate-900 dark:text-white">Sign In to Attendance Portal</CardTitle>
+          <CardTitle className="text-2xl font-extrabold font-heading text-slate-900 dark:text-white">Sign In to Attendance Portal</CardTitle>
           <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
-            College Field Project — Academic Attendance Management
+            Enterprise Academic Attendance &amp; QR Management
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4 pt-2">
+        <CardContent className="space-y-4 pt-4">
           {/* Role Preview & Auto-fill Selector */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -121,7 +121,7 @@ export const LoginPage: React.FC = () => {
               </label>
               <span className="text-[10px] text-slate-400 dark:text-slate-500">Click to pre-fill</span>
             </div>
-            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700">
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/70 border border-slate-200/60 dark:border-white/10 backdrop-blur-md">
               {(['ADMIN', 'TEACHER', 'STUDENT'] as const).map((role) => (
                 <button
                   key={role}

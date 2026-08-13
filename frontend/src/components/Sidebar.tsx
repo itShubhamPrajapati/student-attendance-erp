@@ -69,9 +69,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ role = 'ADMIN' }) => {
   const links = getRoleLinks();
 
   return (
-    <aside className="hidden lg:flex w-64 flex-col border-r border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 min-h-[calc(100vh-4rem)] p-4 transition-colors">
+    <aside className="hidden lg:flex w-64 flex-col border-r border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl min-h-[calc(100vh-4rem)] p-4 transition-colors">
       {/* Role Profile Header */}
-      <div className="flex items-center gap-3 p-3 mb-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+      <div className="flex items-center gap-3 p-3 mb-4 rounded-2xl bg-white/80 dark:bg-slate-800/60 border border-slate-200/70 dark:border-white/10 shadow-2xs">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white font-semibold text-xs shadow-xs">
           {role === 'ADMIN' ? <Shield className="w-4 h-4" /> : role === 'TEACHER' ? <School className="w-4 h-4" /> : <GraduationCap className="w-4 h-4" />}
         </div>

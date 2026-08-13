@@ -3,14 +3,30 @@ import { cn } from '../utils/cn';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   hoverEffect?: boolean;
+  variant?: 'solid' | 'glass' | 'glass-strong' | 'elevated';
 }
 
-export const Card: React.FC<CardProps> = ({ children, className, hoverEffect = false, ...props }) => {
+export const Card: React.FC<CardProps> = ({
+  children,
+  className,
+  hoverEffect = false,
+  variant = 'solid',
+  ...props
+}) => {
+  const variantStyles = {
+    solid: 'border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs',
+    glass: 'glass-surface border border-slate-200/70 dark:border-white/10 text-slate-900 dark:text-slate-100 shadow-sm',
+    'glass-strong': 'glass-surface-strong border border-slate-200/90 dark:border-white/15 text-slate-900 dark:text-white shadow-md',
+    elevated: 'border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg',
+  };
+
   return (
     <div
       className={cn(
-        'rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs text-slate-800 dark:text-slate-200 transition-colors duration-150',
-        hoverEffect && 'hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700',
+        'rounded-2xl p-5 text-slate-800 dark:text-slate-200 transition-all duration-200',
+        variantStyles[variant],
+        hoverEffect &&
+          'hover:-translate-y-0.5 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-900/50 transition-all duration-200',
         className
       )}
       {...props}

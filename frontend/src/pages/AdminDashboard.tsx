@@ -90,12 +90,12 @@ export const AdminDashboard: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Summary KPI Cards with Real Data (Phase 3 Extended) */}
+          {/* Summary KPI Cards with Real Data */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* 1. Total Students */}
-            <Card hoverEffect className="transition-all border-indigo-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <Card variant="glass" hoverEffect className="transition-all">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800/60 flex items-center justify-center shadow-xs">
                   <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <Badge variant="info" className="text-[10px]">
@@ -103,7 +103,7 @@ export const AdminDashboard: React.FC = () => {
                 </Badge>
               </div>
               <div className="mt-3">
-                <div className="text-3xl font-bold text-slate-900 dark:text-white font-heading">
+                <div className="text-3xl font-extrabold text-slate-900 dark:text-white font-heading font-mono">
                   {stats?.students?.total ?? 0}
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Registered Students</div>
@@ -111,9 +111,9 @@ export const AdminDashboard: React.FC = () => {
             </Card>
 
             {/* 2. Total Teachers */}
-            <Card hoverEffect className="transition-all border-amber-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <Card variant="glass" hoverEffect className="transition-all">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-800 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-800/60 flex items-center justify-center shadow-xs">
                   <School className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <Badge variant="warning" className="text-[10px]">
@@ -121,17 +121,17 @@ export const AdminDashboard: React.FC = () => {
                 </Badge>
               </div>
               <div className="mt-3">
-                <div className="text-3xl font-bold text-slate-900 dark:text-white font-heading">
+                <div className="text-3xl font-extrabold text-slate-900 dark:text-white font-heading font-mono">
                   {stats?.teachers?.total ?? 0}
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Faculty Members</div>
               </div>
             </Card>
 
-            {/* 3. Total Subjects (Phase 3) */}
-            <Card hoverEffect className="transition-all border-purple-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+            {/* 3. Total Subjects */}
+            <Card variant="glass" hoverEffect className="transition-all">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-100 dark:border-purple-800 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-100 dark:border-purple-800/60 flex items-center justify-center shadow-xs">
                   <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <Badge variant="info" className="text-[10px]">
@@ -139,17 +139,17 @@ export const AdminDashboard: React.FC = () => {
                 </Badge>
               </div>
               <div className="mt-3">
-                <div className="text-3xl font-bold text-purple-700 dark:text-purple-400 font-heading">
+                <div className="text-3xl font-extrabold text-purple-700 dark:text-purple-400 font-heading font-mono">
                   {stats?.subjects?.total ?? 0}
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Course Subjects</div>
               </div>
             </Card>
 
-            {/* 4. Total Classes (Phase 3) */}
-            <Card hoverEffect className="transition-all border-emerald-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+            {/* 4. Total Classes */}
+            <Card variant="glass" hoverEffect className="transition-all">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-800 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-800/60 flex items-center justify-center shadow-xs">
                   <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <Badge variant="success" withDot className="text-[10px]">
@@ -157,7 +157,7 @@ export const AdminDashboard: React.FC = () => {
                 </Badge>
               </div>
               <div className="mt-3">
-                <div className="text-3xl font-bold text-emerald-700 dark:text-emerald-400 font-heading">
+                <div className="text-3xl font-extrabold text-emerald-700 dark:text-emerald-400 font-heading font-mono">
                   {stats?.classes?.total ?? 0}
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Academic Classes</div>
@@ -166,7 +166,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           {/* Quick Actions Bar */}
-          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2.5">
+          <Card variant="glass" className="p-4 shadow-xs space-y-2.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 font-heading">
               Quick Administrative Actions
             </h4>
@@ -202,7 +202,7 @@ export const AdminDashboard: React.FC = () => {
                 </Button>
               </Link>
             </div>
-          </div>
+          </Card>
 
           {/* Recent Teaching Assignments Overview */}
           <div className="space-y-3">

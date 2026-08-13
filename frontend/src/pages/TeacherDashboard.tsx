@@ -173,24 +173,24 @@ export const TeacherDashboard: React.FC = () => {
         />
       )}
 
-      {/* Teacher Profile Summary Card */}
-      <Card className="p-4 bg-gradient-to-r from-amber-50/50 via-white to-slate-50 border-amber-200/60 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+      {/* Teacher Profile Banner & Quick Status */}
+      <Card variant="glass" className="p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold shadow-xs">
               <School className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900 font-heading">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
                 {profile?.name || user?.name}
               </h3>
-              <p className="text-xs text-slate-500 font-mono">
-                Employee ID: <span className="font-semibold text-amber-700">{profile?.employee_id || 'Faculty Account'}</span>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                Employee ID: <span className="font-semibold text-amber-700 dark:text-amber-400">{profile?.employee_id || 'Faculty Account'}</span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs flex-wrap">
             <Badge variant="neutral" className="text-xs">
               Department: {profile?.department || 'Academic Faculty'}
             </Badge>
@@ -234,10 +234,10 @@ export const TeacherDashboard: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {assignments.map((item) => (
-              <Card key={item.assignment_id} hoverEffect className="p-5 flex flex-col justify-between border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4 bg-white dark:bg-slate-900">
+              <Card key={item.assignment_id} variant="glass" hoverEffect className="p-5 flex flex-col justify-between shadow-xs space-y-4">
                 <div className="space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold flex-shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold flex-shrink-0">
                       <BookOpen className="w-4 h-4" />
                     </div>
                     <Badge variant="info" className="font-mono text-[11px]">
@@ -250,7 +250,7 @@ export const TeacherDashboard: React.FC = () => {
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{item.department}</p>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                  <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-white/5 space-y-1">
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
                       <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                       <span>{item.class}</span>
@@ -261,7 +261,7 @@ export const TeacherDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="pt-3 border-t border-slate-200/50 dark:border-white/5">
                   <Button
                     variant="primary"
                     size="sm"

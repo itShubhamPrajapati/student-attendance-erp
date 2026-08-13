@@ -37,12 +37,16 @@ import { NotFoundPage } from './pages/NotFoundPage';
 
 // Root layout for public pages
 const PublicLayout: React.FC = () => (
-  <div className="min-h-screen flex flex-col bg-slate-50/70 dark:bg-slate-950">
+  <div className="min-h-screen flex flex-col bg-slate-50/70 dark:bg-slate-950 relative overflow-x-hidden transition-colors duration-200">
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed top-0 left-1/3 -z-10 w-[500px] h-[500px] rounded-full bg-indigo-500/5 dark:bg-indigo-500/10 blur-[140px]"
+    />
     <Navbar />
     <main className="flex-1 py-6">
       <Outlet />
     </main>
-    <footer className="border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 py-4 px-6 text-center text-xs text-slate-500">
+    <footer className="border-t border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md py-4 px-6 text-center text-xs text-slate-500">
       QR-Based Student Attendance Management System &bull; Phase 4 QR-Based Attendance &bull; College Field Project
     </footer>
   </div>

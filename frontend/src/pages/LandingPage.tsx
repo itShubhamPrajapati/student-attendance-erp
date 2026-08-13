@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Link } from 'react-router-dom';
-import { QrCode, Shield, School, GraduationCap, ArrowRight, CheckCircle2, Sparkles, Terminal } from 'lucide-react';
+import { Shield, School, GraduationCap, ArrowRight, CheckCircle2, Sparkles, Terminal } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/Card';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { ConnectionStatus } from '../components/ConnectionStatus';
+
+const FluidGlass = lazy(() =>
+  import('../components/effects/FluidGlass').then((m) => ({ default: m.FluidGlass }))
+);
 
 export const LandingPage: React.FC = () => {
   const roleCards = [
@@ -12,7 +16,7 @@ export const LandingPage: React.FC = () => {
       title: 'Administrator Portal',
       role: 'admin',
       path: '/admin',
-      icon: <Shield className="w-6 h-6 text-indigo-600" />,
+      icon: <Shield className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />,
       badge: 'Admin Workspace',
       badgeVariant: 'info' as const,
       description: 'Manage students, faculty members, subjects, classrooms, and system-wide attendance reports.',
@@ -22,7 +26,7 @@ export const LandingPage: React.FC = () => {
       title: 'Teacher & Faculty',
       role: 'teacher',
       path: '/teacher',
-      icon: <School className="w-6 h-6 text-amber-600" />,
+      icon: <School className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
       badge: 'Faculty Workspace',
       badgeVariant: 'warning' as const,
       description: 'Launch real-time QR attendance sessions, track lecture attendance, and generate classroom summaries.',
@@ -32,7 +36,7 @@ export const LandingPage: React.FC = () => {
       title: 'Student Portal',
       role: 'student',
       path: '/student',
-      icon: <GraduationCap className="w-6 h-6 text-emerald-600" />,
+      icon: <GraduationCap className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
       badge: 'Student Workspace',
       badgeVariant: 'success' as const,
       description: 'Check your overall attendance percentage, scan lecture QR codes, and view your attendance timeline.',
@@ -41,41 +45,43 @@ export const LandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-10 py-4 max-w-6xl mx-auto px-4 sm:px-6">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-indigo-900 via-slate-900 to-slate-950 p-6 sm:p-10 text-white shadow-soft-lg border border-slate-800">
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-semibold text-indigo-300 backdrop-blur-md border border-indigo-400/30">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Phase 1 — Project Foundation & Environment Setup</span>
+    <div className="space-y-10 py-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Hero Section with Liquid Glass & FluidGlass 3D Backdrop */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950/90 via-slate-900/95 to-slate-950 p-6 sm:p-10 lg:p-12 text-white shadow-xl border border-white/10 dark:border-white/10 backdrop-blur-2xl">
+        {/* 3D FluidGlass Ambient Hero Element (Desktop only, lazy-loaded) */}
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[340px] h-[340px] lg:w-[420px] lg:h-[420px] pointer-events-none hidden md:block opacity-80">
+          <Suspense fallback={<div className="w-full h-full rounded-full bg-indigo-500/10 blur-3xl" />}>
+            <FluidGlass mode="lens" className="w-full h-full" />
+          </Suspense>
+        </div>
+
+        <div className="relative z-10 max-w-2xl space-y-5">
+          <div className="inline-flex items-center gap-2 rounded-full bg-indigo-500/20 px-3.5 py-1 text-xs font-semibold text-indigo-300 backdrop-blur-md border border-indigo-400/30 shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-300 animate-pulse" />
+            <span>Enterprise Academic Platform</span>
           </div>
 
-          <h1 className="font-heading text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight text-white">
+          <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white">
             QR-Based Student Attendance Management System
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl font-light">
-            A simple, fast, and maintainable college field-project web application. Built with Go, Gin, GORM, PostgreSQL on the backend and React, Vite, TypeScript, Tailwind CSS on the frontend.
+          <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl font-light">
+            A fast, modern, and reliable college attendance ERP. Built with Go, Gin, GORM, PostgreSQL and React, TypeScript, Tailwind CSS with liquid glass design.
           </p>
 
-          <div className="pt-3 flex flex-wrap items-center gap-3">
+          <div className="pt-2 flex flex-wrap items-center gap-3">
             <Link to="/login">
-              <Button size="lg" className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-md">
+              <Button size="lg" className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30">
                 <span>Open Login Interface</span>
                 <ArrowRight className="w-4 h-4 ml-1.5" />
               </Button>
             </Link>
             <Link to="/admin">
-              <Button variant="outline" size="lg" className="bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white">
+              <Button variant="glass" size="lg" className="text-white border-white/20 hover:bg-white/10">
                 <span>Explore Dashboards</span>
               </Button>
             </Link>
           </div>
-        </div>
-
-        {/* Decorative Grid Graphic */}
-        <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none hidden md:block">
-          <QrCode className="w-80 h-80 text-white" />
         </div>
       </section>
 
@@ -88,7 +94,7 @@ export const LandingPage: React.FC = () => {
               Environment & Connection Verification
             </h2>
           </div>
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">Phase 1 Check</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">System Health</span>
         </div>
 
         <ConnectionStatus />
@@ -98,25 +104,25 @@ export const LandingPage: React.FC = () => {
       <section className="space-y-4">
         <div className="space-y-1">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white font-heading">
-            Role-Based Workspaces Preview
+            Role-Based Workspaces
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Phase 1 sets up the responsive UI foundation and placeholder routing for each academic role.
+            Select your academic role to access specialized features, live attendance, and reports.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {roleCards.map((card) => (
-            <Card key={card.role} hoverEffect className="flex flex-col justify-between">
+            <Card key={card.role} variant="glass" hoverEffect className="flex flex-col justify-between">
               <div>
-                <CardHeader className="flex-row items-center justify-between pb-3">
+                <CardHeader className="flex-row items-center justify-between pb-3 border-b border-slate-200/50 dark:border-white/5">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200/60 dark:border-white/10 flex items-center justify-center shadow-xs">
                       {card.icon}
                     </div>
                     <div>
                       <CardTitle className="text-base">{card.title}</CardTitle>
-                      <CardDescription>Academic Role</CardDescription>
+                      <CardDescription>Academic Workspace</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -130,9 +136,9 @@ export const LandingPage: React.FC = () => {
                     {card.description}
                   </p>
 
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="pt-2 border-t border-slate-200/50 dark:border-white/5">
                     <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-                      Upcoming Scope (Phase 2):
+                      Core Capabilities:
                     </p>
                     <ul className="space-y-1.5">
                       {card.stats.map((stat) => (
@@ -146,10 +152,10 @@ export const LandingPage: React.FC = () => {
                 </CardContent>
               </div>
 
-              <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="pt-4 mt-4 border-t border-slate-200/50 dark:border-white/5">
                 <Link to={card.path} className="block">
                   <Button variant="outline" size="sm" className="w-full justify-between group">
-                    <span>View {card.role} Dashboard</span>
+                    <span>Access {card.title}</span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" />
                   </Button>
                 </Link>
