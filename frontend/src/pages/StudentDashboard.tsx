@@ -2,24 +2,20 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   GraduationCap,
-  Building2,
-  BookOpen,
   LogOut,
   RefreshCw,
   Camera,
   CheckCircle2,
   Clock,
-  AlertTriangle,
   XCircle,
   Calendar,
   Search,
-  Filter,
   TrendingUp,
-  ShieldAlert,
-  Info,
   History,
   FileText,
   User,
+  ArrowRight,
+  Layers,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -94,7 +90,6 @@ export const StudentDashboard: React.FC = () => {
     if (summary?.subjects && summary.subjects.length > 0) {
       return summary.subjects;
     }
-    // Fallback if subjects exist in class curriculum but summary hasn't had sessions yet
     return subjects.map((s) => ({
       subject_id: s.id,
       subject_name: s.name,
@@ -107,13 +102,6 @@ export const StudentDashboard: React.FC = () => {
       late_percentage: 0.0,
     }));
   }, [summary?.subjects, subjects]);
-
-  // Low attendance subjects list (< 75% with held sessions)
-  const lowAttendanceSubjects = useMemo(() => {
-    return allSubjectStats.filter(
-      (sub) => sub.total_sessions > 0 && sub.percentage < MIN_ATTENDANCE_THRESHOLD
-    );
-  }, [allSubjectStats]);
 
   // Filtered subjects based on search query and status filter tab
   const filteredSubjects = useMemo(() => {
@@ -142,17 +130,15 @@ export const StudentDashboard: React.FC = () => {
   const totalAttended = presentClasses + lateClasses;
   const absentClasses = summary?.total_absent ?? Math.max(0, totalClasses - totalAttended);
   const overallPercentage = summary?.overall_percentage ?? 0.0;
-  const isOverallLowAttendance = totalClasses > 0 && overallPercentage < MIN_ATTENDANCE_THRESHOLD;
-  const allSubjectsHealthy = totalClasses > 0 && lowAttendanceSubjects.length === 0;
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto px-2 sm:px-0">
       {/* 1. Page Header */}
       <PageHeader
-        title={`Hello, ${profile?.name || user?.name || 'Student'}`}
+        title={`Student Overview: ${profile?.name || user?.name || 'Student'}`}
         description="Student academic portal. Real-time verified attendance dashboard, subject breakdown, and QR check-in telemetry."
         badge={
-          <Badge variant="success" withDot>
+          <Badge variant="tertiary" withDot>
             Student Workspace
           </Badge>
         }
@@ -160,7 +146,7 @@ export const StudentDashboard: React.FC = () => {
           <div className="flex items-center gap-2 flex-wrap">
             <Link to="/student/profile">
               <Button variant="outline" size="sm" leftIcon={<User className="w-3.5 h-3.5" />}>
-                My Profile
+                Profile
               </Button>
             </Link>
             <Link to="/student/attendance/analytics">
@@ -179,7 +165,7 @@ export const StudentDashboard: React.FC = () => {
               </Button>
             </Link>
             <Link to="/attendance/scan">
-              <Button variant="primary" size="sm" leftIcon={<Camera className="w-3.5 h-3.5" />}>
+              <Button size="sm" className="bg-[#4648d4] hover:bg-[#383ab6] text-white" leftIcon={<Camera className="w-3.5 h-3.5" />}>
                 Scan QR
               </Button>
             </Link>
@@ -199,7 +185,6 @@ export const StudentDashboard: React.FC = () => {
         }
       />
 
-      {/* Error Banner with Retry */}
       {error && (
         <ErrorState
           variant="banner"
@@ -217,972 +202,350 @@ export const StudentDashboard: React.FC = () => {
         </div>
       ) : (
         <>
-      {/* Mobile-First Primary QR Scan & Profile Hero (Visible only on mobile screens < 640px) */}
-      <div className="block sm:hidden space-y-3.5">
-        {/* Mobile Student Profile & Status Summary Card */}
-        <Card className="p-4 bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 dark:from-indigo-900 dark:via-slate-900 dark:to-slate-950 text-white shadow-md relative overflow-hidden border-indigo-700 dark:border-indigo-950">
-          <div className="flex items-start justify-between gap-3 relative z-10">
-            <div className="space-y-0.5">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-300">
-                Student Portal
-              </span>
-              <h2 className="text-base font-black font-heading tracking-tight text-white">
-                {profile?.name || user?.name || 'Student'}
-              </h2>
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-300 font-mono">
-                <span>{profile?.roll_number || 'Roll N/A'}</span>
-                <span>&bull;</span>
-                <span>{profile?.class?.name || `Sem ${profile?.semester || 1}`}</span>
-              </div>
-            </div>
-            <Badge
-              variant={overallPercentage >= MIN_ATTENDANCE_THRESHOLD ? 'success' : 'warning'}
-              className="text-[10px] px-2 py-0.5"
-            >
-              {totalClasses === 0
-                ? 'Awaiting Classes'
-                : overallPercentage >= MIN_ATTENDANCE_THRESHOLD
-                ? '✓ Good Standing'
-                : '⚠️ Below 75%'}
-            </Badge>
-          </div>
+          {/* 2. Hero Quick Action Bento Grid matching Stitch Desktop #2d3b2b04 */}
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            {/* Primary Action Card: Launch QR Scanner */}
+            <div className="lg:col-span-2 bg-gradient-to-br from-[#4648d4] via-[#5550df] to-[#6b38d4] rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[220px]">
+              <div className="absolute -right-10 -top-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-10 right-20 w-40 h-40 bg-[#8455ef]/20 rounded-full blur-2xl pointer-events-none" />
 
-          {/* Big Attendance Metric */}
-          <div className="mt-4 pt-3 border-t border-indigo-500/40 dark:border-slate-800/80 relative z-10">
-            <div className="flex items-baseline justify-between">
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
-                  Overall Attendance
+              <div className="relative z-10 space-y-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-heading font-semibold text-white">
+                  <span className="w-2 h-2 rounded-full bg-[#4edea3] animate-pulse" />
+                  Live Academic Engine
                 </span>
-                <div className="text-3xl font-black font-heading font-mono text-white mt-0.5">
-                  {overallPercentage}%
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
-                  Attended Ratio
-                </span>
-                <span className="text-xs font-mono font-bold text-indigo-200">
-                  {totalAttended} / {totalClasses} classes
-                </span>
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="w-full bg-indigo-500/30 dark:bg-slate-800 rounded-full h-2 overflow-hidden mt-2.5">
-              <div
-                className={`h-2 rounded-full transition-all duration-700 ${
-                  overallPercentage >= MIN_ATTENDANCE_THRESHOLD ? 'bg-emerald-400' : 'bg-amber-400'
-                }`}
-                style={{ width: `${Math.min(100, Math.max(0, overallPercentage))}%` }}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-3 mt-3 border-t border-indigo-500/30 dark:border-slate-800/60 font-medium">
-              <div className="p-1.5 rounded-lg bg-white/10 dark:bg-slate-800/60 border border-white/20 dark:border-slate-700/50">
-                <span className="text-indigo-100 dark:text-slate-400 block text-[9px] uppercase">On-Time</span>
-                <span className="text-emerald-300 dark:text-emerald-400 font-bold font-mono text-xs">{presentClasses}</span>
-              </div>
-              <div className="p-1.5 rounded-lg bg-white/10 dark:bg-slate-800/60 border border-white/20 dark:border-slate-700/50">
-                <span className="text-indigo-100 dark:text-slate-400 block text-[9px] uppercase">Late</span>
-                <span className="text-amber-300 dark:text-amber-400 font-bold font-mono text-xs">{lateClasses}</span>
-              </div>
-              <div className="p-1.5 rounded-lg bg-white/10 dark:bg-slate-800/60 border border-white/20 dark:border-slate-700/50">
-                <span className="text-indigo-100 dark:text-slate-400 block text-[9px] uppercase">Missed</span>
-                <span className="text-rose-300 dark:text-rose-400 font-bold font-mono text-xs">{absentClasses}</span>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Prominent High-Priority [SCAN ATTENDANCE QR] Mobile Button */}
-        <Link to="/attendance/scan" className="block w-full">
-          <Button
-            size="lg"
-            variant="primary"
-            className="w-full py-3.5 text-sm font-bold shadow-lg shadow-indigo-500/25 active:scale-[0.98] transition-all bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 rounded-2xl flex items-center justify-center gap-2"
-          >
-            <Camera className="w-5 h-5 text-white animate-pulse" />
-            <span>Scan Attendance QR Code</span>
-          </Button>
-        </Link>
-
-        {/* Mobile Quick Action 4-Grid */}
-        <div className="grid grid-cols-2 gap-2.5 pt-1">
-          <Link to="/student/attendance/analytics">
-            <Card className="p-3 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-indigo-300 transition-all flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
-                <TrendingUp className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">Analytics</p>
-                <p className="text-[10px] text-slate-400 truncate">Trends & Target</p>
-              </div>
-            </Card>
-          </Link>
-
-          <Link to="/student/attendance/calendar">
-            <Card className="p-3 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-indigo-300 transition-all flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
-                <Calendar className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">Calendar</p>
-                <p className="text-[10px] text-slate-400 truncate">Month View</p>
-              </div>
-            </Card>
-          </Link>
-
-          <Link to="/student/attendance/history">
-            <Card className="p-3 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-indigo-300 transition-all flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
-                <History className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">History</p>
-                <p className="text-[10px] text-slate-400 truncate">Records & Proof</p>
-              </div>
-            </Card>
-          </Link>
-
-          <Link to="/student/profile">
-            <Card className="p-3 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-indigo-300 transition-all flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
-                <User className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">Profile</p>
-                <p className="text-[10px] text-slate-400 truncate">Settings & Pass</p>
-              </div>
-            </Card>
-          </Link>
-        </div>
-      </div>
-
-      {/* 2. Overall Low-Attendance Warning or Healthy State Banner */}
-      {totalClasses > 0 && (
-        <div>
-          {isOverallLowAttendance ? (
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/80 to-white dark:from-amber-950/40 dark:via-amber-950/20 dark:to-slate-900 border border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center flex-shrink-0 font-bold">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-sm font-bold font-heading text-amber-950 dark:text-amber-100">
-                      ⚠️ Overall Attendance Warning
-                    </h4>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
-                      Below {MIN_ATTENDANCE_THRESHOLD}% Minimum
-                    </span>
-                  </div>
-                  <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                    Your overall attendance is currently{' '}
-                    <strong className="font-mono text-amber-950 dark:text-amber-100 font-bold">{overallPercentage}%</strong>{' '}
-                    (minimum required: <strong>{MIN_ATTENDANCE_THRESHOLD}%</strong>). You have attended{' '}
-                    <strong>{totalAttended}</strong> of <strong>{totalClasses}</strong> scheduled classes{' '}
-                    ({presentClasses} on-time, {lateClasses} late, <strong>{absentClasses}</strong> missed). Attend upcoming classes consistently to improve your attendance percentage.
-                  </p>
-                </div>
-              </div>
-              <Link to="/attendance/scan" className="flex-shrink-0 w-full sm:w-auto">
-                <Button size="sm" variant="primary" className="w-full text-xs" leftIcon={<Camera className="w-3.5 h-3.5" />}>
-                  Scan Lecture QR
-                </Button>
-              </Link>
-            </div>
-          ) : allSubjectsHealthy ? (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-emerald-50/60 to-white dark:from-emerald-950/40 dark:via-emerald-950/20 dark:to-slate-900 border border-emerald-300 dark:border-emerald-700/60 text-emerald-900 dark:text-emerald-200 shadow-xs flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center flex-shrink-0 font-bold">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold font-heading text-emerald-950 dark:text-emerald-100">
-                      ✓ Attendance Requirements Met
-                    </h4>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200/80 dark:bg-emerald-900/80 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700">
-                      Good Standing
-                    </span>
-                  </div>
-                  <p className="text-xs text-emerald-800 dark:text-emerald-300 mt-0.5">
-                    Your attendance is currently above the {MIN_ATTENDANCE_THRESHOLD}% minimum required percentage across all enrolled subjects.
-                  </p>
-                </div>
-              </div>
-              <div className="hidden sm:block text-right flex-shrink-0">
-                <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Status</span>
-                <span className="text-xs font-mono font-bold text-emerald-900 dark:text-emerald-100">
-                  {totalAttended} / {totalClasses} Attended
-                </span>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
-
-          {/* 3. Professional Subject-Specific Low Attendance Warning Section */}
-          {lowAttendanceSubjects.length > 0 && (
-            <div className="p-5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-4 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/80 dark:border-amber-800/60 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/80 text-amber-800 dark:text-amber-200 flex items-center justify-center flex-shrink-0">
-                    <ShieldAlert className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-amber-950 dark:text-amber-100 font-heading">
-                      ⚠️ Attendance Attention Required
-                    </h3>
-                    <p className="text-xs text-amber-800 dark:text-amber-300">
-                      You currently have attendance below the minimum required percentage ({MIN_ATTENDANCE_THRESHOLD}%) in{' '}
-                      <strong>
-                        {lowAttendanceSubjects.length} subject{lowAttendanceSubjects.length > 1 ? 's' : ''}
-                      </strong>
-                      .
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs bg-white dark:bg-slate-900 border-amber-300 text-amber-900 dark:text-amber-200 hover:bg-amber-100"
-                  onClick={() => {
-                    setStatusFilter('LOW');
-                    const el = document.getElementById('subject-breakdown-section');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  View Affected Subjects ({lowAttendanceSubjects.length})
-                </Button>
-              </div>
-
-              {/* Grid of Subject Warning Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {lowAttendanceSubjects.map((sub) => {
-                  const isCritical = sub.percentage < CRITICAL_ATTENDANCE_THRESHOLD;
-
-                  return (
-                    <div
-                      key={sub.subject_id}
-                      className={`p-4 rounded-xl border transition-all ${
-                        isCritical
-                          ? 'bg-rose-50/90 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800/80 text-rose-950 dark:text-rose-100'
-                          : 'bg-white dark:bg-slate-900 border-amber-300 dark:border-amber-700/80 text-slate-900 dark:text-slate-100 shadow-xs'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                            {sub.subject_code}
-                          </span>
-                          <h4 className="text-xs font-bold font-heading mt-1 leading-snug">
-                            {sub.subject_name}
-                          </h4>
-                        </div>
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                            isCritical
-                              ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 border-rose-300'
-                              : 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 border-amber-300'
-                          }`}
-                        >
-                          {isCritical ? 'Critical (<60%)' : 'Below Requirement'}
-                        </span>
-                      </div>
-
-                      {/* Percentage & Counts */}
-                      <div className="mt-3 flex items-baseline justify-between">
-                        <div className="font-mono text-2xl font-extrabold text-slate-900 dark:text-white">
-                          {sub.percentage}%
-                        </div>
-                        <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                          <span className="font-semibold text-emerald-700 dark:text-emerald-400">{sub.present_sessions} Present</span> &bull;{' '}
-                          <span className="font-semibold text-rose-700 dark:text-rose-400">{sub.absent_sessions} Absent</span> &bull;{' '}
-                          <span>{sub.total_sessions} Total</span>
-                        </div>
-                      </div>
-
-                      {/* Progress Bar with 75% target threshold marker */}
-                      <div className="space-y-1 mt-2.5">
-                        <div className="relative w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-500 ${
-                              isCritical ? 'bg-rose-600' : 'bg-amber-500'
-                            }`}
-                            style={{ width: `${Math.min(100, sub.percentage)}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
-                          <span>Current: {sub.percentage}%</span>
-                          <span className="text-amber-700 dark:text-amber-400 font-semibold">
-                            Required: {MIN_ATTENDANCE_THRESHOLD}%
-                          </span>
-                        </div>
-                      </div>
-
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
-                        <Info className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                        <span>Attend upcoming classes consistently to improve your attendance percentage.</span>
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* 4. Four Summary KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* KPI 1: Overall Attendance % */}
-            <Card hoverEffect className="p-5 shadow-md bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 dark:from-indigo-950/90 dark:via-slate-900/90 dark:to-slate-950 text-white flex flex-col justify-between relative overflow-hidden border-indigo-500/30 dark:border-white/10">
-              <div className="space-y-1.5 relative z-10">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-100 dark:text-indigo-300">
-                    Overall Attendance
-                  </span>
-                  <Badge
-                    variant={overallPercentage >= MIN_ATTENDANCE_THRESHOLD ? 'success' : 'warning'}
-                    className={`text-[10px] ${
-                      overallPercentage >= MIN_ATTENDANCE_THRESHOLD
-                        ? 'bg-emerald-500/20 text-emerald-100 dark:text-emerald-300 border-emerald-500/30'
-                        : 'bg-amber-500/20 text-amber-100 dark:text-amber-300 border-amber-500/30'
-                    }`}
-                  >
-                    {totalClasses === 0
-                      ? 'No Data'
-                      : overallPercentage >= MIN_ATTENDANCE_THRESHOLD
-                      ? `✓ Met (≥${MIN_ATTENDANCE_THRESHOLD}%)`
-                      : `⚠️ Below ${MIN_ATTENDANCE_THRESHOLD}%`}
-                  </Badge>
-                </div>
-                <div className="flex items-baseline justify-between pt-1">
-                  <span className="text-4xl font-extrabold font-heading font-mono text-white">
-                    {overallPercentage}%
-                  </span>
-                  <span className="text-xs font-mono text-indigo-100 dark:text-indigo-200">
-                    Target: {MIN_ATTENDANCE_THRESHOLD}%
-                  </span>
-                </div>
-                <div className="w-full bg-white/20 dark:bg-slate-800 rounded-full h-2 overflow-hidden mt-2">
-                  <div
-                    className={`h-2 rounded-full transition-all duration-700 ${
-                      overallPercentage >= MIN_ATTENDANCE_THRESHOLD ? 'bg-emerald-300 dark:bg-emerald-400' : 'bg-amber-300 dark:bg-amber-400'
-                    }`}
-                    style={{ width: `${Math.min(100, overallPercentage)}%` }}
-                  />
-                </div>
-              </div>
-              <p className="text-[11px] text-indigo-100 dark:text-slate-300 pt-3 relative z-10">
-                Calculated across all courses & lectures held for your class batch.
-              </p>
-            </Card>
-
-            {/* KPI 2: Total Attended */}
-            <Card variant="glass" hoverEffect className="p-5 flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
-                    Lectures Attended
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                </div>
-                <div>
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-heading font-mono">
-                    {totalAttended}
-                  </span>
-                  <span className="text-xs text-slate-400 ml-1">/ {totalClasses} sessions</span>
-                </div>
-              </div>
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-                <span>{presentClasses} on-time, {lateClasses} late</span>
-                <span className="font-semibold text-emerald-700 dark:text-emerald-400">Marked via QR</span>
-              </div>
-            </Card>
-
-            {/* KPI 3: Total Absent / Missed */}
-            <Card variant="glass" hoverEffect className="p-5 flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
-                    Lectures Missed
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">
-                    <XCircle className="w-4 h-4" />
-                  </div>
-                </div>
-                <div>
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-heading font-mono">
-                    {absentClasses}
-                  </span>
-                  <span className="text-xs text-slate-400 ml-1">sessions</span>
-                </div>
-              </div>
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-                <span>Unrecorded Sessions</span>
-                <span className={`font-semibold ${absentClasses > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500'}`}>
-                  {absentClasses === 0 ? 'Zero Absences' : `${absentClasses} Missed`}
-                </span>
-              </div>
-            </Card>
-
-            {/* KPI 4: Total Held Classes */}
-            <Card variant="glass" hoverEffect className="p-5 flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
-                    Total Held Classes
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
-                    <Calendar className="w-4 h-4" />
-                  </div>
-                </div>
-                <div>
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-heading font-mono">
-                    {totalClasses}
-                  </span>
-                  <span className="text-xs text-slate-400 ml-1">total lectures</span>
-                </div>
-              </div>
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-                <span>Curriculum Total</span>
-                <span className="font-semibold text-indigo-700 dark:text-indigo-400">{allSubjectStats.length} Subjects</span>
-              </div>
-            </Card>
-          </div>
-
-          {/* 5. Student Profile Summary + Assigned Class Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Student Profile Card */}
-            <Card className="p-5 shadow-xs bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold">
-                    <GraduationCap className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">
-                      {profile?.name || user?.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{profile?.email || user?.email}</p>
-                  </div>
-                </div>
-                <Badge variant="success" withDot className="text-[10px]">
-                  Enrolled Student
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Roll Number</span>
-                  <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs mt-0.5">
-                    {profile?.roll_number || 'N/A'}
-                  </p>
-                </div>
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Department</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200 text-xs mt-0.5 truncate">
-                    {profile?.department || 'Computer Science'}
-                  </p>
-                </div>
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Semester & Section</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200 text-xs mt-0.5">
-                    Sem {profile?.semester} &bull; Sec {profile?.section}
-                  </p>
-                </div>
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Attendance Status</span>
-                  <p
-                    className={`font-semibold text-xs mt-0.5 ${
-                      isOverallLowAttendance ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'
-                    }`}
-                  >
-                    {totalClasses === 0
-                      ? 'Awaiting Sessions'
-                      : isOverallLowAttendance
-                      ? '⚠️ Needs Improvement'
-                      : '✓ In Good Standing'}
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Assigned Class Batch Card */}
-            <Card className="p-5 shadow-xs bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
-                      <Building2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">
-                        Assigned Class Batch
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Academic classroom allocation</p>
-                    </div>
-                  </div>
-                  {profile?.class ? (
-                    <Badge variant="info">Batch Active</Badge>
-                  ) : (
-                    <Badge variant="neutral">Pending</Badge>
-                  )}
-                </div>
-
-                {profile?.class ? (
-                  <div className="p-3.5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-800/60 space-y-1">
-                    <h4 className="text-sm font-bold text-indigo-900 dark:text-indigo-200 font-heading">
-                      {profile.class.name}
-                    </h4>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                      Department: {profile.class.department}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs font-mono text-indigo-700 dark:text-indigo-300 pt-1">
-                      <span>Sem {profile.class.semester}</span>
-                      <span>&bull;</span>
-                      <span>Sec {profile.class.section}</span>
-                      <span>&bull;</span>
-                      <span>{profile.class.academic_year}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-center space-y-1">
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No class assigned</p>
-                    <p className="text-[11px] text-slate-400">
-                      Awaiting classroom batch assignment from administration.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-2 flex justify-end">
-                <Link to="/attendance/scan">
-                  <Button size="sm" variant="outline" leftIcon={<Camera className="w-3.5 h-3.5" />}>
-                    Open Scanner
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          </div>
-
-          {/* 6. Section: Subject-Wise Attendance Breakdown */}
-          <div id="subject-breakdown-section" className="space-y-4 pt-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
-                  Subject-Wise Attendance Breakdown
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Individual presence percentages, attended sessions, and requirement status per course
+                <h2 className="font-heading text-2xl sm:text-3xl font-black text-white">
+                  Scan to Record Attendance
+                </h2>
+                <p className="text-xs sm:text-sm text-indigo-100 max-w-md font-normal">
+                  {profile?.class?.name || 'Class Session'}: Point your camera at the teacher's screen to verify on-time attendance.
                 </p>
               </div>
 
-              {/* Status Segmented Filter Tabs */}
-              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
-                <button
-                  onClick={() => setStatusFilter('ALL')}
-                  className={`px-3 py-1 rounded-lg font-semibold transition ${
-                    statusFilter === 'ALL'
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  All ({allSubjectStats.length})
-                </button>
-                <button
-                  onClick={() => setStatusFilter('LOW')}
-                  className={`px-3 py-1 rounded-lg font-semibold transition ${
-                    statusFilter === 'LOW'
-                      ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 shadow-xs font-bold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-amber-700'
-                  }`}
-                >
-                  Low &lt;{MIN_ATTENDANCE_THRESHOLD}% ({lowAttendanceSubjects.length})
-                </button>
-                <button
-                  onClick={() => setStatusFilter('MET')}
-                  className={`px-3 py-1 rounded-lg font-semibold transition ${
-                    statusFilter === 'MET'
-                      ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200 shadow-xs font-bold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700'
-                  }`}
-                >
-                  Met &ge;{MIN_ATTENDANCE_THRESHOLD}% ({allSubjectStats.length - lowAttendanceSubjects.length})
-                </button>
+              <div className="relative z-10 mt-6 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <Link to="/attendance/scan">
+                  <Button size="md" className="bg-white text-[#4648d4] hover:bg-slate-50 font-bold px-6 shadow-md shadow-black/10">
+                    <Camera className="w-4 h-4 mr-1.5" />
+                    <span>Launch Camera Scanner</span>
+                  </Button>
+                </Link>
+                <span className="text-xs text-indigo-200 font-mono">
+                  Roll: {profile?.roll_number || 'N/A'} &bull; Sem {profile?.semester || 1}
+                </span>
               </div>
             </div>
 
-            {/* Search Input Filter */}
-            <div className="relative max-w-md">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search by subject name or course code..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 transition"
-              />
+            {/* Global Attendance Metric Card matching Stitch Desktop #2d3b2b04 */}
+            <Card className="p-6 bg-white dark:bg-[#111726] border-slate-200/90 dark:border-white/10 rounded-3xl shadow-sm flex flex-col justify-between min-h-[220px]">
+              <div>
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-[#4648d4] flex items-center justify-center font-bold">
+                      <GraduationCap className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-bold font-heading uppercase tracking-wider text-slate-400">
+                      Overall Standing
+                    </span>
+                  </div>
+                  <Badge
+                    variant={overallPercentage >= MIN_ATTENDANCE_THRESHOLD ? 'tertiary' : 'warning'}
+                    className="text-[11px] font-bold"
+                  >
+                    {totalClasses === 0
+                      ? 'No Classes Held'
+                      : overallPercentage >= MIN_ATTENDANCE_THRESHOLD
+                      ? 'Good Standing'
+                      : 'Below 75%'}
+                  </Badge>
+                </div>
+
+                <div className="mt-4 flex items-baseline gap-3">
+                  <span
+                    className={`font-heading text-4xl sm:text-5xl font-black ${
+                      totalClasses === 0
+                        ? 'text-slate-400'
+                        : overallPercentage >= MIN_ATTENDANCE_THRESHOLD
+                        ? 'text-[#006c49] dark:text-emerald-400'
+                        : 'text-amber-600 dark:text-amber-400'
+                    }`}
+                  >
+                    {totalClasses === 0 ? '—' : `${overallPercentage.toFixed(1)}%`}
+                  </span>
+                  <span className="text-xs text-[#464554] dark:text-slate-400 font-heading">
+                    ({totalAttended}/{totalClasses} lectures)
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-[#464554] dark:text-slate-400">
+                <span>Minimum Required: <strong className="text-slate-800 dark:text-slate-200">75.0%</strong></span>
+                <Link to="/student/attendance/analytics" className="text-[#4648d4] dark:text-indigo-400 font-bold hover:underline flex items-center gap-0.5">
+                  <span>Analytics</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+            </Card>
+          </section>
+
+          {/* 3. Summary Metric Cards Row */}
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* Total Lectures */}
+            <Card className="p-4 bg-white dark:bg-[#111726] border-slate-200/90 dark:border-white/10 rounded-2xl shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold font-heading uppercase tracking-wider text-slate-400">
+                  Total Lectures
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-[#4648d4] flex items-center justify-center">
+                  <Layers className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black font-heading text-[#131b2e] dark:text-white">
+                  {totalClasses}
+                </span>
+                <span className="text-xs text-slate-400">Held</span>
+              </div>
+            </Card>
+
+            {/* Present (On-Time) */}
+            <Card className="p-4 bg-white dark:bg-[#111726] border-slate-200/90 dark:border-white/10 rounded-2xl shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold font-heading uppercase tracking-wider text-slate-400">
+                  On-Time Present
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-[#006c49] flex items-center justify-center">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black font-heading text-[#006c49] dark:text-emerald-400">
+                  {presentClasses}
+                </span>
+                <span className="text-xs text-slate-400">Lectures</span>
+              </div>
+            </Card>
+
+            {/* Late (Counted Attended) */}
+            <Card className="p-4 bg-white dark:bg-[#111726] border-slate-200/90 dark:border-white/10 rounded-2xl shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold font-heading uppercase tracking-wider text-slate-400">
+                  Late Attended
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 flex items-center justify-center">
+                  <Clock className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black font-heading text-amber-600 dark:text-amber-400">
+                  {lateClasses}
+                </span>
+                <span className="text-xs text-slate-400">Attended</span>
+              </div>
+            </Card>
+
+            {/* Missed / Absent */}
+            <Card className="p-4 bg-white dark:bg-[#111726] border-slate-200/90 dark:border-white/10 rounded-2xl shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold font-heading uppercase tracking-wider text-slate-400">
+                  Missed Absent
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-600 flex items-center justify-center">
+                  <XCircle className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black font-heading text-rose-600 dark:text-rose-400">
+                  {absentClasses}
+                </span>
+                <span className="text-xs text-slate-400">Missed</span>
+              </div>
+            </Card>
+          </section>
+
+          {/* 4. Subject Modules Breakdown Grid */}
+          <section className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold font-heading text-[#131b2e] dark:text-white">
+                  Enrolled Course Modules
+                </h3>
+                <p className="text-xs text-[#464554] dark:text-slate-400">
+                  Subject-level attendance tracking and minimum 75% requirement health.
+                </p>
+              </div>
+
+              {/* Filter Tabs & Search */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative flex-1 sm:flex-initial">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search module..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full sm:w-48 pl-8 pr-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                  />
+                </div>
+
+                <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl gap-1">
+                  {(['ALL', 'LOW', 'MET'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setStatusFilter(tab)}
+                      className={`px-3 py-1 text-xs font-semibold font-heading rounded-lg transition cursor-pointer ${
+                        statusFilter === tab
+                          ? 'bg-white dark:bg-slate-700 text-[#4648d4] dark:text-indigo-300 shadow-xs'
+                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      {tab === 'ALL' ? 'All' : tab === 'LOW' ? 'At Risk (<75%)' : 'Good (≥75%)'}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Empty State when no subjects enrolled or no attendance recorded yet */}
-            {allSubjectStats.length === 0 ? (
-              <Card className="p-8 text-center bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mx-auto flex items-center justify-center">
-                  <BookOpen className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-slate-900 dark:text-white font-heading">No attendance records yet</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1">
-                    Your attendance statistics will appear here automatically after your classes begin and
-                    you scan your first attendance QR code.
-                  </p>
-                </div>
-                <div>
-                  <Link to="/attendance/scan">
-                    <Button variant="primary" size="sm" leftIcon={<Camera className="w-3.5 h-3.5" />}>
-                      Scan QR Code
-                    </Button>
-                  </Link>
-                </div>
+            {filteredSubjects.length === 0 ? (
+              <Card className="p-8 text-center bg-white dark:bg-[#111726] border-slate-200/90 text-slate-400 text-xs">
+                No matching course modules found.
               </Card>
-            ) : filteredSubjects.length === 0 ? (
-              <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-xs text-slate-400">
-                <Filter className="w-6 h-6 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
-                <p>No subjects match the selected filter query "{searchQuery}".</p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="mt-3 text-xs"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setStatusFilter('ALL');
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              </div>
             ) : (
-              /* Grid of Subject Attendance Cards */
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredSubjects.map((sub) => {
-                  const hasSessions = sub.total_sessions > 0;
-                  const isMet = !hasSessions || sub.percentage >= MIN_ATTENDANCE_THRESHOLD;
-                  const isCritical = hasSessions && sub.percentage < CRITICAL_ATTENDANCE_THRESHOLD;
-
+                  const isLow = sub.total_sessions > 0 && sub.percentage < MIN_ATTENDANCE_THRESHOLD;
                   return (
                     <Card
                       key={sub.subject_id}
+                      variant="solid"
                       hoverEffect
-                      className={`p-5 flex flex-col justify-between shadow-xs space-y-4 ${
-                        !isMet
-                          ? isCritical
-                            ? 'bg-rose-50/20 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/60'
-                            : 'bg-amber-50/20 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60'
-                          : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800'
+                      className={`p-5 bg-white dark:bg-[#111726] border rounded-2xl flex flex-col justify-between ${
+                        isLow ? 'border-amber-300/80 dark:border-amber-800/80 shadow-xs' : 'border-slate-200/90 dark:border-white/10'
                       }`}
                     >
-                      <div className="space-y-3">
-                        {/* Subject Header & Badges */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold flex-shrink-0">
-                            <BookOpen className="w-4 h-4" />
-                          </div>
-                          <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                            <Badge variant="info" className="font-mono text-[10px]">
+                      <div>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div>
+                            <span className="text-[10px] font-mono font-bold text-[#4648d4] dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-md">
                               {sub.subject_code}
+                            </span>
+                            <h4 className="font-heading font-bold text-sm text-[#131b2e] dark:text-white mt-1.5">
+                              {sub.subject_name}
+                            </h4>
+                          </div>
+                          {isLow && (
+                            <Badge variant="warning" className="text-[10px]">
+                              At Risk
                             </Badge>
-                            {hasSessions && (
-                              <Badge
-                                variant={isMet ? 'success' : isCritical ? 'error' : 'warning'}
-                                className={`text-[10px] ${
-                                  isMet
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                                    : isCritical
-                                    ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                                    : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                                }`}
-                              >
-                                {isMet
-                                  ? '✓ Requirement Met'
-                                  : isCritical
-                                  ? '⚠️ Critical (<60%)'
-                                  : '⚠️ Below Requirement'}
-                              </Badge>
-                            )}
-                          </div>
+                          )}
                         </div>
 
-                        <div>
-                          <h4 className="text-sm font-bold text-slate-900 dark:text-white font-heading leading-snug">
-                            {sub.subject_name}
-                          </h4>
-                          <p className="text-[11px] font-mono text-slate-400 mt-0.5">{sub.subject_code}</p>
-                        </div>
-
-                        {/* Progress Bar & Rate */}
-                        <div className="space-y-1.5 pt-1">
-                          <div className="flex justify-between items-baseline text-xs font-mono">
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium font-sans">
-                              Attendance Rate
-                            </span>
-                            <span
-                              className={`text-sm font-bold ${
-                                !hasSessions
-                                  ? 'text-slate-400'
-                                  : sub.percentage >= MIN_ATTENDANCE_THRESHOLD
-                                  ? 'text-emerald-700 dark:text-emerald-400'
-                                  : isCritical
-                                  ? 'text-rose-700 dark:text-rose-400'
-                                  : 'text-amber-700 dark:text-amber-400'
-                              }`}
-                            >
-                              {sub.percentage}%
+                        {/* Progress Bar */}
+                        <div className="space-y-1.5 mt-3">
+                          <div className="flex justify-between text-xs font-semibold font-heading">
+                            <span className="text-[#464554] dark:text-slate-400">Attendance:</span>
+                            <span className={isLow ? 'text-amber-600 font-bold' : 'text-[#006c49] font-bold'}>
+                              {sub.total_sessions === 0 ? 'No sessions' : `${sub.percentage.toFixed(1)}%`}
                             </span>
                           </div>
-                          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                          <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                             <div
-                              className={`h-2.5 rounded-full transition-all duration-500 ${
-                                !hasSessions
-                                  ? 'bg-slate-300'
-                                  : sub.percentage >= MIN_ATTENDANCE_THRESHOLD
-                                  ? 'bg-emerald-600'
-                                  : sub.percentage >= CRITICAL_ATTENDANCE_THRESHOLD
-                                  ? 'bg-amber-500'
-                                  : 'bg-rose-500'
+                              className={`h-full rounded-full transition-all duration-300 ${
+                                isLow ? 'bg-amber-500' : 'bg-[#006c49]'
                               }`}
                               style={{ width: `${Math.min(100, sub.percentage)}%` }}
                             />
                           </div>
                         </div>
-
-                        {/* Metrics Breakdown Grid */}
-                        <div className="grid grid-cols-3 gap-1.5 pt-2 text-center text-xs">
-                          <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50">
-                            <span className="text-[9px] uppercase font-bold text-slate-400 block">
-                              Present
-                            </span>
-                            <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 text-xs">
-                              {sub.present_sessions}
-                            </span>
-                          </div>
-                          <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50">
-                            <span className="text-[9px] uppercase font-bold text-slate-400 block">
-                              Absent
-                            </span>
-                            <span
-                              className={`font-mono font-bold text-xs ${
-                                sub.absent_sessions > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500'
-                              }`}
-                            >
-                              {sub.absent_sessions}
-                            </span>
-                          </div>
-                          <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50">
-                            <span className="text-[9px] uppercase font-bold text-slate-400 block">
-                              Total
-                            </span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">
-                              {sub.total_sessions}
-                            </span>
-                          </div>
-                        </div>
                       </div>
 
-                      {/* Card Footer */}
-                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-                        <span className="flex items-center gap-1 font-medium">
-                          <TrendingUp className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
-                          <span>Status</span>
-                        </span>
-                        <span
-                          className={`font-semibold ${
-                            !hasSessions
-                              ? 'text-slate-400'
-                              : isMet
-                              ? 'text-emerald-700 dark:text-emerald-400'
-                              : isCritical
-                              ? 'text-rose-700 dark:text-rose-400'
-                              : 'text-amber-700 dark:text-amber-400'
-                          }`}
-                        >
-                          {!hasSessions
-                            ? 'No Lectures Held'
-                            : isMet
-                            ? 'Healthy Attendance'
-                            : isCritical
-                            ? 'Critical Action Required'
-                            : 'Attendance Action Required'}
-                        </span>
+                      <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-[#464554] dark:text-slate-400">
+                        <span>Attended: <strong className="text-slate-800 dark:text-slate-200">{sub.present_sessions + sub.late_sessions}</strong> / {sub.total_sessions}</span>
+                        <span>Missed: <strong className="text-rose-600">{sub.absent_sessions}</strong></span>
                       </div>
                     </Card>
                   );
                 })}
               </div>
             )}
-          </div>
+          </section>
 
-          {/* 7. Section: Recent Attendance Log */}
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
-                  Recent Attendance Check-Ins
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Your verified QR scan history across recent lectures
-                </p>
+          {/* 5. Recent Attendance Timeline & Activity Feed */}
+          <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recent Attendance Records with Proof modal trigger */}
+            <Card className="p-5 bg-white dark:bg-[#111726] border-slate-200/90 dark:border-white/10 rounded-2xl shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <History className="w-4 h-4 text-[#4648d4]" />
+                  <h3 className="font-heading font-bold text-sm text-[#131b2e] dark:text-white">
+                    Recent Attendance Check-Ins
+                  </h3>
+                </div>
+                <Link to="/student/attendance/history" className="text-xs text-[#4648d4] dark:text-indigo-400 font-bold hover:underline">
+                  View All
+                </Link>
               </div>
-              <span className="text-xs text-slate-400 font-medium">
-                {recentAttendance.length} logs recorded
-              </span>
-            </div>
 
-            {recentAttendance.length === 0 ? (
-              <Card className="p-6 text-center bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 space-y-2">
-                <Clock className="w-8 h-8 text-slate-300 mx-auto" />
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  No attendance scans recorded yet. Use the "Scan Attendance QR" button when your teacher starts a live session.
-                </p>
-              </Card>
-            ) : (
-              <>
-                {/* Desktop Table View */}
-                <Card className="hidden sm:block p-0 overflow-hidden bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-700 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
-                        <tr>
-                          <th className="py-3 px-4">Subject</th>
-                          <th className="py-3 px-4">Classroom</th>
-                          <th className="py-3 px-4">Status</th>
-                          <th className="py-3 px-4">Marked Time</th>
-                          <th className="py-3 px-4 text-right">Proof</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {recentAttendance.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
-                            <td className="py-3 px-4">
-                              <div className="font-semibold text-slate-900 dark:text-white font-heading">{item.subject_name}</div>
-                              <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
-                                {item.subject_code}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-slate-700 dark:text-slate-300 font-medium">{item.class_name}</td>
-                            <td className="py-3 px-4">
-                              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                                item.status === 'LATE'
-                                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800'
-                                  : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800'
-                              }`}>
-                                {item.status === 'LATE' ? (
-                                  <Clock className="w-3 h-3 text-amber-600" />
-                                ) : (
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                )}
-                                <span>{item.status}</span>
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                              {new Date(item.marked_at).toLocaleDateString()}{' '}
-                              <span className="text-slate-800 dark:text-slate-200 font-semibold">
-                                {new Date(item.marked_at).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              {item.attendance_id && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setProofAttendanceId(item.attendance_id!)}
-                                  leftIcon={<FileText className="w-3 h-3 text-indigo-600" />}
-                                >
-                                  Proof
-                                </Button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-
-                {/* Mobile Cards View */}
-                <div className="grid grid-cols-1 gap-2.5 sm:hidden">
-                  {recentAttendance.map((item, idx) => (
-                    <Card key={idx} className="p-3.5 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <h4 className="text-xs font-bold text-slate-900 dark:text-white font-heading truncate">
-                            {item.subject_name}
-                          </h4>
-                          <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                            {item.subject_code} &bull; {item.class_name}
+              {recentAttendance.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-6">No recent lecture attendance records.</p>
+              ) : (
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {recentAttendance.slice(0, 5).map((rec, idx) => {
+                    const recordId = rec.attendance_id || rec.session_id || String(idx);
+                    return (
+                      <div
+                        key={recordId}
+                        className="p-3 rounded-xl bg-slate-50 dark:bg-[#171f33] border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="space-y-0.5">
+                          <p className="font-heading font-bold text-[#131b2e] dark:text-white">{rec.subject_name}</p>
+                          <p className="text-[11px] text-slate-400 font-mono">
+                            {rec.marked_at ? new Date(rec.marked_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'Today'} &bull;{' '}
+                            {rec.marked_at ? new Date(rec.marked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                           </p>
                         </div>
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold flex-shrink-0 ${
-                          item.status === 'LATE'
-                            ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-800'
-                            : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800'
-                        }`}>
-                          {item.status === 'LATE' ? (
-                            <Clock className="w-2.5 h-2.5 text-amber-600" />
-                          ) : (
-                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
-                          )}
-                          <span>{item.status === 'LATE' ? 'Late' : 'Present'}</span>
-                        </span>
-                      </div>
 
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-                        <span className="font-mono">
-                          {new Date(item.marked_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}{' '}
-                          {new Date(item.marked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        {item.attendance_id && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs py-1 px-2.5 h-auto min-h-[32px]"
-                            onClick={() => setProofAttendanceId(item.attendance_id!)}
-                            leftIcon={<FileText className="w-3 h-3 text-indigo-600" />}
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={rec.status === 'PRESENT' ? 'tertiary' : rec.status === 'LATE' ? 'warning' : 'error'}
+                            className="text-[10px] font-bold"
                           >
-                            Proof
-                          </Button>
-                        )}
+                            {rec.status}
+                          </Badge>
+                          {rec.attendance_id && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setProofAttendanceId(rec.attendance_id || null)}
+                              className="text-[11px] h-7 px-2"
+                            >
+                              <FileText className="w-3 h-3 mr-1 text-[#4648d4]" />
+                              <span>Proof</span>
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </Card>
-                  ))}
+                    );
+                  })}
                 </div>
-              </>
-            )}
-          </div>
+              )}
+            </Card>
 
-          {/* Personal Activity Feed (Feature #16) */}
-          <ActivityFeedCard
-            role="STUDENT"
-            limit={5}
-            title="Recent Attendance Activity"
-            subtitle="Your verified lecture attendance markings, late logs, corrections, and receipts"
-          />
+            {/* Activity Feed Card */}
+            <ActivityFeedCard role="STUDENT" />
+          </section>
+
+          {/* Proof Modal */}
+          {proofAttendanceId && (
+            <AttendanceProofModal
+              isOpen={Boolean(proofAttendanceId)}
+              onClose={() => setProofAttendanceId(null)}
+              attendanceId={proofAttendanceId}
+              role="STUDENT"
+            />
+          )}
         </>
       )}
-
-      {/* Digital Attendance Proof Modal */}
-      <AttendanceProofModal
-        isOpen={!!proofAttendanceId}
-        onClose={() => setProofAttendanceId(null)}
-        attendanceId={proofAttendanceId}
-        role="STUDENT"
-      />
     </div>
   );
 };

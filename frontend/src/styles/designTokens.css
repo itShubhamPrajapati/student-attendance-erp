@@ -1,24 +1,44 @@
 :root {
-  /* Surface Tokens - Light Theme */
-  --surface-canvas: #f8fafc;
+  /* Lumina Academic Semantic Colors */
+  --primary-base: #4648d4;
+  --primary-container: #6063ee;
+  --primary-light: #e1e0ff;
+  --primary-dim: #c0c1ff;
+  --secondary-base: #6b38d4;
+  --secondary-container: #8455ef;
+  --tertiary-base: #006c49;
+  --tertiary-container: #00885d;
+
+  /* Surface Tokens - Light Theme (Lumina Slate 50 / Lavender tint) */
+  --surface-canvas: #faf8ff;
   --surface-solid: #ffffff;
   --surface-elevated: #ffffff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f2f3ff;
+  --surface-container: #eaedff;
+  --surface-container-high: #e2e7ff;
+  --surface-container-highest: #dae2fd;
   --surface-glass: rgba(255, 255, 255, 0.75);
   --surface-glass-strong: rgba(255, 255, 255, 0.90);
   --surface-glass-subtle: rgba(255, 255, 255, 0.45);
   
+  /* Text & On-Surface - Light */
+  --on-surface: #131b2e;
+  --on-surface-variant: #464554;
+  --on-primary: #ffffff;
+
   /* Border & Highlight Tokens - Light */
-  --glass-border: rgba(226, 232, 240, 0.85);
-  --glass-border-strong: rgba(203, 213, 225, 0.95);
-  --glass-highlight: rgba(255, 255, 255, 0.75);
-  --glass-border-glow: rgba(99, 102, 241, 0.25);
+  --glass-border: rgba(199, 196, 215, 0.6);
+  --glass-border-strong: rgba(118, 117, 134, 0.25);
+  --glass-highlight: rgba(255, 255, 255, 0.85);
+  --glass-border-glow: rgba(70, 72, 212, 0.25);
 
   /* Shadows & Glows - Light */
-  --glass-shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.04), 0 1px 4px -1px rgba(0, 0, 0, 0.02);
-  --glass-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
-  --glass-shadow-lg: 0 20px 40px -12px rgba(0, 0, 0, 0.08), 0 8px 16px -4px rgba(0, 0, 0, 0.03);
-  --glow-primary: 0 0 35px -8px rgba(99, 102, 241, 0.35);
-  --glow-emerald: 0 0 35px -8px rgba(16, 185, 129, 0.35);
+  --glass-shadow-sm: 0 2px 6px -1px rgba(19, 27, 46, 0.04), 0 1px 4px -1px rgba(19, 27, 46, 0.02);
+  --glass-shadow: 0 10px 30px -5px rgba(19, 27, 46, 0.06), 0 4px 12px -2px rgba(19, 27, 46, 0.03);
+  --glass-shadow-lg: 0 20px 40px -12px rgba(19, 27, 46, 0.08), 0 8px 16px -4px rgba(19, 27, 46, 0.03);
+  --glow-primary: 0 0 35px -8px rgba(70, 72, 212, 0.35);
+  --glow-emerald: 0 0 35px -8px rgba(0, 108, 73, 0.35);
   --glow-amber: 0 0 35px -8px rgba(245, 158, 11, 0.35);
 
   /* Motion Timing & Curves */
@@ -30,25 +50,35 @@
 }
 
 .dark {
-  /* Surface Tokens - Dark Theme */
-  --surface-canvas: #020617;
-  --surface-solid: #0f172a;
-  --surface-elevated: #1e293b;
-  --surface-glass: rgba(15, 23, 42, 0.65);
-  --surface-glass-strong: rgba(15, 23, 42, 0.85);
-  --surface-glass-subtle: rgba(15, 23, 42, 0.40);
+  /* Surface Tokens - Dark Theme (Lumina Midnight / Slate 950) */
+  --surface-canvas: #090d16;
+  --surface-solid: #111726;
+  --surface-elevated: #1a2236;
+  --surface-container-lowest: #0c1220;
+  --surface-container-low: #111726;
+  --surface-container: #171f33;
+  --surface-container-high: #1e2840;
+  --surface-container-highest: #283350;
+  --surface-glass: rgba(17, 23, 38, 0.70);
+  --surface-glass-strong: rgba(17, 23, 38, 0.88);
+  --surface-glass-subtle: rgba(17, 23, 38, 0.45);
+
+  /* Text & On-Surface - Dark */
+  --on-surface: #f8fafc;
+  --on-surface-variant: #94a3b8;
+  --on-primary: #ffffff;
 
   /* Border & Highlight Tokens - Dark */
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-border-strong: rgba(255, 255, 255, 0.15);
   --glass-highlight: rgba(255, 255, 255, 0.06);
-  --glass-border-glow: rgba(99, 102, 241, 0.45);
+  --glass-border-glow: rgba(96, 99, 238, 0.4);
 
   /* Shadows & Glows - Dark */
-  --glass-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
-  --glass-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
-  --glass-shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 10px 20px rgba(0, 0, 0, 0.5);
-  --glow-primary: 0 0 40px -6px rgba(99, 102, 241, 0.45);
+  --glass-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --glass-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.65), 0 4px 12px rgba(0, 0, 0, 0.45);
+  --glass-shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 10px 20px rgba(0, 0, 0, 0.55);
+  --glow-primary: 0 0 40px -6px rgba(96, 99, 238, 0.45);
   --glow-emerald: 0 0 40px -6px rgba(16, 185, 129, 0.45);
   --glow-amber: 0 0 40px -6px rgba(245, 158, 11, 0.45);
 }

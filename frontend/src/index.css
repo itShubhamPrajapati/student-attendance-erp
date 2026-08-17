@@ -16,16 +16,16 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 antialiased selection:bg-indigo-500 selection:text-white dark:bg-slate-950 dark:text-slate-100;
+    @apply bg-[#faf8ff] text-[#131b2e] antialiased selection:bg-indigo-500 selection:text-white dark:bg-[#090d16] dark:text-[#f8fafc];
   }
   
-  h1, h2, h3, .font-heading {
-    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  h1, h2, h3, h4, h5, h6, .font-heading, .font-display {
+    font-family: 'Hanken Grotesk', 'Outfit', 'Inter', system-ui, sans-serif;
   }
 
   /* Accessible focus indicators */
   :focus-visible {
-    @apply outline-none ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900;
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-white dark:ring-offset-slate-900;
   }
 }
 
