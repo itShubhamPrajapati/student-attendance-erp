@@ -117,11 +117,53 @@
   animation: float-subtle 4s ease-in-out infinite;
 }
 
+/* QR Scanning Line Animation */
+@keyframes qrScanMotion {
+  0% {
+    top: 2%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.85;
+  }
+  85% {
+    opacity: 0.85;
+  }
+  100% {
+    top: 98%;
+    opacity: 0;
+  }
+}
+
+.animate-qr-scan {
+  animation: qrScanMotion 2.2s linear infinite;
+}
+
+/* Radar rotation */
+@keyframes radarSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-radar-slow {
+  animation: radarSlow 18s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .animate-qr-scan,
+  .animate-radar-slow,
+  .animate-float-subtle,
+  .animate-pulse-subtle {
+    animation: none !important;
   }
 }

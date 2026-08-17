@@ -16,7 +16,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../co
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { ConnectionStatus } from '../components/ConnectionStatus';
-import { HeroDonutQR } from '../components/HeroDonutQR';
+import { LiveQrHeroVisual } from '../components/effects/LiveQrHeroVisual';
 
 export const LandingPage: React.FC = () => {
   const roleCards = [
@@ -77,16 +77,16 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div className="space-y-10 sm:space-y-14 py-2 sm:py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Stitch Hero Section with Interactive Donut QR */}
+      {/* Hero Section: Live QR Attendance Hub */}
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#faf8ff] via-[#f2f3ff] to-[#e2e7ff] dark:from-[#0c1220] dark:via-[#111726] dark:to-[#171f33] p-6 sm:p-10 lg:p-12 border border-slate-200/80 dark:border-white/10 shadow-lg">
         {/* Ambient Hero Glows */}
-        <div className="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-[#6b38d4]/15 dark:bg-[#6b38d4]/20 blur-[120px] pointer-events-none" />
-        <div className="absolute -bottom-20 -right-20 w-[450px] h-[450px] rounded-full bg-[#4648d4]/15 dark:bg-[#4648d4]/20 blur-[140px] pointer-events-none" />
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-[#6b38d4]/15 dark:bg-[#6b38d4]/20 blur-[120px] pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-[450px] h-[450px] rounded-full bg-[#4648d4]/15 dark:bg-[#4648d4]/20 blur-[140px] pointer-events-none" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center relative z-10">
           {/* Left Column: Hero Copy & Actions */}
           <div className="lg:col-span-7 space-y-5 sm:space-y-6 text-center lg:text-left flex flex-col items-center lg:items-start">
-            {/* Top Badge matching Stitch Mobile #e43b3f96 */}
+            {/* Top Badge */}
             <div className="inline-flex items-center gap-2 rounded-full bg-white/90 dark:bg-slate-800/80 px-3.5 py-1 text-xs font-semibold font-heading text-[#4648d4] dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 shadow-xs">
               <span className="w-2 h-2 rounded-full bg-[#4648d4] dark:bg-indigo-400 animate-pulse" />
               <span>Next-Gen Campus Attendance</span>
@@ -118,14 +118,14 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: Interactive Donut with Hover QR Reveal */}
-          <div className="lg:col-span-5 flex items-center justify-center pt-2 lg:pt-0">
-            <HeroDonutQR />
+          {/* Right Column: Live QR Attendance Visual */}
+          <div className="lg:col-span-5 flex items-center justify-center pt-2 lg:pt-0 w-full">
+            <LiveQrHeroVisual />
           </div>
         </div>
       </section>
 
-      {/* Social Proof / Stats Banner (Stitch Mobile #e43b3f96 section) */}
+      {/* Social Proof / Stats Banner */}
       <section className="w-full bg-[#4648d4] dark:bg-[#3b3dbb] text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-36 h-36 bg-black/10 rounded-full blur-2xl pointer-events-none" />
