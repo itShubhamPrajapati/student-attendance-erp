@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Shield,
@@ -16,10 +16,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../co
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { ConnectionStatus } from '../components/ConnectionStatus';
-
-const FluidGlass = lazy(() =>
-  import('../components/effects/FluidGlass').then((m) => ({ default: m.FluidGlass }))
-);
+import { HeroDonutQR } from '../components/HeroDonutQR';
 
 export const LandingPage: React.FC = () => {
   const roleCards = [
@@ -80,49 +77,50 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div className="space-y-10 sm:space-y-14 py-2 sm:py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Stitch Hero Section (Optimized for Mobile & Desktop) */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#faf8ff] via-[#f2f3ff] to-[#e2e7ff] dark:from-[#0c1220] dark:via-[#111726] dark:to-[#171f33] p-6 sm:p-10 lg:p-14 border border-slate-200/80 dark:border-white/10 shadow-lg text-center flex flex-col items-center">
+      {/* Stitch Hero Section with Interactive Donut QR */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#faf8ff] via-[#f2f3ff] to-[#e2e7ff] dark:from-[#0c1220] dark:via-[#111726] dark:to-[#171f33] p-6 sm:p-10 lg:p-12 border border-slate-200/80 dark:border-white/10 shadow-lg">
         {/* Ambient Hero Glows */}
         <div className="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-[#6b38d4]/15 dark:bg-[#6b38d4]/20 blur-[120px] pointer-events-none" />
         <div className="absolute -bottom-20 -right-20 w-[450px] h-[450px] rounded-full bg-[#4648d4]/15 dark:bg-[#4648d4]/20 blur-[140px] pointer-events-none" />
 
-        {/* 3D FluidGlass Ambient Hero Element (Desktop only) */}
-        <div className="absolute right-6 top-1/2 -translate-y-1/2 w-[320px] h-[320px] pointer-events-none hidden xl:block opacity-70">
-          <Suspense fallback={<div className="w-full h-full rounded-full bg-indigo-500/10 blur-3xl" />}>
-            <FluidGlass mode="lens" className="w-full h-full" />
-          </Suspense>
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+          {/* Left Column: Hero Copy & Actions */}
+          <div className="lg:col-span-7 space-y-5 sm:space-y-6 text-center lg:text-left flex flex-col items-center lg:items-start">
+            {/* Top Badge matching Stitch Mobile #e43b3f96 */}
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/90 dark:bg-slate-800/80 px-3.5 py-1 text-xs font-semibold font-heading text-[#4648d4] dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-[#4648d4] dark:bg-indigo-400 animate-pulse" />
+              <span>Next-Gen Campus Attendance</span>
+            </div>
 
-        <div className="relative z-10 max-w-3xl space-y-5 sm:space-y-6 flex flex-col items-center">
-          {/* Top Badge matching Stitch Mobile #e43b3f96 */}
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/90 dark:bg-slate-800/80 px-3.5 py-1 text-xs font-semibold font-heading text-[#4648d4] dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-[#4648d4] dark:bg-indigo-400 animate-pulse" />
-            <span>Next-Gen Campus Attendance</span>
+            <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-[#131b2e] dark:text-white">
+              Secure Campus <br className="hidden sm:inline" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4648d4] via-[#6063ee] to-[#6b38d4]">
+                Attendance. Simplified.
+              </span>
+            </h1>
+
+            <p className="text-sm sm:text-base text-[#464554] dark:text-slate-300 leading-relaxed max-w-xl font-normal">
+              Eliminate proxy attendance with cryptographically secure, dynamic QR codes designed for modern higher education.
+            </p>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 w-full sm:w-auto">
+              <Link to="/login" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto bg-[#4648d4] hover:bg-[#383ab6] text-white shadow-md shadow-[#4648d4]/30 px-7">
+                  <span>Get Started</span>
+                  <ArrowRight className="w-4 h-4 ml-1.5" />
+                </Button>
+              </Link>
+              <Link to="/admin" className="w-full sm:w-auto">
+                <Button variant="container" size="lg" className="w-full sm:w-auto px-6">
+                  <span>Explore Dashboards</span>
+                </Button>
+              </Link>
+            </div>
           </div>
 
-          <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-[#131b2e] dark:text-white">
-            Secure Campus <br className="hidden sm:inline" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4648d4] via-[#6063ee] to-[#6b38d4]">
-              Attendance. Simplified.
-            </span>
-          </h1>
-
-          <p className="text-sm sm:text-base text-[#464554] dark:text-slate-300 leading-relaxed max-w-xl font-normal">
-            Eliminate proxy attendance with cryptographically secure, dynamic QR codes designed for modern higher education.
-          </p>
-
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
-            <Link to="/login" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto bg-[#4648d4] hover:bg-[#383ab6] text-white shadow-md shadow-[#4648d4]/30 px-7">
-                <span>Get Started</span>
-                <ArrowRight className="w-4 h-4 ml-1.5" />
-              </Button>
-            </Link>
-            <Link to="/admin" className="w-full sm:w-auto">
-              <Button variant="container" size="lg" className="w-full sm:w-auto px-6">
-                <span>Explore Dashboards</span>
-              </Button>
-            </Link>
+          {/* Right Column: Interactive Donut with Hover QR Reveal */}
+          <div className="lg:col-span-5 flex items-center justify-center pt-2 lg:pt-0">
+            <HeroDonutQR />
           </div>
         </div>
       </section>
