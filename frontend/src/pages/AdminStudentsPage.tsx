@@ -419,41 +419,41 @@ export const AdminStudentsPage: React.FC = () => {
       {/* Assign Class Modal */}
       {assignClassStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
                   <Building2 className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900 font-heading">Assign Student to Class</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">Assign Student to Class</h3>
               </div>
               <button
                 onClick={() => setAssignClassStudent(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs">
-              <span className="text-slate-500 font-semibold">Student:</span>
-              <p className="text-slate-900 font-bold font-heading">{assignClassStudent.name} ({assignClassStudent.roll_number})</p>
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700 text-xs">
+              <span className="text-slate-500 dark:text-slate-400 font-semibold">Student:</span>
+              <p className="text-slate-900 dark:text-white font-bold font-heading">{assignClassStudent.name} ({assignClassStudent.roll_number})</p>
             </div>
 
             {assignError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                 <span>{assignError}</span>
               </div>
             )}
 
             <form onSubmit={handleAssignClassSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Select Academic Class
                 </label>
                 <select
-                  className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="block w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                   value={selectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
                 >
@@ -466,7 +466,7 @@ export const AdminStudentsPage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
                 <Button type="button" variant="outline" onClick={() => setAssignClassStudent(null)}>
                   Cancel
                 </Button>
@@ -482,25 +482,25 @@ export const AdminStudentsPage: React.FC = () => {
       {/* Add Student Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
                   <Plus className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900 font-heading">Register New Student</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">Register New Student</h3>
               </div>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {addError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                 <span>{addError}</span>
               </div>
             )}
@@ -552,11 +552,11 @@ export const AdminStudentsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Semester
                   </label>
                   <select
-                    className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    className="block w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                     value={addForm.semester}
                     onChange={(e) => setAddForm({ ...addForm, semester: parseInt(e.target.value, 10) || 1 })}
                   >
@@ -577,7 +577,7 @@ export const AdminStudentsPage: React.FC = () => {
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
                 <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
                   Cancel
                 </Button>
@@ -593,25 +593,25 @@ export const AdminStudentsPage: React.FC = () => {
       {/* Edit Student Modal */}
       {editingStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
                   <Edit2 className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900 font-heading">Edit Student Profile</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">Edit Student Profile</h3>
               </div>
               <button
                 onClick={() => setEditingStudent(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {editError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                 <span>{editError}</span>
               </div>
             )}
@@ -649,11 +649,11 @@ export const AdminStudentsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Semester
                   </label>
                   <select
-                    className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    className="block w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                     value={editForm.semester}
                     onChange={(e) => setEditForm({ ...editForm, semester: parseInt(e.target.value, 10) || 1 })}
                   >
@@ -673,7 +673,7 @@ export const AdminStudentsPage: React.FC = () => {
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
                 <Button type="button" variant="outline" onClick={() => setEditingStudent(null)}>
                   Cancel
                 </Button>
@@ -689,18 +689,18 @@ export const AdminStudentsPage: React.FC = () => {
       {/* Confirmation Dialog for Status Toggle */}
       {statusTargetStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl space-y-4 text-center">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4 text-center">
             <div className={`w-12 h-12 rounded-2xl mx-auto flex items-center justify-center ${
-              statusTargetStudent.is_active ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+              statusTargetStudent.is_active ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400' : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
             }`}>
               {statusTargetStudent.is_active ? <UserX className="w-6 h-6" /> : <UserCheck className="w-6 h-6" />}
             </div>
 
             <div>
-              <h3 className="text-base font-bold text-slate-900 font-heading">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
                 {statusTargetStudent.is_active ? 'Deactivate this student?' : 'Re-activate this student?'}
               </h3>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                 {statusTargetStudent.is_active
                   ? `Student ${statusTargetStudent.name} (${statusTargetStudent.roll_number}) will no longer be able to log in.`
                   : `Student ${statusTargetStudent.name} will be able to log in to their student portal.`}
@@ -708,15 +708,16 @@ export const AdminStudentsPage: React.FC = () => {
             </div>
 
             <div className="pt-2 flex items-center justify-center gap-2.5">
-              <Button variant="outline" onClick={() => setStatusTargetStudent(null)}>
+              <Button variant="outline" size="sm" onClick={() => setStatusTargetStudent(null)} disabled={statusLoading}>
                 Cancel
               </Button>
               <Button
                 variant={statusTargetStudent.is_active ? 'danger' : 'primary'}
+                size="sm"
                 isLoading={statusLoading}
                 onClick={handleConfirmToggleStatus}
               >
-                {statusTargetStudent.is_active ? 'Deactivate Account' : 'Activate Account'}
+                {statusTargetStudent.is_active ? 'Yes, Deactivate' : 'Yes, Activate'}
               </Button>
             </div>
           </div>

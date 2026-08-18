@@ -4,7 +4,9 @@ import { Navbar } from './components/Navbar';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { AuthLayout } from './layouts/AuthLayout';
 import { AuthProvider } from './auth/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
@@ -17,20 +19,34 @@ import { AdminClassesPage } from './pages/AdminClassesPage';
 import { AdminAssignmentsPage } from './pages/AdminAssignmentsPage';
 import { AdminAttendancePage } from './pages/AdminAttendancePage';
 import { TeacherDashboard } from './pages/TeacherDashboard';
+import { TeacherAttendanceHistoryPage } from './pages/TeacherAttendanceHistoryPage';
 import { TeacherAttendanceSessionPage } from './pages/TeacherAttendanceSessionPage';
 import { TeacherSessionAttendancePage } from './pages/TeacherSessionAttendancePage';
+import { TeacherStudentAttendanceSearchPage } from './pages/TeacherStudentAttendanceSearchPage';
+import { TeacherAttendanceAnalyticsPage } from './pages/TeacherAttendanceAnalyticsPage';
+import { TeacherProfilePage } from './pages/TeacherProfilePage';
 import { StudentDashboard } from './pages/StudentDashboard';
+import { StudentAttendanceCalendarPage } from './pages/StudentAttendanceCalendarPage';
+import { StudentAttendanceHistoryPage } from './pages/StudentAttendanceHistoryPage';
+import { StudentAttendanceAnalyticsPage } from './pages/StudentAttendanceAnalyticsPage';
 import { StudentScanAttendancePage } from './pages/StudentScanAttendancePage';
+import { StudentProfilePage } from './pages/StudentProfilePage';
+import { AttendanceProofVerificationPage } from './pages/AttendanceProofVerificationPage';
+import { ActivityPage } from './pages/ActivityPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Root layout for public pages
 const PublicLayout: React.FC = () => (
-  <div className="min-h-screen flex flex-col bg-slate-50/70">
+  <div className="min-h-screen flex flex-col bg-slate-50/70 dark:bg-slate-950 relative overflow-x-hidden transition-colors duration-200">
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed top-0 left-1/3 -z-10 w-[500px] h-[500px] rounded-full bg-indigo-500/5 dark:bg-indigo-500/10 blur-[140px]"
+    />
     <Navbar />
     <main className="flex-1 py-6">
       <Outlet />
     </main>
-    <footer className="border-t border-slate-200/80 bg-white py-4 px-6 text-center text-xs text-slate-500">
+    <footer className="border-t border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md py-4 px-6 text-center text-xs text-slate-500">
       QR-Based Student Attendance Management System &bull; Phase 4 QR-Based Attendance &bull; College Field Project
     </footer>
   </div>
@@ -38,12 +54,16 @@ const PublicLayout: React.FC = () => (
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+          <Routes>
           {/* Public & Landing Pages */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/verify/attendance/:publicId" element={<AttendanceProofVerificationPage />} />
+            <Route path="/verify/attendance" element={<AttendanceProofVerificationPage />} />
           </Route>
 
           {/* Auth Route */}
@@ -151,6 +171,28 @@ export const App: React.FC = () => {
           />
 
           <Route
+            path="/teacher/attendance/history"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER']}>
+                <DashboardLayout role="TEACHER">
+                  <TeacherAttendanceHistoryPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/teacher/attendance/sessions"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER']}>
+                <DashboardLayout role="TEACHER">
+                  <TeacherAttendanceHistoryPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/teacher/attendance/:sessionId"
             element={
               <ProtectedRoute allowedRoles={['TEACHER']}>
@@ -172,6 +214,50 @@ export const App: React.FC = () => {
             }
           />
 
+          <Route
+            path="/teacher/students/attendance"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER']}>
+                <DashboardLayout role="TEACHER">
+                  <TeacherStudentAttendanceSearchPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/teacher/students/search"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER']}>
+                <DashboardLayout role="TEACHER">
+                  <TeacherStudentAttendanceSearchPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/teacher/attendance/analytics"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER']}>
+                <DashboardLayout role="TEACHER">
+                  <TeacherAttendanceAnalyticsPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/teacher/profile"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER']}>
+                <DashboardLayout role="TEACHER">
+                  <TeacherProfilePage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* ================================================================ */}
           {/* STUDENT ROUTES (Protected: STUDENT only)                         */}
           {/* ================================================================ */}
@@ -181,6 +267,39 @@ export const App: React.FC = () => {
               <ProtectedRoute allowedRoles={['STUDENT']}>
                 <DashboardLayout role="STUDENT">
                   <StudentDashboard />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/student/attendance/calendar"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <DashboardLayout role="STUDENT">
+                  <StudentAttendanceCalendarPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/student/attendance/history"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <DashboardLayout role="STUDENT">
+                  <StudentAttendanceHistoryPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/student/attendance/analytics"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <DashboardLayout role="STUDENT">
+                  <StudentAttendanceAnalyticsPage />
                 </DashboardLayout>
               </ProtectedRoute>
             }
@@ -197,6 +316,29 @@ export const App: React.FC = () => {
             }
           />
 
+          <Route
+            path="/student/profile"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <DashboardLayout role="STUDENT">
+                  <StudentProfilePage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Universal Authenticated Activity Route (Feature #16) */}
+          <Route
+            path="/activity"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'TEACHER', 'STUDENT']}>
+                <DashboardLayout>
+                  <ActivityPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* 404 Fallback */}
           <Route
             path="*"
@@ -206,9 +348,11 @@ export const App: React.FC = () => {
               </AuthLayout>
             }
           />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
+  </ErrorBoundary>
   );
 };
 

@@ -126,6 +126,15 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			// Attendance Audit Management (Phase 4)
 			adminGroup.GET("/attendance/sessions", handlers.GetAdminAttendanceSessionsHandler(database.DB))
 			adminGroup.GET("/attendance/sessions/:id/records", handlers.GetAdminSessionRecordsHandler(database.DB))
+
+			// Attendance Session Finalization, Reopening & Session Audit (Feature #13)
+			adminGroup.POST("/attendance/sessions/:id/finalize", handlers.FinalizeAttendanceSessionHandler(database.DB))
+			adminGroup.POST("/attendance/sessions/:id/reopen", handlers.ReopenAttendanceSessionHandler(database.DB))
+			adminGroup.GET("/attendance/sessions/:id/audit", handlers.GetAttendanceSessionAuditHandler(database.DB))
+
+			// Attendance Digital Proof & Receipt (Feature #14)
+			adminGroup.GET("/attendance/:attendance_id/proof", handlers.GetAdminAttendanceProofHandler(database.DB, cfg))
+			adminGroup.GET("/attendance/:attendance_id/proof/pdf", handlers.DownloadAdminAttendanceProofPDFHandler(database.DB, cfg))
 		}
 
 		// ==============================================================================
@@ -135,15 +144,50 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		teacherGroup.Use(middleware.RequireAuth(cfg.JWTSecret))
 		teacherGroup.Use(middleware.RequireRole(models.RoleTeacher))
 		{
+			// Teacher Profile & Account Settings (Feature #19)
 			teacherGroup.GET("/profile", handlers.GetTeacherProfileHandler(database.DB))
+			teacherGroup.PATCH("/profile", handlers.UpdateTeacherProfileHandler(database.DB))
+			teacherGroup.PATCH("/account/password", handlers.ChangeTeacherPasswordHandler(database.DB))
+
 			teacherGroup.GET("/assignments", handlers.GetTeacherAssignmentsHandler(database.DB))
 
-			// Live Attendance Session Management (Phase 4)
+			// Live Attendance Session Management (Phase 4 & Feature #12 Late Attendance)
 			teacherGroup.POST("/attendance/sessions", handlers.CreateAttendanceSessionHandler(database.DB))
 			teacherGroup.GET("/attendance/sessions", handlers.GetTeacherSessionsHandler(database.DB))
 			teacherGroup.GET("/attendance/sessions/:id", handlers.GetTeacherSessionByIDHandler(database.DB))
+			teacherGroup.GET("/attendance/sessions/:id/live", handlers.GetTeacherLiveSessionHandler(database.DB))
 			teacherGroup.POST("/attendance/sessions/:id/end", handlers.EndAttendanceSessionHandler(database.DB))
 			teacherGroup.GET("/attendance/sessions/:id/records", handlers.GetTeacherSessionRecordsHandler(database.DB))
+			teacherGroup.PATCH("/attendance/sessions/:id/late-settings", handlers.UpdateSessionLateSettingsHandler(database.DB))
+			teacherGroup.PATCH("/sessions/:id/late-settings", handlers.UpdateSessionLateSettingsHandler(database.DB))
+
+			// Attendance Session Finalization & Session Audit (Feature #13)
+			teacherGroup.POST("/attendance/sessions/:id/finalize", handlers.FinalizeAttendanceSessionHandler(database.DB))
+			teacherGroup.GET("/attendance/sessions/:id/audit", handlers.GetAttendanceSessionAuditHandler(database.DB))
+
+			// Student Attendance Search & Details (Feature #9)
+			teacherGroup.GET("/students/search", handlers.SearchTeacherStudentsHandler(database.DB))
+			teacherGroup.GET("/students/:student_id/attendance", handlers.GetTeacherStudentAttendanceDetailHandler(database.DB))
+
+			// Attendance Report Exports (Feature #10)
+			teacherGroup.GET("/attendance/export/csv", handlers.ExportTeacherAttendanceCSVHandler(database.DB))
+			teacherGroup.GET("/attendance/export/excel", handlers.ExportTeacherAttendanceExcelHandler(database.DB))
+			teacherGroup.GET("/attendance/export/pdf", handlers.ExportTeacherAttendancePDFHandler(database.DB))
+			teacherGroup.GET("/students/:student_id/attendance/export/csv", handlers.ExportTeacherStudentAttendanceCSVHandler(database.DB))
+			teacherGroup.GET("/students/:student_id/attendance/export/excel", handlers.ExportTeacherStudentAttendanceExcelHandler(database.DB))
+			teacherGroup.GET("/students/:student_id/attendance/export/pdf", handlers.ExportTeacherStudentAttendancePDFHandler(database.DB))
+
+			// Manual Attendance & Correction with Mandatory Audit Trail (Feature #11)
+			teacherGroup.POST("/attendance/manual", handlers.MarkAttendanceManuallyHandler(database.DB))
+			teacherGroup.PATCH("/attendance/:attendance_id/correct", handlers.CorrectAttendanceHandler(database.DB))
+			teacherGroup.GET("/attendance/:attendance_id/audit", handlers.GetAttendanceAuditHandler(database.DB))
+
+			// Attendance Digital Proof & Receipt (Feature #14)
+			teacherGroup.GET("/attendance/:attendance_id/proof", handlers.GetTeacherAttendanceProofHandler(database.DB, cfg))
+			teacherGroup.GET("/attendance/:attendance_id/proof/pdf", handlers.DownloadTeacherAttendanceProofPDFHandler(database.DB, cfg))
+
+			// Teacher Attendance Analytics & Class Performance Insights (Feature #15)
+			teacherGroup.GET("/attendance/analytics", handlers.GetTeacherAttendanceAnalyticsHandler(database.DB))
 		}
 
 		// ==============================================================================
@@ -153,12 +197,23 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		studentGroup.Use(middleware.RequireAuth(cfg.JWTSecret))
 		studentGroup.Use(middleware.RequireRole(models.RoleStudent))
 		{
+			// Student Profile & Account Settings (Feature #18)
 			studentGroup.GET("/profile", handlers.GetStudentProfileHandler(database.DB))
+			studentGroup.PATCH("/profile", handlers.UpdateStudentProfileHandler(database.DB))
+			studentGroup.PATCH("/account/password", handlers.ChangeStudentPasswordHandler(database.DB))
+
 			studentGroup.GET("/subjects", handlers.GetStudentSubjectsHandler(database.DB))
 
-			// Student Attendance Summaries (Phase 4)
+			// Student Attendance Summaries, Calendar, History & Analytics (Features 5, 6 & 8)
 			studentGroup.GET("/attendance/summary", handlers.GetStudentAttendanceSummaryHandler(database.DB))
 			studentGroup.GET("/attendance/recent", handlers.GetStudentRecentAttendanceHandler(database.DB))
+			studentGroup.GET("/attendance/calendar", handlers.GetStudentAttendanceCalendarHandler(database.DB))
+			studentGroup.GET("/attendance/history", handlers.GetStudentAttendanceHistoryHandler(database.DB))
+			studentGroup.GET("/attendance/analytics", handlers.GetStudentAttendanceAnalyticsHandler(database.DB))
+
+			// Attendance Digital Proof & Receipt (Feature #14)
+			studentGroup.GET("/attendance/:attendance_id/proof", handlers.GetStudentAttendanceProofHandler(database.DB, cfg))
+			studentGroup.GET("/attendance/:attendance_id/proof/pdf", handlers.DownloadStudentAttendanceProofPDFHandler(database.DB, cfg))
 		}
 
 		// ==============================================================================
@@ -170,6 +225,16 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		{
 			attendanceGroup.POST("/mark", handlers.MarkAttendanceHandler(database.DB))
 		}
+
+		// ==============================================================================
+		// RECENT ACTIVITY & ACTIVITY FEED (Protected: RequireAuth - Feature #16)
+		// ==============================================================================
+		api.GET("/activity/recent", middleware.RequireAuth(cfg.JWTSecret), handlers.GetRecentActivityHandler(database.DB))
+
+		// ==============================================================================
+		// PUBLIC ATTENDANCE PROOF VERIFICATION (Unauthenticated - Feature #14)
+		// ==============================================================================
+		api.GET("/attendance/proof/verify/:public_id", handlers.VerifyAttendanceProofPublicHandler(database.DB))
 	}
 
 	// Fallback 404 handler

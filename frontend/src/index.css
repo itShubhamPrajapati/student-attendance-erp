@@ -1,3 +1,5 @@
+@import './styles/designTokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,10 +8,66 @@
   html {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-tap-highlight-color: transparent;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-[#faf8ff] text-[#131b2e] antialiased selection:bg-indigo-500 selection:text-white dark:bg-[#090d16] dark:text-[#f8fafc];
   }
   
-  h1, h2, h3, .font-heading {
-    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  h1, h2, h3, h4, h5, h6, .font-heading, .font-display {
+    font-family: 'Hanken Grotesk', 'Outfit', 'Inter', system-ui, sans-serif;
+  }
+
+  /* Accessible focus indicators */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-white dark:ring-offset-slate-900;
+  }
+}
+
+@layer utilities {
+  /* Liquid Glass Utilities */
+  .glass-surface {
+    background: var(--surface-glass);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-surface-strong {
+    background: var(--surface-glass-strong);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--glass-border-strong);
+    box-shadow: var(--glass-shadow-lg);
+  }
+
+  .glass-surface-subtle {
+    background: var(--surface-glass-subtle);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+  }
+
+  .glass-glow-indigo {
+    box-shadow: var(--glass-shadow), var(--glow-primary);
+  }
+
+  .glass-glow-emerald {
+    box-shadow: var(--glass-shadow), var(--glow-emerald);
+  }
+
+  .glass-glow-amber {
+    box-shadow: var(--glass-shadow), var(--glow-amber);
+  }
+
+  .spring-transition {
+    transition: all var(--duration-normal) var(--ease-spring);
   }
 }
 
@@ -32,6 +90,14 @@
   background: #94a3b8;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
 /* Smooth animations */
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -40,4 +106,64 @@
 
 .animate-pulse-subtle {
   animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-float-subtle {
+  animation: float-subtle 4s ease-in-out infinite;
+}
+
+/* QR Scanning Line Animation */
+@keyframes qrScanMotion {
+  0% {
+    top: 2%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.85;
+  }
+  85% {
+    opacity: 0.85;
+  }
+  100% {
+    top: 98%;
+    opacity: 0;
+  }
+}
+
+.animate-qr-scan {
+  animation: qrScanMotion 2.2s linear infinite;
+}
+
+/* Radar rotation */
+@keyframes radarSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-radar-slow {
+  animation: radarSlow 18s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-qr-scan,
+  .animate-radar-slow,
+  .animate-float-subtle,
+  .animate-pulse-subtle {
+    animation: none !important;
+  }
 }

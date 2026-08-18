@@ -407,26 +407,6 @@ func DeleteAssignmentHandler(db *gorm.DB) gin.HandlerFunc {
 // TEACHER PORTAL HANDLERS (RequireRole: TEACHER)
 // ==============================================================================
 
-// GetTeacherProfileHandler handles GET /api/teacher/profile
-func GetTeacherProfileHandler(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userID := c.GetString("user_id")
-		profile, err := services.GetTeacherProfileByUserID(db, userID)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{
-				"success": false,
-				"message": "Teacher profile not found",
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"profile": profile,
-		})
-	}
-}
-
 // GetTeacherAssignmentsHandler handles GET /api/teacher/assignments
 func GetTeacherAssignmentsHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -450,26 +430,6 @@ func GetTeacherAssignmentsHandler(db *gorm.DB) gin.HandlerFunc {
 // ==============================================================================
 // STUDENT PORTAL HANDLERS (RequireRole: STUDENT)
 // ==============================================================================
-
-// GetStudentProfileHandler handles GET /api/student/profile
-func GetStudentProfileHandler(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userID := c.GetString("user_id")
-		profile, err := services.GetStudentProfileByUserID(db, userID)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{
-				"success": false,
-				"message": "Student profile not found",
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"student": profile,
-		})
-	}
-}
 
 // GetStudentSubjectsHandler handles GET /api/student/subjects
 func GetStudentSubjectsHandler(db *gorm.DB) gin.HandlerFunc {

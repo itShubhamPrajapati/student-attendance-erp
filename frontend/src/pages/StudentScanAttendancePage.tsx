@@ -10,6 +10,10 @@ import {
   RefreshCw,
   ShieldCheck,
   Zap,
+  Clock,
+  WifiOff,
+  FileText,
+  Lock,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -17,8 +21,15 @@ import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { AttendanceProofModal } from '../components/AttendanceProofModal';
 import { MarkAttendanceResponse } from '../types';
 import { apiMarkAttendance } from '../services/api';
+
+interface ErrorStateDetails {
+  title: string;
+  message: string;
+  type: 'duplicate' | 'expired' | 'ended' | 'wrong_class' | 'invalid' | 'network' | 'finalized' | 'generic';
+}
 
 export const StudentScanAttendancePage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -28,7 +39,8 @@ export const StudentScanAttendancePage: React.FC = () => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [successData, setSuccessData] = useState<MarkAttendanceResponse | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<ErrorStateDetails | null>(null);
+  const [showProofModal, setShowProofModal] = useState(false);
   const [manualToken, setManualToken] = useState('');
 
   const qrReaderRef = useRef<Html5Qrcode | null>(null);
@@ -66,7 +78,7 @@ export const StudentScanAttendancePage: React.FC = () => {
   // Start Camera
   const startCamera = async () => {
     setCameraError(null);
-    setErrorMessage(null);
+    setErrorDetails(null);
     setSuccessData(null);
     scannedProcessedRef.current = false;
 
@@ -119,17 +131,76 @@ export const StudentScanAttendancePage: React.FC = () => {
   // Submit session token to backend
   const submitToken = async (token: string) => {
     const clean = token.trim();
-    if (!clean) return;
+    if (!clean || verifying) return;
 
     setVerifying(true);
-    setErrorMessage(null);
+    setErrorDetails(null);
     setSuccessData(null);
 
     try {
       const res = await apiMarkAttendance(clean);
       setSuccessData(res.data);
     } catch (err: unknown) {
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to verify attendance');
+      // Check for structured error_code (Feature #13 SESSION_FINALIZED)
+      const errObj = err as { error_code?: string; message?: string };
+      const rawMsg = errObj.message || (err instanceof Error ? err.message : 'Failed to verify attendance');
+      const errorCode = errObj.error_code || '';
+      const lower = rawMsg.toLowerCase();
+
+      if (errorCode === 'SESSION_FINALIZED' || lower.includes('finalized') || lower.includes('locked')) {
+        setErrorDetails({
+          type: 'finalized',
+          title: 'Attendance Closed',
+          message: 'This attendance session has already been finalized. No further check-ins are accepted.',
+        });
+      } else if (lower.includes('already been marked') || lower.includes('duplicate')) {
+        setErrorDetails({
+          type: 'duplicate',
+          title: 'Attendance Already Marked',
+          message: 'Your attendance for this lecture has already been recorded.',
+        });
+      } else if (lower.includes('expired')) {
+        setErrorDetails({
+          type: 'expired',
+          title: 'QR Code Expired',
+          message: 'This attendance session has expired and is no longer accepting scans.',
+        });
+      } else if (lower.includes('ended')) {
+        setErrorDetails({
+          type: 'ended',
+          title: 'Attendance Session Ended',
+          message: 'This attendance session has been ended by the faculty teacher.',
+        });
+      } else if (lower.includes('not enrolled') || lower.includes('not assigned') || lower.includes('wrong class')) {
+        setErrorDetails({
+          type: 'wrong_class',
+          title: 'Class Enrollment Mismatch',
+          message: 'You are not enrolled in the academic class for this session.',
+        });
+      } else if (lower.includes('invalid') || lower.includes('not found')) {
+        setErrorDetails({
+          type: 'invalid',
+          title: 'Invalid QR Code',
+          message: 'The scanned QR code or session token is invalid or unrecognized.',
+        });
+      } else if (
+        lower.includes('unable to connect') ||
+        lower.includes('network') ||
+        lower.includes('failed to fetch') ||
+        lower.includes('networkerror')
+      ) {
+        setErrorDetails({
+          type: 'network',
+          title: 'Connection Error',
+          message: 'Unable to connect to the server. Please check your internet connection and try again.',
+        });
+      } else {
+        setErrorDetails({
+          type: 'generic',
+          title: 'Attendance Not Recorded',
+          message: rawMsg || 'Unable to record attendance. Please try again.',
+        });
+      }
     } finally {
       setVerifying(false);
     }
@@ -141,7 +212,7 @@ export const StudentScanAttendancePage: React.FC = () => {
         title="Scan Attendance QR"
         description="Point your device camera at the attendance QR code displayed on your faculty teacher's screen."
         badge={
-          <Badge variant="success" withDot>
+          <Badge variant="tertiary" withDot>
             Live Camera Ready
           </Badge>
         }
@@ -154,38 +225,91 @@ export const StudentScanAttendancePage: React.FC = () => {
         }
       />
 
-      {/* Success Celebration Card */}
+      {/* Success Celebration Card (Supports On-Time PRESENT and LATE Attendance) */}
       {successData && (
-        <Card className="p-6 sm:p-8 bg-emerald-50/60 border-emerald-200 text-center space-y-4 shadow-sm animate-in zoom-in-95">
-          <div className="w-16 h-16 rounded-3xl bg-emerald-600 text-white mx-auto flex items-center justify-center shadow-md">
-            <CheckCircle2 className="w-9 h-9" />
+        <Card
+          className={`p-6 sm:p-8 text-center space-y-4 shadow-sm animate-in zoom-in-95 ${
+            successData.status === 'LATE'
+              ? 'bg-amber-500/10 border-amber-500/20'
+              : 'bg-emerald-500/10 border-emerald-500/20'
+          }`}
+        >
+          <div
+            className={`w-16 h-16 rounded-3xl mx-auto flex items-center justify-center shadow-md ${
+              successData.status === 'LATE'
+                ? 'bg-amber-500 text-white'
+                : 'bg-[#006c49] text-white'
+            }`}
+          >
+            {successData.status === 'LATE' ? (
+              <Clock className="w-9 h-9" />
+            ) : (
+              <CheckCircle2 className="w-9 h-9" />
+            )}
           </div>
 
           <div>
-            <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-3 py-1 rounded-full mb-2">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Verified Present
-            </span>
-            <h3 className="text-xl font-extrabold text-slate-900 font-heading">
-              Attendance Marked Successfully!
-            </h3>
-            <p className="text-xs text-slate-600 mt-1">
-              Your attendance has been recorded in the database for today's lecture session.
-            </p>
+            {successData.status === 'LATE' ? (
+              <>
+                <span className="inline-flex items-center gap-1 text-xs font-bold font-heading uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-500/15 px-3 py-1 rounded-full mb-2 border border-amber-500/20">
+                  <Clock className="w-3.5 h-3.5" />
+                  Recorded (Late Attendance)
+                </span>
+                <h3 className="text-xl font-bold text-[#131b2e] dark:text-white font-heading">
+                  Attendance Recorded (Late)
+                </h3>
+                <p className="text-xs text-[#464554] dark:text-slate-300 mt-1 max-w-md mx-auto">
+                  Your scan was received after the session's on-time cutoff. Per academic guidelines, <strong className="text-[#131b2e] dark:text-white">late attendance still counts as ATTENDED</strong> toward your attendance requirement.
+                </p>
+              </>
+            ) : (
+              <>
+                <span className="inline-flex items-center gap-1 text-xs font-bold font-heading uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 px-3 py-1 rounded-full mb-2 border border-emerald-500/20">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Verified On-Time
+                </span>
+                <h3 className="text-xl font-bold text-[#131b2e] dark:text-white font-heading">
+                  Attendance Marked Successfully!
+                </h3>
+                <p className="text-xs text-[#464554] dark:text-slate-300 mt-1">
+                  Your on-time attendance has been verified and recorded for today's lecture session.
+                </p>
+              </>
+            )}
           </div>
 
-          <div className="p-4 rounded-2xl bg-white border border-emerald-200/80 text-left space-y-2 text-xs">
+          <div
+            className={`p-4 rounded-2xl bg-white dark:bg-[#111726] text-left space-y-2 text-xs border ${
+              successData.status === 'LATE' ? 'border-amber-200 dark:border-amber-900/60' : 'border-emerald-200/80 dark:border-emerald-900/60'
+            }`}
+          >
             <div className="flex items-center justify-between">
-              <span className="text-slate-500 font-semibold">Course Subject:</span>
-              <span className="font-bold text-slate-900 font-heading">{successData.subject_name}</span>
+              <span className="text-[#464554] dark:text-slate-400 font-semibold">Course Subject:</span>
+              <span className="font-bold text-[#131b2e] dark:text-white font-heading">{successData.subject_name}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-500 font-semibold">Classroom Batch:</span>
-              <span className="font-medium text-slate-800">{successData.class_name}</span>
+              <span className="text-[#464554] dark:text-slate-400 font-semibold">Classroom Batch:</span>
+              <span className="font-medium text-[#131b2e] dark:text-slate-200">{successData.class_name}</span>
             </div>
-            <div className="flex items-center justify-between pt-1 border-t border-slate-100 font-mono text-[11px]">
-              <span className="text-slate-500">Recorded At:</span>
-              <span className="font-semibold text-emerald-700">
+            <div className="flex items-center justify-between">
+              <span className="text-[#464554] dark:text-slate-400 font-semibold">Recorded Status:</span>
+              <span
+                className={`font-bold px-2 py-0.5 rounded text-[11px] font-heading ${
+                  successData.status === 'LATE'
+                    ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                    : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                }`}
+              >
+                {successData.status === 'LATE' ? 'LATE (Attended)' : 'PRESENT (On-Time)'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800 font-mono text-[11px]">
+              <span className="text-[#464554] dark:text-slate-400">Recorded At:</span>
+              <span
+                className={`font-semibold ${
+                  successData.status === 'LATE' ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'
+                }`}
+              >
                 {new Date(successData.marked_at).toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -195,48 +319,124 @@ export const StudentScanAttendancePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-            <Link to="/student" className="w-full sm:w-auto">
-              <Button size="md" variant="primary" className="w-full sm:w-auto" leftIcon={<ArrowLeft className="w-4 h-4" />}>
-                Back to Dashboard
+          <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5">
+            {successData.attendance_id && (
+              <Button
+                size="md"
+                variant="primary"
+                onClick={() => setShowProofModal(true)}
+                className="w-full sm:w-auto min-h-[44px] shadow-sm font-bold flex items-center justify-center gap-2"
+                leftIcon={<FileText className="w-4 h-4" />}
+              >
+                View Attendance Proof
+              </Button>
+            )}
+            <Link to="/student/attendance/history" className="w-full sm:w-auto">
+              <Button size="md" variant="outline" className="w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-2" leftIcon={<Clock className="w-4 h-4 text-[#4648d4]" />}>
+                Attendance History
               </Button>
             </Link>
             <Button
               size="md"
               variant="outline"
+              className="w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-2"
               onClick={() => {
                 setSuccessData(null);
                 startCamera();
               }}
+              leftIcon={<RefreshCw className="w-4 h-4" />}
             >
-              Scan Another Session
+              Scan Another QR
             </Button>
+            <Link to="/student" className="w-full sm:w-auto">
+              <Button size="md" variant="outline" className="w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-2" leftIcon={<ArrowLeft className="w-4 h-4" />}>
+                Dashboard
+              </Button>
+            </Link>
           </div>
         </Card>
       )}
 
-      {/* Error Card */}
-      {errorMessage && !verifying && (
-        <Card className="p-6 bg-rose-50/60 border-rose-200 text-center space-y-3 shadow-sm animate-in fade-in">
-          <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 mx-auto flex items-center justify-center">
-            <AlertCircle className="w-6 h-6" />
+      {/* Proof Modal */}
+      {successData?.attendance_id && (
+        <AttendanceProofModal
+          isOpen={showProofModal}
+          onClose={() => setShowProofModal(false)}
+          attendanceId={successData.attendance_id}
+          role="STUDENT"
+        />
+      )}
+
+      {/* Categorized Error Card */}
+      {errorDetails && !verifying && (
+        <Card
+          className={`p-6 text-center space-y-3 shadow-sm animate-in fade-in ${
+            errorDetails.type === 'finalized'
+              ? 'bg-purple-500/10 border-purple-500/20'
+              : errorDetails.type === 'duplicate'
+              ? 'bg-amber-500/10 border-amber-500/20'
+              : errorDetails.type === 'expired'
+              ? 'bg-amber-500/10 border-amber-500/20'
+              : 'bg-rose-500/10 border-rose-500/20'
+          }`}
+        >
+          <div
+            className={`w-12 h-12 rounded-2xl mx-auto flex items-center justify-center ${
+              errorDetails.type === 'finalized'
+                ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'
+                : errorDetails.type === 'duplicate' || errorDetails.type === 'expired'
+                ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300'
+            }`}
+          >
+            {errorDetails.type === 'finalized' ? (
+              <Lock className="w-6 h-6" />
+            ) : errorDetails.type === 'expired' ? (
+              <Clock className="w-6 h-6" />
+            ) : errorDetails.type === 'network' ? (
+              <WifiOff className="w-6 h-6" />
+            ) : (
+              <AlertCircle className="w-6 h-6" />
+            )}
           </div>
           <div>
-            <h3 className="text-sm font-bold text-rose-900 font-heading">Attendance Not Recorded</h3>
-            <p className="text-xs text-rose-700 mt-1">{errorMessage}</p>
+            <h3
+              className={`text-sm font-bold font-heading ${
+                errorDetails.type === 'finalized'
+                  ? 'text-purple-900 dark:text-purple-200'
+                  : errorDetails.type === 'duplicate' || errorDetails.type === 'expired'
+                  ? 'text-amber-900 dark:text-amber-200'
+                  : 'text-rose-900 dark:text-rose-200'
+              }`}
+            >
+              {errorDetails.title}
+            </h3>
+            <p
+              className={`text-xs mt-1 ${
+                errorDetails.type === 'finalized'
+                  ? 'text-purple-700 dark:text-purple-300'
+                  : errorDetails.type === 'duplicate' || errorDetails.type === 'expired'
+                  ? 'text-amber-700 dark:text-amber-300'
+                  : 'text-rose-700 dark:text-rose-300'
+              }`}
+            >
+              {errorDetails.message}
+            </p>
           </div>
           <div className="pt-2 flex items-center justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setErrorMessage(null);
-                startCamera();
-              }}
-              leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-            >
-              Try Again
-            </Button>
+            {errorDetails.type !== 'finalized' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setErrorDetails(null);
+                  startCamera();
+                }}
+                leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+              >
+                Try Again
+              </Button>
+            )}
             <Link to="/student">
               <Button variant="outline" size="sm">
                 Dashboard
@@ -248,27 +448,27 @@ export const StudentScanAttendancePage: React.FC = () => {
 
       {/* Verifying Loader */}
       {verifying && (
-        <Card className="p-8 text-center space-y-3 bg-white border-indigo-100 shadow-sm animate-in fade-in">
+        <Card className="p-8 text-center space-y-3 bg-white dark:bg-[#111726] border-indigo-100 dark:border-indigo-950 shadow-sm animate-in fade-in">
           <LoadingSpinner size="lg" label="Verifying QR attendance with server..." />
-          <p className="text-xs text-slate-500 font-mono">Validating class enrollment & server time</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">Validating class enrollment &amp; server time</p>
         </Card>
       )}
 
       {/* Main Camera Scanning Card */}
       {!successData && !verifying && (
-        <Card className="p-5 sm:p-6 bg-white border-slate-200/80 shadow-md space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <Card className="p-5 sm:p-6 bg-white dark:bg-[#111726] border-slate-200/80 dark:border-slate-800 shadow-md space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-[#4648d4] dark:text-indigo-400 flex items-center justify-center font-bold">
                 <Camera className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-900 font-heading">Mobile Camera Scanner</h4>
-                <p className="text-[11px] text-slate-400">Position QR code within the frame</p>
+                <h4 className="text-xs font-bold text-[#131b2e] dark:text-white font-heading">Mobile Camera Scanner</h4>
+                <p className="text-[11px] text-[#464554] dark:text-slate-400">Position QR code within the frame</p>
               </div>
             </div>
             {isScanning && (
-              <Badge variant="success" withDot className="text-[10px]">
+              <Badge variant="tertiary" withDot className="text-[10px]">
                 Camera Active
               </Badge>
             )}
@@ -280,7 +480,7 @@ export const StudentScanAttendancePage: React.FC = () => {
 
             {!isScanning && (
               <div className="p-6 text-center space-y-3 z-10">
-                <QrCode className="w-12 h-12 text-indigo-400 mx-auto opacity-70" />
+                <QrCode className="w-12 h-12 text-[#c0c1ff] mx-auto opacity-80" />
                 <p className="text-xs text-slate-300">Click below to activate camera and scan attendance QR code.</p>
                 <Button size="sm" onClick={startCamera} leftIcon={<Camera className="w-3.5 h-3.5" />}>
                   Start Camera
@@ -291,8 +491,8 @@ export const StudentScanAttendancePage: React.FC = () => {
 
           {/* Camera Permission Error Notice */}
           {cameraError && (
-            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <span>{cameraError}</span>
                 <div className="pt-1">
@@ -305,8 +505,8 @@ export const StudentScanAttendancePage: React.FC = () => {
           )}
 
           {/* Accessible Fallback Token Input */}
-          <div className="pt-3 border-t border-slate-100 space-y-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+            <span className="text-[11px] font-bold font-heading text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
               Or Enter Session Token
             </span>
             <div className="flex items-center gap-2">

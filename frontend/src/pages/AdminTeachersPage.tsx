@@ -309,25 +309,25 @@ export const AdminTeachersPage: React.FC = () => {
       {/* Add Teacher Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
                   <Plus className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900 font-heading">Register Faculty Member</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">Register Faculty Member</h3>
               </div>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {addError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                 <span>{addError}</span>
               </div>
             )}
@@ -377,7 +377,7 @@ export const AdminTeachersPage: React.FC = () => {
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
                 <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
                   Cancel
                 </Button>
@@ -393,25 +393,25 @@ export const AdminTeachersPage: React.FC = () => {
       {/* Edit Teacher Modal */}
       {editingTeacher && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
                   <Edit2 className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900 font-heading">Edit Teacher Profile</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">Edit Teacher Profile</h3>
               </div>
               <button
                 onClick={() => setEditingTeacher(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {editError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                 <span>{editError}</span>
               </div>
             )}
@@ -447,7 +447,7 @@ export const AdminTeachersPage: React.FC = () => {
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
                 <Button type="button" variant="outline" onClick={() => setEditingTeacher(null)}>
                   Cancel
                 </Button>
@@ -463,18 +463,18 @@ export const AdminTeachersPage: React.FC = () => {
       {/* Confirmation Dialog for Status Toggle */}
       {statusTargetTeacher && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl space-y-4 text-center">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4 text-center">
             <div className={`w-12 h-12 rounded-2xl mx-auto flex items-center justify-center ${
-              statusTargetTeacher.is_active ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+              statusTargetTeacher.is_active ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400' : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
             }`}>
               {statusTargetTeacher.is_active ? <UserX className="w-6 h-6" /> : <UserCheck className="w-6 h-6" />}
             </div>
 
             <div>
-              <h3 className="text-base font-bold text-slate-900 font-heading">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
                 {statusTargetTeacher.is_active ? 'Deactivate this teacher?' : 'Re-activate this teacher?'}
               </h3>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                 {statusTargetTeacher.is_active
                   ? `Teacher ${statusTargetTeacher.name} (${statusTargetTeacher.employee_id}) will no longer be able to log in.`
                   : `Teacher ${statusTargetTeacher.name} will be able to log in to their faculty portal.`}
@@ -482,15 +482,16 @@ export const AdminTeachersPage: React.FC = () => {
             </div>
 
             <div className="pt-2 flex items-center justify-center gap-2.5">
-              <Button variant="outline" onClick={() => setStatusTargetTeacher(null)}>
+              <Button variant="outline" size="sm" onClick={() => setStatusTargetTeacher(null)} disabled={statusLoading}>
                 Cancel
               </Button>
               <Button
                 variant={statusTargetTeacher.is_active ? 'danger' : 'primary'}
-                isLoading={statusLoading}
+                size="sm"
                 onClick={handleConfirmToggleStatus}
+                isLoading={statusLoading}
               >
-                {statusTargetTeacher.is_active ? 'Deactivate Account' : 'Activate Account'}
+                {statusTargetTeacher.is_active ? 'Yes, Deactivate' : 'Yes, Activate'}
               </Button>
             </div>
           </div>
